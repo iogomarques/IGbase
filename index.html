@@ -47,6 +47,7 @@
   .brand-text{ display:flex; flex-direction:column; line-height:1.2; }
   .brand-text b{ font-family: var(--serif); font-size: 17px; font-weight:700; }
   .brand-text span{ font-size:11.5px; color: var(--ink-soft); }
+  .brand-email{ font-size:12.5px; color: var(--ink-soft); overflow:hidden; text-overflow:ellipsis; white-space:nowrap; padding:0 2px; margin-bottom:18px; }
   .settings-btn{ flex-shrink:0; width:32px; height:32px; border-radius:50%; border:1px solid var(--line); background:var(--surface); color:var(--ink-soft); display:flex; align-items:center; justify-content:center; cursor:pointer; transition:background .15s,color .15s,border-color .15s; }
   .settings-btn:hover{ background: var(--panel-soft, #f3f4f2); color: var(--ink); }
   .settings-btn.active{ background: var(--accent); border-color: var(--accent); color:#fff; }
@@ -565,7 +566,7 @@ function mensagemErroAvaliacao(erro){
    ============================================================ */
 var state = {
   profiles: [], clients: [], quotes: [],
-  docConfig: { nomeEmpresa: '', logoBase64: null, corPrimaria: '#1B4D3E', textoRodape: '', enderecoContato: '' },
+  docConfig: { nomeEmpresa: '', logoBase64: null, corPrimaria: '#1B4D3E', textoRodape: '', enderecoContato: '', email: '', telefones: [] },
   selectedClientId: null, activeTab: 'novo',
   editingProfileId: null, /* perfil sendo editado/criado no momento (id ou null=novo) */
   lastDraft: null
@@ -625,7 +626,7 @@ async function saveClients(){ await storageSet('usinas:v2:clients', JSON.stringi
 async function saveQuotes(){ await storageSet('usinas:v2:quotes', JSON.stringify(state.quotes)); }
 async function saveDocConfig(){ await storageSet('usinas:v2:docconfig', JSON.stringify(state.docConfig)); }
 function docConfigPadrao(){
-  return { nomeEmpresa: '', logoBase64: null, corPrimaria: '#1B4D3E', textoRodape: '', enderecoContato: '' };
+  return { nomeEmpresa: '', logoBase64: null, corPrimaria: '#1B4D3E', textoRodape: '', enderecoContato: '', email: '', telefones: [] };
 }
 
 /* ============================================================
@@ -863,14 +864,13 @@ function renderSidebar(){
       '</button></div>';
   }).join('');
   el.innerHTML =
-    '<div class="brand" style="justify-content:space-between">' +
-      '<div style="display:flex;align-items:center;gap:9px;min-width:0">' + sunIconSvg(58) +
-        '<div class="brand-text"><span>' + escapeHtml(currentUser?currentUser.email:'') + '</span></div>' +
-      '</div>' +
+    '<div class="brand" style="justify-content:space-between;margin-bottom:8px">' +
+      sunIconSvg(48) +
       '<button class="settings-btn' + (state.activeTab==='config'?' active':'') + '" data-action="set-tab" data-tab="config" title="Configurações" aria-label="Configurações">' +
         '<svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M12 15a3 3 0 1 0 0-6 3 3 0 0 0 0 6Z"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 1 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 1 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 1 1-2.83-2.83l.06-.06A1.65 1.65 0 0 0 4.68 15a1.65 1.65 0 0 0-1.51-1H3a2 2 0 1 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 1 1 2.83-2.83l.06.06A1.65 1.65 0 0 0 9 4.6a1.65 1.65 0 0 0 1-1.51V3a2 2 0 1 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 1 1 2.83 2.83l-.06.06A1.65 1.65 0 0 0 19.4 9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 1 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1Z"/></svg>' +
       '</button>' +
     '</div>' +
+    '<div class="brand-email" title="' + escapeHtml(currentUser?currentUser.email:'') + '">' + escapeHtml(currentUser?currentUser.email:'') + '</div>' +
     '<div class="side-label">Clientes</div>' +
     '<div class="client-list">' + rows + '</div>' +
     '<button class="btn-new-client" data-action="new-client">+ Novo cliente</button>';
@@ -1307,7 +1307,8 @@ function onCalcular(){
     resultado.scope[profile.chaveTotalFinal] = (resultado.scope[profile.chaveTotalFinal] || 0) + repasseFatura;
   }
 
-  var camposVisiveis = profile.camposVisiveisCliente ? profile.camposVisiveisCliente.slice() : [];
+  var camposVisiveis = (c.camposVisiveisPadrao && c.camposVisiveisPadrao.length) ? c.camposVisiveisPadrao.slice()
+                      : (profile.camposVisiveisCliente ? profile.camposVisiveisCliente.slice() : []);
 
   state.lastDraft = {
     clientId: c.id, profileId: profile.id, referencia: referencia,
@@ -1326,7 +1327,7 @@ function onCalcular(){
    HTML DO DOCUMENTO DO CLIENTE — usado para gerar Word e PNG
    (o PDF do cliente é desenhado à parte, direto em jsPDF, mais abaixo)
    ============================================================ */
-function construirHtmlFatura(client, profile, draft, dc){
+function construirHtmlFatura(client, profile, draft, dc, qrDataUrl){
   var scope = draft.scope;
   var rgbArr = hexToRgb(dc.corPrimaria);
   var cor = 'rgb(' + rgbArr[0] + ',' + rgbArr[1] + ',' + rgbArr[2] + ')';
@@ -1365,11 +1366,24 @@ function construirHtmlFatura(client, profile, draft, dc){
   var intro = (profile.textoIntroducao || '').replace('{referencia}', draft.referencia);
   var introHtml = intro ? '<p style="color:#5c6f63;font-size:12.5px;margin:0 0 16px 0;">' + escapeHtml(intro) + '</p>' : '';
   var obsHtml = draft.observacoes ? '<p style="font-style:italic;color:#5c6f63;font-size:12.5px;margin:16px 0 0 0;">' + escapeHtml(draft.observacoes).split('\n').join('<br>') + '</p>' : '';
-  var logoHtml = dc.logoBase64 ? '<img src="' + dc.logoBase64 + '" style="height:56px;width:auto;display:block;margin-bottom:10px;">' : '';
+  var logoHtml = dc.logoBase64 ? '<img src="' + dc.logoBase64 + '" style="height:110px;width:auto;display:block;margin-bottom:14px;">' : '';
   var enderecoHtml = dc.enderecoContato ? '<div style="color:#5a665e;font-size:11.5px;">' + escapeHtml(dc.enderecoContato) + '</div>' : '';
   var totalLabel = profile.rotuloTotalCliente || 'VALOR FINAL A SER PAGO';
   var totalVal = fmtBRL(scope[profile.chaveTotalFinal]);
   var rodapeHtml = dc.textoRodape ? '<div style="margin-top:22px;color:#96a298;font-size:10px;">' + escapeHtml(dc.textoRodape) + '</div>' : '';
+
+  var contatoLinhas = [];
+  if(dc.email) contatoLinhas.push('E-mail: ' + dc.email);
+  (dc.telefones||[]).forEach(function(tel, i){
+    if(!tel) return;
+    contatoLinhas.push((dc.telefones.length > 1 ? 'Telefone ' + (i+1) + ': ' : 'Telefone: ') + tel);
+  });
+  var contatoHtml = contatoLinhas.length ? (
+    '<div style="margin-top:16px;padding:14px 18px;background:#f7f8f6;border-radius:6px;">' +
+      '<div style="color:'+cor+';font-weight:bold;font-size:10.5px;margin-bottom:7px;">MEIOS DE CONTATO</div>' +
+      contatoLinhas.map(function(l){ return '<div style="font-size:13.5px;color:#16241d;line-height:1.7;">' + escapeHtml(l) + '</div>'; }).join('') +
+    '</div>'
+  ) : '';
 
   return '<div style="font-family:Helvetica,Arial,sans-serif;max-width:640px;color:#16241d;">' +
     logoHtml +
@@ -1384,8 +1398,11 @@ function construirHtmlFatura(client, profile, draft, dc){
     '<table style="width:100%;border-collapse:collapse;margin-top:18px;"><tr style="background:'+cor+';"><td style="padding:14px 18px;color:#fff;font-weight:bold;font-size:12.5px;border-radius:6px 0 0 6px;">' + escapeHtml(totalLabel) + '</td><td style="padding:14px 18px;text-align:right;color:#fff;font-weight:bold;font-size:17px;border-radius:0 6px 6px 0;">' + totalVal + '</td></tr></table>' +
     '<table style="width:100%;border-collapse:collapse;margin-top:14px;border:1.5px solid '+cor+';border-radius:6px;"><tr>' +
       '<td style="padding:14px 18px;"><div style="color:'+cor+';font-weight:bold;font-size:10.5px;">PAGAMENTO — CHAVE PIX</div><div style="font-weight:bold;font-size:15px;margin-top:4px;">' + escapeHtml(client.chavePix || '—') + '</div></td>' +
-      '<td style="padding:14px 18px;text-align:right;color:#5c6f63;font-size:10.5px;">' + escapeHtml(client.banco||'') + (client.banco&&client.beneficiario?'<br>':'') + escapeHtml(client.beneficiario||'') + '</td>' +
+      (qrDataUrl
+        ? '<td style="padding:14px 18px;text-align:right;"><img src="' + qrDataUrl + '" style="width:96px;height:96px;display:inline-block;"></td>'
+        : '<td style="padding:14px 18px;text-align:right;color:#5c6f63;font-size:10.5px;">' + escapeHtml(client.banco||'') + (client.banco&&client.beneficiario?'<br>':'') + escapeHtml(client.beneficiario||'') + '</td>') +
     '</tr></table>' +
+    contatoHtml +
     rodapeHtml +
   '</div>';
 }
@@ -1409,7 +1426,9 @@ function renderPreview(){
     }).join('') +
     '</div><span class="hint" style="font-size:11.5px;color:var(--ink-soft);display:block;margin-top:8px">' +
     (profile.possuiItensMultiplos ? 'Os pontos de consumo e o total sempre aparecem no documento; aqui você escolhe quais campos extras também aparecem.' : 'O valor final sempre aparece no documento; aqui você escolhe quais campos extras também aparecem.') +
-    '</span></div>';
+    '</span>' +
+    '<button type="button" class="btn btn-sm" data-action="salvar-campos-padrao" style="margin-top:10px">Salvar esses campos como padrão deste cliente</button>' +
+    '</div>';
 
   var totalHtml = '<div class="panel"><div class="breakdown-row total"><span class="lbl">' +
     escapeHtml(profile.rotuloTotalCliente || 'Total final') + '</span><span class="val tabular">' +
@@ -1440,6 +1459,14 @@ function renderPreview(){
       if(!cb.checked && idx > -1) state.lastDraft.camposVisiveisEscolhidos.splice(idx,1);
     });
   });
+}
+async function salvarCamposComoPadrao(){
+  var d = state.lastDraft; if(!d) return;
+  var client = state.clients.find(function(c){ return c.id === d.clientId; });
+  if(!client) return;
+  client.camposVisiveisPadrao = d.camposVisiveisEscolhidos.slice();
+  await saveClients();
+  toast('Pronto — os próximos orçamentos deste cliente já vão começar com esses campos marcados.');
 }
 
 /* ============================================================
@@ -1512,13 +1539,89 @@ async function baixarDoc(){
   var profile = getProfile(d.profileId);
   if(!client || !profile) return;
   var dc = state.docConfig || docConfigPadrao();
-  var corpo = construirHtmlFatura(client, profile, d, dc);
+  var qrDataUrl = await gerarQrPixDataUrl(client, d.scope[profile.chaveTotalFinal]);
+  var corpo = construirHtmlFatura(client, profile, d, dc, qrDataUrl);
   var html = "<html xmlns:o='urn:schemas-microsoft-com:office:office' xmlns:w='urn:schemas-microsoft-com:office:word' xmlns='http://www.w3.org/TR/REC-html40'>" +
     "<head><meta charset='utf-8'><title>Fatura</title></head><body>" + corpo + "</body></html>";
   var blob = new Blob(['\ufeff', html], { type:'application/msword' });
   var nomeArquivo = nomeArquivoDocumento(client, d.referencia, 'FATURA') + '.doc';
   await compartilharOuBaixarBlob(blob, nomeArquivo, 'application/msword');
 }
+/* ============================================================
+   PIX — payload BR Code (padrão EMV/Banco Central) + QR Code visual
+   ============================================================ */
+function crc16Pix(str){
+  var crc = 0xFFFF;
+  for(var i=0;i<str.length;i++){
+    crc ^= (str.charCodeAt(i) << 8);
+    for(var j=0;j<8;j++){
+      crc = (crc & 0x8000) ? ((crc << 1) ^ 0x1021) & 0xFFFF : (crc << 1) & 0xFFFF;
+    }
+  }
+  var hex = crc.toString(16).toUpperCase();
+  while(hex.length < 4) hex = '0' + hex;
+  return hex;
+}
+function tlvPix(id, value){
+  var len = String(value.length);
+  while(len.length < 2) len = '0' + len;
+  return id + len + value;
+}
+function removerAcentosPix(s){
+  return String(s||'').normalize('NFD').replace(/[\u0300-\u036f]/g,'');
+}
+/* Gera o "copia e cola" do Pix (BR Code estático) com o valor exato do mês —
+   o cliente escaneia e o valor já vem preenchido certinho, sem digitar nada. */
+function gerarPayloadPix(chave, nomeBeneficiario, cidade, valor){
+  chave = String(chave||'').trim();
+  var nome = removerAcentosPix(nomeBeneficiario||'SOLAR ORGANIZATION').toUpperCase().slice(0,25) || 'SOLAR ORGANIZATION';
+  var cid = removerAcentosPix(cidade||'BRASIL').toUpperCase().slice(0,15) || 'BRASIL';
+  var merchantInfo = tlvPix('00','br.gov.bcb.pix') + tlvPix('01', chave);
+  var payload =
+    tlvPix('00','01') +
+    tlvPix('26', merchantInfo) +
+    tlvPix('52','0000') +
+    tlvPix('53','986') +
+    (valor > 0 ? tlvPix('54', valor.toFixed(2)) : '') +
+    tlvPix('58','BR') +
+    tlvPix('59', nome) +
+    tlvPix('60', cid) +
+    tlvPix('62', tlvPix('05','***')) +
+    '6304';
+  return payload + crc16Pix(payload);
+}
+var _qrLibLoading = null;
+function carregarQrCodeLib(){
+  if(window.qrcode) return Promise.resolve(true);
+  if(_qrLibLoading) return _qrLibLoading;
+  _qrLibLoading = new Promise(function(resolve){
+    var s = document.createElement('script');
+    s.src = 'https://cdnjs.cloudflare.com/ajax/libs/qrcode-generator/1.4.4/qrcode.min.js';
+    s.onload = function(){ resolve(!!window.qrcode); };
+    s.onerror = function(){ resolve(false); };
+    document.head.appendChild(s);
+    setTimeout(function(){ resolve(!!window.qrcode); }, 4000);
+  });
+  return _qrLibLoading;
+}
+/* Devolve uma data URL (PNG) do QR Code do Pix pra este cliente/mês, ou null se
+   o cliente não tiver ligado a opção ou faltar dado essencial (chave/beneficiário). */
+async function gerarQrPixDataUrl(client, valorTotal){
+  if(!client || !client.gerarQrCodePix || !client.chavePix) return null;
+  var ok = await carregarQrCodeLib();
+  if(!ok || !window.qrcode) return null;
+  try{
+    var payload = gerarPayloadPix(client.chavePix, client.beneficiario, client.cidadePix, valorTotal);
+    var qr = window.qrcode(0, 'M');
+    qr.addData(payload);
+    qr.make();
+    return qr.createDataURL(6, 8);
+  }catch(e){
+    console.error(e);
+    return null;
+  }
+}
+
 var _html2canvasLoading = null;
 function carregarHtml2Canvas(){
   if(window.html2canvas) return Promise.resolve(true);
@@ -1550,11 +1653,12 @@ async function baixarPng(){
   var profile = getProfile(d.profileId);
   if(!client || !profile){ if(abaPreAberta) abaPreAberta.close(); return; }
   var dc = state.docConfig || docConfigPadrao();
+  var qrDataUrl = await gerarQrPixDataUrl(client, d.scope[profile.chaveTotalFinal]);
 
   var container = document.createElement('div');
   container.style.position = 'fixed'; container.style.left = '-99999px'; container.style.top = '0';
   container.style.width = '640px'; container.style.background = '#ffffff'; container.style.padding = '32px';
-  container.innerHTML = construirHtmlFatura(client, profile, d, dc);
+  container.innerHTML = construirHtmlFatura(client, profile, d, dc, qrDataUrl);
   document.body.appendChild(container);
   try{
     var canvas = await window.html2canvas(container, { backgroundColor:'#ffffff', scale:2 });
@@ -1675,6 +1779,7 @@ async function baixarPdf(modo){
 
   var logoDim = null;
   if(dc.logoBase64){ logoDim = await carregarDimensoesImagem(dc.logoBase64); }
+  var qrDataUrl = interno ? null : await gerarQrPixDataUrl(client, d.scope[profile.chaveTotalFinal]);
 
   try{
     var jsPDF = window.jspdf.jsPDF;
@@ -1846,9 +1951,9 @@ async function baixarPdf(modo){
          ============================================================ */
       var logoH = 0, logoW = 0;
       if(logoDim){
-        logoH = 70;
+        logoH = 130;
         logoW = (logoDim.w/logoDim.h) * logoH;
-        if(logoW > 190){ logoW = 190; logoH = (logoDim.h/logoDim.w) * logoW; }
+        if(logoW > 260){ logoW = 260; logoH = (logoDim.h/logoDim.w) * logoW; }
         try{ doc.addImage(dc.logoBase64, formatoImagemBase64(dc.logoBase64), marginX, y - 6, logoW, logoH); }catch(e){}
       }
       var textoX = marginX + (logoW > 0 ? logoW + 20 : 0);
@@ -1966,27 +2071,62 @@ async function baixarPdf(modo){
       y += 46 + 20;
 
       /* Pix — caixa de destaque própria, igualmente visível */
-      checkBreak(70);
+      var alturaPix = qrDataUrl ? 108 : 58;
+      checkBreak(alturaPix + 12);
       doc.setDrawColor(rgb[0],rgb[1],rgb[2]);
       doc.setLineWidth(1.4);
-      doc.roundedRect(marginX, y, maxWidth, 58, 6, 6, 'S');
+      doc.roundedRect(marginX, y, maxWidth, alturaPix, 6, 6, 'S');
       doc.setFont('helvetica','bold'); doc.setFontSize(9.5);
       doc.setTextColor(rgb[0],rgb[1],rgb[2]);
       doc.text('PAGAMENTO — CHAVE PIX', marginX + 16, y + 18);
       doc.setFont('helvetica','bold'); doc.setFontSize(15);
       doc.setTextColor(22,36,29);
       doc.text(client.chavePix || '—', marginX + 16, y + 40);
-      if(client.banco){
-        doc.setFont('helvetica','normal'); doc.setFontSize(10);
-        doc.setTextColor(92,111,99);
-        doc.text(client.banco, pageW - marginX - 16, y + 18, { align:'right' });
+      if(qrDataUrl){
+        try{ doc.addImage(qrDataUrl, 'PNG', marginX + 16, y + 52, 90, 90); }catch(e){}
+        if(client.banco || client.beneficiario){
+          doc.setFont('helvetica','normal'); doc.setFontSize(9.5);
+          doc.setTextColor(92,111,99);
+          doc.text('Escaneie o QR ao lado — o valor já vem preenchido', marginX + 118, y + 60, { maxWidth: maxWidth - 150 });
+          if(client.banco) doc.text(client.banco, marginX + 118, y + 76);
+          if(client.beneficiario) doc.text(client.beneficiario, marginX + 118, y + 90);
+        }
+      } else {
+        if(client.banco){
+          doc.setFont('helvetica','normal'); doc.setFontSize(10);
+          doc.setTextColor(92,111,99);
+          doc.text(client.banco, pageW - marginX - 16, y + 18, { align:'right' });
+        }
+        if(client.beneficiario){
+          doc.setFont('helvetica','normal'); doc.setFontSize(10);
+          doc.setTextColor(92,111,99);
+          doc.text(client.beneficiario, pageW - marginX - 16, y + 40, { align:'right' });
+        }
       }
-      if(client.beneficiario){
-        doc.setFont('helvetica','normal'); doc.setFontSize(10);
-        doc.setTextColor(92,111,99);
-        doc.text(client.beneficiario, pageW - marginX - 16, y + 40, { align:'right' });
+      y += alturaPix + 20;
+
+      /* Meios de contato — e-mail e telefone(s), fonte confortável de ler */
+      var linhasContato = [];
+      if(dc.email) linhasContato.push('E-mail: ' + dc.email);
+      (dc.telefones||[]).forEach(function(tel, i){
+        if(!tel) return;
+        linhasContato.push((dc.telefones.length > 1 ? 'Telefone ' + (i+1) + ': ' : 'Telefone: ') + tel);
+      });
+      if(linhasContato.length){
+        var alturaContato = 24 + linhasContato.length * 17;
+        checkBreak(alturaContato + 10);
+        doc.setFillColor(247,248,246);
+        doc.roundedRect(marginX, y, maxWidth, alturaContato, 6, 6, 'F');
+        doc.setFont('helvetica','bold'); doc.setFontSize(9.5);
+        doc.setTextColor(rgb[0],rgb[1],rgb[2]);
+        doc.text('MEIOS DE CONTATO', marginX + 16, y + 18);
+        doc.setFont('helvetica','normal'); doc.setFontSize(11.5);
+        doc.setTextColor(22,36,29);
+        linhasContato.forEach(function(linha, i){
+          doc.text(linha, marginX + 16, y + 38 + i*17);
+        });
+        y += alturaContato + 20;
       }
-      y += 58 + 20;
 
       var totalPaginasC = doc.internal.getNumberOfPages();
       for(var pc=1; pc<=totalPaginasC; pc++){
@@ -2383,6 +2523,14 @@ function renderConfig(){
       '</div>'
     : '<p class="hint" style="margin:0 0 10px">Nenhuma logo enviada ainda — o PDF sai só com o nome da empresa.</p>';
 
+  var telefonesSeed = (d.telefones && d.telefones.length) ? d.telefones : [''];
+  var telefonesHtml = telefonesSeed.map(function(tel, i){
+    return '<div class="field-row" style="align-items:flex-end;margin-bottom:8px">' +
+      '<div class="field" style="flex:1;margin-bottom:0"><input type="text" class="dc-telefone-input" value="' + escapeHtml(tel) + '" placeholder="Ex.: (62) 99999-9999"></div>' +
+      '<button type="button" class="rm-btn" data-action="remove-dc-telefone" data-idx="' + i + '">✕</button>' +
+    '</div>';
+  }).join('');
+
   container.innerHTML =
     '<div class="panel" style="max-width:520px">' +
       '<h2>Sua conta</h2>' +
@@ -2401,6 +2549,10 @@ function renderConfig(){
         '<div class="field"><label>Endereço / contato (opcional)</label><input type="text" id="dc-endereco" value="' + escapeHtml(d.enderecoContato) + '" placeholder="Ex.: (99) 99999-9999 · cidade/UF"></div>' +
       '</div>' +
       '<div class="field"><label>Texto de rodapé (opcional)</label><input type="text" id="dc-rodape" value="' + escapeHtml(d.textoRodape) + '" placeholder="Ex.: Obrigado pela parceria!"></div>' +
+      '<div class="field"><label>E-mail (meios de contato no documento do cliente)</label><input type="text" id="dc-email" value="' + escapeHtml(d.email||'') + '" placeholder="Ex.: contato@solarorganization.com"></div>' +
+      '<label>Telefones</label>' +
+      '<div id="dc-telefones-container">' + telefonesHtml + '</div>' +
+      '<button type="button" class="add-var-btn" data-action="add-dc-telefone" style="margin-bottom:14px">+ Adicionar telefone</button>' +
       '<div class="btn-row"><button class="btn btn-primary" data-action="salvar-doc-config">Salvar personalização</button></div>' +
     '</div>' +
     '<div class="panel" style="max-width:520px">' +
@@ -2427,11 +2579,30 @@ async function removerLogo(){
   state.docConfig.logoBase64 = null;
   renderTabContent();
 }
+function addDcTelefoneRow(){
+  var wrap = document.getElementById('dc-telefones-container');
+  if(!wrap) return;
+  wrap.insertAdjacentHTML('beforeend',
+    '<div class="field-row" style="align-items:flex-end;margin-bottom:8px">' +
+      '<div class="field" style="flex:1;margin-bottom:0"><input type="text" class="dc-telefone-input" value="" placeholder="Ex.: (62) 99999-9999"></div>' +
+      '<button type="button" class="rm-btn" data-action="remove-dc-telefone" data-idx="-1">✕</button>' +
+    '</div>');
+}
+function removeDcTelefoneRow(el){
+  var wrap = document.getElementById('dc-telefones-container');
+  if(!wrap) return;
+  var linhas = wrap.querySelectorAll('.field-row');
+  if(linhas.length <= 1){ toast('É preciso manter ao menos um campo de telefone (pode deixar em branco).'); return; }
+  var row = el.closest('.field-row');
+  if(row) row.remove();
+}
 async function salvarDocConfig(){
   state.docConfig.nomeEmpresa = txt('dc-nome');
   state.docConfig.corPrimaria = document.getElementById('dc-cor').value || '#1B4D3E';
   state.docConfig.enderecoContato = txt('dc-endereco');
   state.docConfig.textoRodape = txt('dc-rodape');
+  state.docConfig.email = txt('dc-email');
+  state.docConfig.telefones = Array.prototype.map.call(document.querySelectorAll('.dc-telefone-input'), function(inp){ return inp.value.trim(); }).filter(function(v){ return v; });
   await saveDocConfig();
   toast('Personalização do documento salva.');
 }
@@ -2545,7 +2716,12 @@ function openClientModal(id){
           '<div class="field"><label>Chave Pix</label><input type="text" id="m-pix" value="' + (editing?escapeHtml(editing.chavePix):'') + '"></div>' +
           '<div class="field"><label>Banco</label><input type="text" id="m-banco" value="' + (editing?escapeHtml(editing.banco):'') + '"></div>' +
         '</div>' +
-        '<div class="field"><label>Nome do beneficiário (para o Pix)</label><input type="text" id="m-beneficiario" value="' + (editing?escapeHtml(editing.beneficiario):'') + '"></div>' +
+        '<div class="field-row">' +
+          '<div class="field"><label>Nome do beneficiário (para o Pix)</label><input type="text" id="m-beneficiario" value="' + (editing?escapeHtml(editing.beneficiario):'') + '"></div>' +
+          '<div class="field"><label>Cidade do beneficiário (para o QR Code)</label><input type="text" id="m-cidade-pix" value="' + (editing?escapeHtml(editing.cidadePix||''):'') + '" placeholder="Ex.: Anapolis"></div>' +
+        '</div>' +
+        '<label class="checkbox-field" style="margin:4px 0 4px"><input type="checkbox" id="m-gerar-qr-pix"' + (editing&&editing.gerarQrCodePix?' checked':'') + '> Gerar QR Code do Pix nos documentos deste cliente</label>' +
+        '<p class="hint" style="margin:0 0 12px">Precisa da Chave Pix, do nome do beneficiário e da cidade preenchidos. O QR já sai com o valor certo de cada mês — o cliente só escaneia e confirma.</p>' +
         '<div class="field"><label>Condição de pagamento (opcional, uso interno)</label><input type="text" id="m-condicao" value="' + (editing?escapeHtml(editing.condicaoPagamento):'') + '" placeholder="Ex.: Débito automático"></div>' +
         '<label class="checkbox-field" style="margin:4px 0 4px"><input type="checkbox" id="m-paga-fatura"' + (editing&&editing.locadorPagaFatura?' checked':'') + '> Eu pago a fatura da concessionária deste cliente</label>' +
         '<p class="hint" style="margin:0 0 12px">Quando marcado, o valor da fatura (campo "Valor da fatura" do mês) é somado ao total cobrado do cliente, sem margem — é só repasse, porque essa é a parte que eu uso pra pagar a conta. Desmarcado (padrão): o cliente paga a fatura direto pra concessionária, e eu só cobro a locação da usina.</p>' +
@@ -2577,11 +2753,15 @@ async function saveClientFromModal(existingId){
     return { nome: linha.trim(), uc: '' };
   }).filter(function(p){ return p.nome; }) : [];
 
+  var existente = existingId ? state.clients.find(function(c){ return c.id === existingId; }) : null;
   var data = {
     id: existingId || uid(), nome: nome, uc: txt('m-uc'), profileId: profileId,
     overridesFixos: overridesFixos, pontosPadrao: pontosPadrao,
     chavePix: txt('m-pix'), banco: txt('m-banco'), beneficiario: txt('m-beneficiario'), condicaoPagamento: txt('m-condicao'),
-    locadorPagaFatura: !!(document.getElementById('m-paga-fatura') && document.getElementById('m-paga-fatura').checked)
+    locadorPagaFatura: !!(document.getElementById('m-paga-fatura') && document.getElementById('m-paga-fatura').checked),
+    cidadePix: txt('m-cidade-pix'),
+    gerarQrCodePix: !!(document.getElementById('m-gerar-qr-pix') && document.getElementById('m-gerar-qr-pix').checked),
+    camposVisiveisPadrao: existente ? existente.camposVisiveisPadrao : undefined
   };
   if(existingId){
     var idx = state.clients.findIndex(function(c){ return c.id === existingId; });
@@ -2788,7 +2968,10 @@ document.addEventListener('click', function(e){
 
     case 'atualizar-modelos-padrao': atualizarModelosPadrao(); break;
     case 'remove-logo': removerLogo(); break;
+    case 'add-dc-telefone': addDcTelefoneRow(); break;
+    case 'remove-dc-telefone': removeDcTelefoneRow(el); break;
     case 'salvar-doc-config': salvarDocConfig(); break;
+    case 'salvar-campos-padrao': salvarCamposComoPadrao(); break;
     case 'reset-all-confirm': handleConfirmClick(el, function(){ resetAllData(); }); break;
   }
 });
