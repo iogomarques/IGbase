@@ -2698,7 +2698,10 @@ async function onSalvarUsername(){
   catch(e){ disp = { error: e }; }
   if(disp.error){ toast('Não foi possível verificar agora. Tente de novo em instantes.'); console.error(disp.error); return; }
   if(disp.data === false){ toast('Esse nome de usuário já está em uso.'); return; }
-  var resp = await supabaseClient.from('perfis_usuario').update({ username: novo }).eq('user_id', currentUser.id);
+  var resp = await supabaseClient.from('perfis_usuario').upsert(
+    { user_id: currentUser.id, username: novo, email: currentUser.email },
+    { onConflict: 'user_id' }
+  );
   if(resp.error){ toast('Não foi possível salvar. Tente novamente.'); console.error(resp.error); return; }
   state.username = novo;
   toast('Nome de usuário atualizado.');
