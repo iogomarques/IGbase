@@ -48,6 +48,13 @@
   .brand-text b{ font-family: var(--serif); font-size: 17px; font-weight:700; }
   .brand-text span{ font-size:11.5px; color: var(--ink-soft); }
   .brand-email{ font-size:12.5px; color: var(--ink-soft); overflow:hidden; text-overflow:ellipsis; white-space:nowrap; padding:0 2px; margin-bottom:18px; }
+  .busca-wrap{ position:relative; display:flex; align-items:center; margin: 0 2px 16px; }
+  .busca-wrap svg{ position:absolute; left:10px; pointer-events:none; color: var(--ink-soft); }
+  .busca-input{ width:100%; padding:8px 32px 8px 32px; border:1px solid var(--line); border-radius: var(--radius-s); background: var(--surface); font-size:13px; }
+  .busca-input:focus{ outline:none; border-color: var(--accent); }
+  .busca-clear{ position:absolute; right:6px; width:22px; height:22px; border:none; background:none; color: var(--ink-soft); cursor:pointer; display:flex; align-items:center; justify-content:center; border-radius:50%; }
+  .busca-clear:hover{ background: var(--surface-2); color: var(--ink); }
+  .busca-vazio{ font-size:12.5px; color: var(--ink-soft); padding: 10px 6px; }
   .settings-btn{ flex-shrink:0; width:32px; height:32px; border-radius:50%; border:1px solid var(--line); background:var(--surface); color:var(--ink-soft); display:flex; align-items:center; justify-content:center; cursor:pointer; transition:background .15s,color .15s,border-color .15s; }
   .settings-btn:hover{ background: var(--panel-soft, #f3f4f2); color: var(--ink); }
   .settings-btn.active{ background: var(--accent); border-color: var(--accent); color:#fff; }
@@ -572,7 +579,8 @@ var state = {
   username: '',
   selectedClientId: null, activeTab: 'novo',
   editingProfileId: null, /* perfil sendo editado/criado no momento (id ou null=novo) */
-  lastDraft: null
+  lastDraft: null,
+  buscaCliente: '', buscaHistorico: ''
 };
 
 /* ============================================================
@@ -860,9 +868,22 @@ function sunIconSvg(size){
   return '<img src="' + LOGO_SITE_BASE64 + '" alt="IG Base" style="height:' + altura + ';width:auto;max-width:100%;display:block">';
 }
 
-function renderSidebar(){
-  var el = document.getElementById('sidebar');
-  var rows = state.clients.map(function(c){
+var ICON_SEARCH = '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m21 21-4.34-4.34"/><circle cx="11" cy="11" r="8"/></svg>';
+var ICON_X = '<svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M18 6 6 18"/><path d="m6 6 12 12"/></svg>';
+
+function clientRowsHtml(){
+  var termo = (state.buscaCliente || '').trim().toLowerCase();
+  var lista = state.clients;
+  if(termo){
+    lista = lista.filter(function(c){
+      return (c.nome||'').toLowerCase().indexOf(termo) !== -1 ||
+             (c.uc||'').toLowerCase().indexOf(termo) !== -1;
+    });
+  }
+  if(lista.length === 0){
+    return '<div class="busca-vazio">' + (termo ? 'Nenhum cliente encontrado para "' + escapeHtml(state.buscaCliente) + '".' : 'Nenhum cliente cadastrado ainda.') + '</div>';
+  }
+  return lista.map(function(c){
     var active = c.id === state.selectedClientId ? ' active' : '';
     var profile = getProfile(c.profileId);
     var dotColor = (profile && profile.possuiItensMultiplos) ? 'var(--dot-multi)' : 'var(--dot-single)';
@@ -874,6 +895,38 @@ function renderSidebar(){
       '<svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M12 20h9"/><path d="M16.5 3.5a2.1 2.1 0 0 1 3 3L7 19l-4 1 1-4Z"/></svg>' +
       '</button></div>';
   }).join('');
+}
+function buscaClienteInputHtml(){
+  var termo = state.buscaCliente || '';
+  var clearBtn = termo ? '<button type="button" class="busca-clear" data-action="limpar-busca-cliente" aria-label="Limpar busca">' + ICON_X + '</button>' : '';
+  return '<div class="busca-wrap">' + ICON_SEARCH +
+    '<input type="text" id="busca-cliente" class="busca-input" placeholder="Buscar cliente por nome ou UC" value="' + escapeHtml(termo) + '" autocomplete="off" aria-label="Buscar cliente por nome ou UC">' +
+    clearBtn +
+  '</div>';
+}
+function limparBuscaCliente(){
+  state.buscaCliente = '';
+  atualizarListaClientes();
+  var inp = document.getElementById('busca-cliente');
+  if(inp){ inp.value=''; inp.focus(); }
+}
+/* Atualiza só a lista + o botão de limpar, sem recriar o campo de busca —
+   assim o cursor/foco não se perde a cada letra digitada. */
+function atualizarListaClientes(){
+  var listEl = document.getElementById('client-list');
+  if(listEl) listEl.innerHTML = clientRowsHtml();
+  var wrap = document.querySelector('#sidebar .busca-wrap');
+  if(wrap){
+    var existente = wrap.querySelector('.busca-clear');
+    if(state.buscaCliente && !existente){
+      wrap.insertAdjacentHTML('beforeend', '<button type="button" class="busca-clear" data-action="limpar-busca-cliente" aria-label="Limpar busca">' + ICON_X + '</button>');
+    } else if(!state.buscaCliente && existente){
+      existente.remove();
+    }
+  }
+}
+function renderSidebar(){
+  var el = document.getElementById('sidebar');
   el.innerHTML =
     '<div class="brand" style="justify-content:space-between;align-items:center;margin-bottom:8px">' +
       sunIconSvg('clamp(44px,8vw,64px)') +
@@ -882,8 +935,9 @@ function renderSidebar(){
       '</button>' +
     '</div>' +
     '<div class="brand-email" title="' + escapeHtml(currentUser?currentUser.email:'') + '">' + escapeHtml(currentUser?currentUser.email:'') + '</div>' +
+    buscaClienteInputHtml() +
     '<div class="side-label">Clientes</div>' +
-    '<div class="client-list">' + rows + '</div>' +
+    '<div class="client-list" id="client-list" aria-live="polite">' + clientRowsHtml() + '</div>' +
     '<button class="btn-new-client" data-action="new-client">+ Novo cliente</button>';
 }
 
@@ -912,7 +966,7 @@ function renderTabs(){
   }).join('');
 }
 function setTab(tab){ state.activeTab = tab; renderTabs(); renderTabContent(); }
-function selectClient(id){ state.selectedClientId = id; state.activeTab = 'novo'; state.lastDraft = null; renderAll(); }
+function selectClient(id){ state.selectedClientId = id; state.activeTab = 'novo'; state.lastDraft = null; state.buscaHistorico = ''; renderAll(); }
 
 /* ============================================================
    NOVO ORÇAMENTO
@@ -1492,25 +1546,74 @@ async function onSalvarHistorico(){
   toast('Orçamento salvo no histórico.');
   if(state.activeTab === 'historico'){ renderTabContent(); }
 }
+function historicoItemHtml(q){
+  var data = new Date(q.createdAt).toLocaleDateString('pt-BR');
+  var totalStr = fmtBRL(q.scope[getProfile(q.profileId) ? getProfile(q.profileId).chaveTotalFinal : 'valorFinal']);
+  return '<div class="history-item"><div class="info"><b>' + escapeHtml(q.referencia) + ' — ' + totalStr + '</b>' +
+    '<span>Salvo em ' + data + '</span></div>' +
+    '<div class="btn-row">' +
+      '<button class="btn" data-action="duplicar-quote" data-id="' + q.id + '">Usar como base</button>' +
+      '<button class="btn btn-danger" data-action="delete-quote-confirm" data-id="' + q.id + '">Excluir</button>' +
+    '</div></div>';
+}
+function historicoItemsFiltrados(c){
+  var termo = (state.buscaHistorico || '').trim().toLowerCase();
+  var items = state.quotes.filter(function(q){ return q.clientId === c.id; });
+  if(termo){
+    items = items.filter(function(q){
+      var data = new Date(q.createdAt).toLocaleDateString('pt-BR');
+      return (q.referencia||'').toLowerCase().indexOf(termo) !== -1 || data.indexOf(termo) !== -1;
+    });
+  }
+  return items;
+}
+function historicoListaHtml(c){
+  var items = historicoItemsFiltrados(c);
+  if(items.length === 0){
+    var termo = (state.buscaHistorico||'').trim();
+    var msg = termo ? 'Nenhuma fatura encontrada para "' + escapeHtml(termo) + '".' : ('Ainda não há orçamentos salvos para ' + escapeHtml(c.nome) + '.');
+    return '<div class="empty-state"><p>' + msg + '</p></div>';
+  }
+  return items.map(historicoItemHtml).join('');
+}
+function buscaHistoricoInputHtml(){
+  var termo = state.buscaHistorico || '';
+  var clearBtn = termo ? '<button type="button" class="busca-clear" data-action="limpar-busca-historico" aria-label="Limpar busca">' + ICON_X + '</button>' : '';
+  return '<div class="busca-wrap" style="max-width:340px;margin:0 0 16px">' + ICON_SEARCH +
+    '<input type="text" id="busca-historico" class="busca-input" placeholder="Buscar por data ou mês (ex.: 09/2026)" value="' + escapeHtml(termo) + '" autocomplete="off" aria-label="Buscar fatura por data ou mês de referência">' +
+    clearBtn +
+  '</div>';
+}
+function atualizarListaHistorico(){
+  var c = selectedClient();
+  if(!c) return;
+  var listEl = document.getElementById('historico-list');
+  if(listEl) listEl.innerHTML = historicoListaHtml(c);
+  var wrap = document.querySelector('#tab-content .busca-wrap');
+  if(wrap){
+    var existente = wrap.querySelector('.busca-clear');
+    if(state.buscaHistorico && !existente){
+      wrap.insertAdjacentHTML('beforeend', '<button type="button" class="busca-clear" data-action="limpar-busca-historico" aria-label="Limpar busca">' + ICON_X + '</button>');
+    } else if(!state.buscaHistorico && existente){
+      existente.remove();
+    }
+  }
+}
+function limparBuscaHistorico(){
+  state.buscaHistorico = '';
+  atualizarListaHistorico();
+  var inp = document.getElementById('busca-historico');
+  if(inp){ inp.value=''; inp.focus(); }
+}
 function renderHistorico(){
   var c = selectedClient();
   var container = document.getElementById('tab-content');
   if(!c){ container.innerHTML=''; return; }
-  var items = state.quotes.filter(function(q){ return q.clientId === c.id; });
-  if(items.length === 0){
+  if(state.quotes.filter(function(q){ return q.clientId === c.id; }).length === 0){
     container.innerHTML = '<div class="empty-state"><p>Ainda não há orçamentos salvos para ' + escapeHtml(c.nome) + '.</p></div>';
     return;
   }
-  container.innerHTML = items.map(function(q){
-    var data = new Date(q.createdAt).toLocaleDateString('pt-BR');
-    var totalStr = fmtBRL(q.scope[getProfile(q.profileId) ? getProfile(q.profileId).chaveTotalFinal : 'valorFinal']);
-    return '<div class="history-item"><div class="info"><b>' + escapeHtml(q.referencia) + ' — ' + totalStr + '</b>' +
-      '<span>Salvo em ' + data + '</span></div>' +
-      '<div class="btn-row">' +
-        '<button class="btn" data-action="duplicar-quote" data-id="' + q.id + '">Usar como base</button>' +
-        '<button class="btn btn-danger" data-action="delete-quote-confirm" data-id="' + q.id + '">Excluir</button>' +
-      '</div></div>';
-  }).join('');
+  container.innerHTML = buscaHistoricoInputHtml() + '<div id="historico-list" aria-live="polite">' + historicoListaHtml(c) + '</div>';
 }
 function duplicarQuote(id){
   var q = state.quotes.find(function(x){ return x.id === id; });
@@ -3100,14 +3203,14 @@ async function aoLogar(user){
   currentUser = user;
   document.getElementById('auth-root').innerHTML = '';
   document.getElementById('app-root').style.display = '';
-  state.profiles = []; state.clients = []; state.quotes = []; state.docConfig = docConfigPadrao(); state.username = '';
+  state.profiles = []; state.clients = []; state.quotes = []; state.docConfig = docConfigPadrao(); state.username = ''; state.buscaCliente = ''; state.buscaHistorico = '';
   state.selectedClientId = null; state.activeTab = 'novo'; state.editingProfileId = null; state.lastDraft = null;
   await loadAll();
   renderAll();
 }
 function aoDeslogar(){
   currentUser = null;
-  state.profiles = []; state.clients = []; state.quotes = []; state.docConfig = docConfigPadrao(); state.username = '';
+  state.profiles = []; state.clients = []; state.quotes = []; state.docConfig = docConfigPadrao(); state.username = ''; state.buscaCliente = ''; state.buscaHistorico = '';
   state.selectedClientId = null; state.lastDraft = null;
   authMsg = null; authMode = 'signin';
   renderAuthScreen();
@@ -3137,6 +3240,8 @@ function renderAll(){ renderSidebar(); renderTopbar(); renderTabs(); renderTabCo
    EVENTOS (DELEGAÇÃO)
    ============================================================ */
 document.addEventListener('input', function(e){
+  if(e.target.id === 'busca-cliente'){ state.buscaCliente = e.target.value; atualizarListaClientes(); }
+  if(e.target.id === 'busca-historico'){ state.buscaHistorico = e.target.value; atualizarListaHistorico(); }
   if(e.target.classList && e.target.classList.contains('v-rotulo')){
     var row = e.target.closest('.var-row');
     var chaveInput = row ? row.querySelector('.v-chave') : null;
@@ -3191,6 +3296,8 @@ document.addEventListener('click', function(e){
 
     case 'select-client': selectClient(id); break;
     case 'new-client': openClientModal(null); break;
+    case 'limpar-busca-cliente': limparBuscaCliente(); break;
+    case 'limpar-busca-historico': limparBuscaHistorico(); break;
     case 'edit-client': openClientModal(id); break;
     case 'delete-client-confirm': handleConfirmClick(el, function(){ deleteClient(id); }); break;
     case 'close-modal': closeModal(); break;
