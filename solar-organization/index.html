@@ -157,12 +157,20 @@
   .history-item .info b{ display:block; }
   .history-item .info span{ font-size:12.5px; color: var(--ink-soft); }
 
-  .modal-overlay{ position:fixed; inset:0; background: rgba(22,36,29,.4); display:flex; align-items:flex-start; justify-content:center; padding: 40px 16px; overflow-y:auto; z-index:50; animation: overlayIn .18s var(--ease); }
+  .modal-overlay{ position:fixed; inset:0; background: rgba(22,36,29,.4); backdrop-filter: blur(6px); -webkit-backdrop-filter: blur(6px); display:flex; align-items:flex-start; justify-content:center; padding: 40px 16px; overflow-y:auto; z-index:50; animation: overlayIn .18s var(--ease); }
   @keyframes overlayIn{ from{ opacity:0; } to{ opacity:1; } }
   .modal{ background: var(--surface); border-radius: var(--radius-s); width:100%; max-width:480px; padding: 22px 24px 24px; box-shadow: 0 20px 60px rgba(0,0,0,.25); animation: modalIn .2s var(--ease); }
+  .modal.modal-lg{ max-width:920px; }
   @keyframes modalIn{ from{ opacity:0; transform: translateY(10px) scale(.98); } to{ opacity:1; transform: translateY(0) scale(1); } }
   .modal h2{ font-family: var(--serif); margin:0 0 16px; font-size:19px; }
   .modal-close{ float:right; background:none; border:none; cursor:pointer; color: var(--ink-soft); font-size:18px; }
+
+  .app-footer{ display:flex; flex-direction:column; align-items:center; gap:8px; padding:22px 24px; border-top:1px solid var(--line); }
+  .app-footer .footer-links a{ color:var(--ink-soft); text-decoration:none; font-size:12.5px; }
+  .app-footer .footer-links a:hover{ color: var(--accent); }
+  .app-footer .status{ display:flex; align-items:center; gap:7px; font-size:12px; color:var(--ink-soft); }
+  .app-footer .status .dot{ width:8px; height:8px; border-radius:50%; background:#3f8f4a; box-shadow:0 0 0 3px rgba(63,143,74,0.16); margin-right:7px; }
+  .app-footer .version{ font-size:11.5px; color: var(--ink-soft); opacity:.75; }
 
   #toast-root{ position:fixed; bottom:20px; left:50%; transform:translateX(-50%); z-index:100; }
   .toast{ background: var(--ink); color:#fff; padding:10px 18px; border-radius: var(--radius-s); font-size:13.5px; box-shadow: 0 6px 20px rgba(0,0,0,.25); max-width: 80vw; }
@@ -236,6 +244,11 @@
     <div class="content" id="tab-content"></div>
   </main>
 </div>
+<footer class="app-footer" id="app-footer" style="display:none">
+  <div class="footer-links"><a href="/suporte/">Suporte</a></div>
+  <div class="status"><span class="dot"></span>Todos os sistemas operacionais</div>
+  <div class="version">IG Base v1.01</div>
+</footer>
 
 <div id="modal-root"></div>
 <div id="toast-root"></div>
@@ -930,7 +943,7 @@ function renderSidebar(){
   el.innerHTML =
     '<div class="brand" style="justify-content:space-between;align-items:center;margin-bottom:8px">' +
       sunIconSvg('clamp(44px,8vw,64px)') +
-      '<button class="settings-btn' + (state.activeTab==='config'?' active':'') + '" data-action="set-tab" data-tab="config" title="Configurações" aria-label="Configurações">' +
+      '<button class="settings-btn" data-action="abrir-config" title="Configurações" aria-label="Configurações">' +
         '<svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M12 15a3 3 0 1 0 0-6 3 3 0 0 0 0 6Z"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 1 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 1 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 1 1-2.83-2.83l.06-.06A1.65 1.65 0 0 0 4.68 15a1.65 1.65 0 0 0-1.51-1H3a2 2 0 1 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 1 1 2.83-2.83l.06.06A1.65 1.65 0 0 0 9 4.6a1.65 1.65 0 0 0 1-1.51V3a2 2 0 1 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 1 1 2.83 2.83l-.06.06A1.65 1.65 0 0 0 19.4 9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 1 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1Z"/></svg>' +
       '</button>' +
     '</div>' +
@@ -958,12 +971,12 @@ function renderTopbar(){
 function renderTabs(){
   var el = document.getElementById('tabs');
   var hasClient = !!selectedClient();
-  var tabs = [ ['novo','Novo orçamento', !hasClient], ['historico','Histórico', !hasClient], ['perfis','Perfis de Faturamento', false] ];
+  var tabs = [ ['novo','Novo orçamento', !hasClient], ['historico','Histórico', !hasClient] ];
   el.innerHTML = tabs.map(function(t){
     var disabled = t[2] ? ' disabled' : '';
     var active = state.activeTab === t[0] ? ' active' : '';
     return '<button class="tab-btn' + active + '" data-action="set-tab" data-tab="' + t[0] + '"' + disabled + '>' + t[1] + '</button>';
-  }).join('');
+  }).join('') + '<button class="tab-btn" data-action="abrir-perfis">Perfis de Faturamento</button>';
 }
 function setTab(tab){ state.activeTab = tab; renderTabs(); renderTabContent(); }
 function selectClient(id){ state.selectedClientId = id; state.activeTab = 'novo'; state.lastDraft = null; state.buscaHistorico = ''; renderAll(); }
@@ -2417,8 +2430,22 @@ function readVarRows(containerId, withCategoria){
   return list;
 }
 
+function abrirPerfisModal(){
+  var root = document.getElementById('modal-root');
+  root.innerHTML =
+    '<div class="modal-overlay" data-action="close-modal-bg">' +
+      '<div class="modal modal-lg" data-stop-close>' +
+        '<button class="modal-close" data-action="close-modal" aria-label="Fechar">✕</button>' +
+        '<h2>Perfis de Faturamento</h2>' +
+        '<div id="perfis-modal-body"></div>' +
+      '</div>' +
+    '</div>';
+  state.editingProfileId = null;
+  renderPerfis();
+}
 function renderPerfis(){
-  var container = document.getElementById('tab-content');
+  var container = document.getElementById('perfis-modal-body');
+  if(!container) return;
   if(state.editingProfileId !== undefined && state.editingProfileId !== null && state.editingProfileId !== false){
     renderProfileEditor(state.editingProfileId === 'new' ? null : getProfile(state.editingProfileId));
     return;
@@ -2456,7 +2483,8 @@ function novoPerfilVazio(){
 function renderProfileEditor(profile, overrideDraft){
   var isNew = (state.editingProfileId === 'new');
   var p = overrideDraft ? overrideDraft : (profile ? JSON.parse(JSON.stringify(profile)) : novoPerfilVazio());
-  var container = document.getElementById('tab-content');
+  var container = document.getElementById('perfis-modal-body');
+  if(!container) return;
   var varsHeader = '<div class="var-header"><span>Rótulo</span><span>Chave</span><span>Categoria</span><span>Valor padrão</span><span>Formato</span><span></span></div>';
   var varsRows = (p.variaveis||[]).map(function(v){ return varRowHtml(v, true); }).join('');
   var itemVarsHeader = '<div class="var-header item-header"><span>Rótulo</span><span>Chave</span><span>Tipo</span><span>Valor padrão</span><span>Formato</span><span>Calc.</span><span></span></div>';
@@ -2682,12 +2710,12 @@ async function onSaveProfile(isNew){
   }
   await saveProfiles();
   state.editingProfileId = null;
-  renderTabContent();
+  renderPerfis();
   toast('Modelo salvo.');
 }
-function onCancelEditProfile(){ state.editingProfileId = null; renderTabContent(); }
-function onNewProfile(){ state.editingProfileId = 'new'; renderTabContent(); }
-function onEditProfile(id){ state.editingProfileId = id; renderTabContent(); }
+function onCancelEditProfile(){ state.editingProfileId = null; renderPerfis(); }
+function onNewProfile(){ state.editingProfileId = 'new'; renderPerfis(); }
+function onEditProfile(id){ state.editingProfileId = id; renderPerfis(); }
 async function onDuplicateProfile(id){
   var orig = getProfile(id); if(!orig) return;
   var copia = JSON.parse(JSON.stringify(orig));
@@ -2695,21 +2723,34 @@ async function onDuplicateProfile(id){
   state.profiles.push(copia);
   await saveProfiles();
   state.editingProfileId = copia.id;
-  renderTabContent();
+  renderPerfis();
   toast('Modelo duplicado — edite e salve como seu.');
 }
 async function onDeleteProfile(id){
   state.profiles = state.profiles.filter(function(p){ return p.id !== id; });
   await saveProfiles();
-  renderTabContent();
+  renderPerfis();
   toast('Modelo excluído.');
 }
 
 /* ============================================================
    CONFIGURAÇÕES
    ============================================================ */
+function abrirConfigModal(){
+  var root = document.getElementById('modal-root');
+  root.innerHTML =
+    '<div class="modal-overlay" data-action="close-modal-bg">' +
+      '<div class="modal modal-lg" data-stop-close>' +
+        '<button class="modal-close" data-action="close-modal" aria-label="Fechar">✕</button>' +
+        '<h2>Configurações</h2>' +
+        '<div id="config-modal-body"></div>' +
+      '</div>' +
+    '</div>';
+  renderConfig();
+}
 function renderConfig(){
-  var container = document.getElementById('tab-content');
+  var container = document.getElementById('config-modal-body');
+  if(!container) return;
   var d = state.docConfig;
   var logoPreview = d.logoBase64
     ? '<div style="display:flex;align-items:center;gap:12px;margin-bottom:10px">' +
@@ -2760,6 +2801,9 @@ function renderConfig(){
     '<div class="panel" style="max-width:520px">' +
       '<h2>Dados</h2>' +
       '<button class="btn btn-danger" data-action="reset-all-confirm">Apagar todos os meus dados e restaurar modelos padrão</button>' +
+    '</div>' +
+    '<div class="panel" style="max-width:520px">' +
+      '<a href="/suporte/" class="btn" style="text-decoration:none;display:inline-block">Falar com o Suporte</a>' +
     '</div>';
 
   var logoInput = document.getElementById('dc-logo-input');
@@ -2771,7 +2815,7 @@ function renderConfig(){
       var reader = new FileReader();
       reader.onload = function(ev){
         state.docConfig.logoBase64 = ev.target.result;
-        renderTabContent();
+        renderConfig();
       };
       reader.readAsDataURL(file);
     });
@@ -2779,7 +2823,7 @@ function renderConfig(){
 }
 async function removerLogo(){
   state.docConfig.logoBase64 = null;
-  renderTabContent();
+  renderConfig();
 }
 async function onSalvarUsername(){
   var novo = txt('cfg-username');
@@ -2798,7 +2842,7 @@ async function onSalvarUsername(){
   if(resp.error){ toast('Não foi possível salvar. Tente novamente.'); console.error(resp.error); return; }
   state.username = novo;
   toast('Nome de usuário atualizado.');
-  renderTabContent();
+  renderConfig();
 }
 function addDcTelefoneRow(){
   var wrap = document.getElementById('dc-telefones-container');
@@ -3023,6 +3067,7 @@ function renderAuthConfigWarning(motivo){
       texto +
     '</div>';
   document.getElementById('app-root').style.display = 'none';
+  document.getElementById('app-footer').style.display = 'none';
 }
 
 function renderAuthScreen(){
@@ -3049,6 +3094,7 @@ function renderAuthScreen(){
       '<div class="btn-row"><button class="btn btn-primary btn-block" style="width:100%;justify-content:center" data-action="' + (authMode==='signin'?'sign-in':'sign-up') + '">' + (authMode==='signin'?'Entrar':'Criar conta') + '</button></div>' +
     '</div></div>';
   document.getElementById('app-root').style.display = 'none';
+  document.getElementById('app-footer').style.display = 'none';
 }
 
 function renderAuthVerifyScreen(){
@@ -3067,6 +3113,7 @@ function renderAuthVerifyScreen(){
       '<div class="btn-row" style="justify-content:center;margin-top:6px"><button type="button" class="btn btn-ghost btn-sm" data-action="cancel-verify">Voltar</button></div>' +
     '</div></div>';
   document.getElementById('app-root').style.display = 'none';
+  document.getElementById('app-footer').style.display = 'none';
 }
 
 function setAuthMode(mode){ authMode = mode; authStep = 'form'; authMsg = null; pendingSignup = null; renderAuthScreen(); }
@@ -3203,6 +3250,7 @@ async function aoLogar(user){
   currentUser = user;
   document.getElementById('auth-root').innerHTML = '';
   document.getElementById('app-root').style.display = '';
+  document.getElementById('app-footer').style.display = '';
   state.profiles = []; state.clients = []; state.quotes = []; state.docConfig = docConfigPadrao(); state.username = ''; state.buscaCliente = ''; state.buscaHistorico = '';
   state.selectedClientId = null; state.activeTab = 'novo'; state.editingProfileId = null; state.lastDraft = null;
   await loadAll();
@@ -3224,9 +3272,7 @@ function renderTabContent(){
   el.style.opacity = '0';
   el.style.transform = 'translateY(6px)';
   if(state.activeTab === 'novo') renderNovoOrcamento();
-  else if(state.activeTab === 'historico') renderHistorico();
-  else if(state.activeTab === 'perfis') renderPerfis();
-  else renderConfig();
+  else renderHistorico();
   requestAnimationFrame(function(){
     requestAnimationFrame(function(){
       el.style.opacity = '1';
@@ -3329,6 +3375,8 @@ document.addEventListener('click', function(e){
     case 'remove-itemvar-row': removeItemVarRow(id); break;
 
     case 'atualizar-modelos-padrao': atualizarModelosPadrao(); break;
+    case 'abrir-config': abrirConfigModal(); break;
+    case 'abrir-perfis': abrirPerfisModal(); break;
     case 'salvar-username': onSalvarUsername(); break;
     case 'remove-logo': removerLogo(); break;
     case 'add-dc-telefone': addDcTelefoneRow(); break;
