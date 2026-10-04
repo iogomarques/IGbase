@@ -89,20 +89,41 @@
   .status .dot{ width:8px; height:8px; border-radius:50%; background:var(--green-bright); box-shadow:0 0 0 3px rgba(63,143,74,0.16); margin-right:7px; }
   .version{ font-size:11.5px; color:var(--gray); }
 
-  .modal-overlay{ position:fixed; inset:0; background:rgba(20,28,22,0.45); display:none; align-items:center; justify-content:center; z-index:50; padding:20px; }
+  .modal-overlay{ position:fixed; inset:0; background:rgba(20,28,22,0.45); backdrop-filter:blur(6px); -webkit-backdrop-filter:blur(6px); display:none; align-items:flex-start; justify-content:center; z-index:50; padding:40px 16px; overflow-y:auto; }
   .modal-overlay.open{ display:flex; }
-  .modal{ background:#fff; border-radius:16px; width:100%; max-width:360px; padding:24px; position:relative; }
-  .modal h3{ font-family:'Poppins',sans-serif; font-size:17px; margin:0 0 16px; }
+  .modal{ background:#fff; border-radius:20px; width:100%; max-width:560px; padding:24px; position:relative; box-shadow:0 24px 60px rgba(0,0,0,.25); }
+  .modal h3.cfg-modal-title{ font-family:'Poppins',sans-serif; font-weight:800; font-size:22px; margin:0 0 18px; }
   .modal label{ display:block; font-size:12.5px; color:var(--ink-soft); margin-bottom:5px; }
   .modal input{ width:100%; padding:9px 10px; border:1px solid var(--panel-border); border-radius:10px; font-size:14px; margin-bottom:6px; }
-  .modal .hint{ font-size:11px; color:var(--gray); margin-bottom:14px; }
+  .modal .hint{ font-size:11.5px; color:var(--gray); margin-bottom:14px; display:block; line-height:1.4; }
   .modal .msg{ font-size:12.5px; padding:8px 10px; border-radius:8px; margin-bottom:12px; }
   .modal .msg.error{ background:#fdecec; color:#a33; }
   .modal .msg.ok{ background:#eaf5ec; color:var(--green-deep); }
-  .modal-btn{ width:100%; padding:10px; border-radius:10px; border:none; font-weight:600; font-size:14px; cursor:pointer; margin-bottom:8px; }
+  .modal-btn{ display:inline-block; padding:10px 18px; border-radius:10px; border:none; font-weight:600; font-size:14px; cursor:pointer; margin:0 8px 8px 0; text-decoration:none; }
   .modal-btn.primary{ background:var(--green-deep); color:#fff; }
+  .modal-btn.primary:hover{ background:#254f31; }
   .modal-btn.ghost{ background:#f2f4f1; color:var(--ink); }
-  .modal-close{ position:absolute; top:16px; right:16px; background:none; border:none; cursor:pointer; color:var(--ink-soft); }
+  .modal-close{ position:absolute; top:22px; right:22px; background:none; border:none; cursor:pointer; color:var(--ink-soft); }
+  .cfg-card{ border:1px solid var(--panel-border); border-radius:16px; padding:20px; margin-bottom:14px; background:#fff; }
+  .cfg-head{ display:flex; align-items:center; margin-bottom:14px; }
+  .cfg-icon{ width:40px; height:40px; border-radius:12px; background:rgba(63,143,74,.12); color:var(--green-deep); display:flex; align-items:center; justify-content:center; flex:none; margin-right:12px; }
+  .cfg-title{ font-family:'Poppins',sans-serif; font-weight:700; font-size:16px; margin:0; color:var(--ink); }
+  .cfg-sub{ font-size:12.5px; color:var(--ink-soft); margin:2px 0 0; line-height:1.4; }
+  .cfg-pill{ display:inline-block; background:#f3f6f1; border:1px solid var(--panel-border); border-radius:999px; padding:6px 12px; font-size:13px; color:var(--ink); margin-bottom:14px; max-width:100%; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
+  .cfg-actions{ display:flex; flex-wrap:wrap; margin-top:4px; }
+
+  .igb-cl-overlay{ position:fixed; inset:0; background:rgba(20,28,22,.45); backdrop-filter:blur(6px); -webkit-backdrop-filter:blur(6px); display:flex; align-items:center; justify-content:center; padding:20px; z-index:200; }
+  .igb-cl-card{ background:#fff; border-radius:20px; max-width:440px; width:100%; padding:26px 26px 22px; box-shadow:0 24px 60px rgba(0,0,0,.25); color:#1f2a22; max-height:90vh; overflow:auto; box-sizing:border-box; }
+  .igb-cl-top{ display:flex; align-items:center; }
+  .igb-cl-badge{ display:flex; align-items:center; justify-content:center; width:38px; height:38px; border-radius:12px; background:rgba(63,143,74,.12); color:#2f663f; margin-right:12px; }
+  .igb-cl-ver{ font-size:12px; font-weight:700; color:#2f663f; background:rgba(63,143,74,.12); border-radius:999px; padding:4px 10px; }
+  .igb-cl-title{ font-family:'Poppins',sans-serif; font-weight:800; font-size:20px; margin:14px 0 4px; }
+  .igb-cl-sub{ font-size:13px; color:#5b665a; margin:0 0 14px; }
+  .igb-cl-list{ list-style:none; margin:0 0 18px; padding:0; }
+  .igb-cl-list li{ display:flex; font-size:14px; line-height:1.45; margin-bottom:10px; }
+  .igb-cl-list li svg{ flex:none; margin-right:10px; margin-top:2px; color:#3f8f4a; }
+  .igb-cl-btn{ width:100%; border:none; border-radius:12px; background:#2f663f; color:#fff; font-weight:600; font-size:15px; padding:12px; cursor:pointer; }
+  .igb-cl-btn:hover{ background:#254f31; }
 </style>
 </head>
 <body>
@@ -150,21 +171,39 @@
       <a href="/suporte/">Suporte</a>
     </div>
     <div class="status"><span class="dot"></span>Todos os sistemas operacionais</div>
-    <div class="version">IG Base v1.01</div>
+    <div class="version">IG Base v1.02</div>
   </footer>
 
   <div class="modal-overlay" id="settings-overlay">
-    <div class="modal">
+    <div class="modal" role="dialog" aria-modal="true" aria-labelledby="settings-title">
       <button class="modal-close" id="settings-close" aria-label="Fechar">
         <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M18 6 6 18"/><path d="m6 6 12 12"/></svg>
       </button>
-      <h3>Configurações da conta</h3>
-      <div id="settings-msg"></div>
-      <label for="settings-username">Nome de usuário</label>
-      <input type="text" id="settings-username" maxlength="30" autocomplete="off">
-      <div class="hint">Letras, números, ponto ou _, começando com letra (3–30 caracteres).</div>
-      <button class="modal-btn primary" id="settings-save">Salvar nome de usuário</button>
-      <button class="modal-btn ghost" id="settings-signout">Sair da conta</button>
+      <h3 class="cfg-modal-title" id="settings-title">Configurações</h3>
+
+      <section class="cfg-card">
+        <div class="cfg-head">
+          <span class="cfg-icon"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M19 21v-2a4 4 0 0 0-4-4H9a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg></span>
+          <div><h4 class="cfg-title">Conta</h4><p class="cfg-sub">Seus dados de acesso ao IG Base.</p></div>
+        </div>
+        <div class="cfg-pill" id="settings-email"></div>
+        <div id="settings-msg"></div>
+        <label for="settings-username">Nome de usuário</label>
+        <input type="text" id="settings-username" maxlength="30" autocomplete="off">
+        <span class="hint">Pode ser usado no lugar do e-mail para entrar. Letras, números, ponto ou _, começando com letra (3 a 30 caracteres).</span>
+        <div class="cfg-actions">
+          <button class="modal-btn primary" id="settings-save">Salvar nome de usuário</button>
+          <button class="modal-btn ghost" id="settings-signout">Sair da conta</button>
+        </div>
+      </section>
+
+      <section class="cfg-card">
+        <div class="cfg-head">
+          <span class="cfg-icon"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><path d="m4.93 4.93 4.24 4.24"/><path d="m14.83 9.17 4.24-4.24"/><path d="m14.83 14.83 4.24 4.24"/><path d="m9.17 14.83-4.24 4.24"/><circle cx="12" cy="12" r="4"/></svg></span>
+          <div><h4 class="cfg-title">Suporte</h4><p class="cfg-sub">Precisa de ajuda com o IG Base?</p></div>
+        </div>
+        <div class="cfg-actions"><a class="modal-btn primary" href="/suporte/">Falar com o Suporte</a></div>
+      </section>
     </div>
   </div>
 
@@ -217,6 +256,7 @@ function renderLoggedOut(){
 }
 
 function openSettings(){
+  document.getElementById('settings-email').textContent = (sessionUser && sessionUser.email) || '';
   document.getElementById('settings-username').value = currentUsername;
   document.getElementById('settings-msg').innerHTML = '';
   document.getElementById('settings-overlay').classList.add('open');
@@ -256,7 +296,58 @@ document.getElementById('settings-overlay').addEventListener('click', function(e
 document.getElementById('settings-save').addEventListener('click', salvarUsername);
 document.getElementById('settings-signout').addEventListener('click', sairDaConta);
 
+/* ============================================================
+   VERSÃO E AVISO DE NOVIDADES (padrão IG Base — mesmo código nos dois sites)
+   A cada atualização grande: subir IG_BASE_VERSION e reescrever IG_BASE_CHANGELOG.
+   O aviso aparece uma vez por versão por navegador (localStorage compartilhado
+   entre o site principal e os subsites, pois ficam no mesmo domínio).
+   ============================================================ */
+var IG_BASE_VERSION = '1.02';
+var IG_BASE_CHANGELOG = [
+  'Perfis de Faturamento agora ficam em Configurações, separados dos clientes.',
+  'Clicar na logo do Solar Organization leva de volta ao início do IG Base.',
+  'Configurações redesenhadas, no mesmo visual do site principal.',
+  'Ao gerar uma fatura em PDF, agora existe um único botão de download.',
+  'O botão de Suporte abre o seu e-mail já com o destinatário certo, sem texto pré-escrito.',
+  'Avisos de novidades como este, exibidos uma única vez por versão.'
+];
+function igbMostrarChangelog(){
+  var KEY = 'igbase_changelog_visto';
+  try{ if(window.localStorage.getItem(KEY) === IG_BASE_VERSION) return; }
+  catch(e){ return; }
+  if(document.getElementById('igb-cl-overlay')) return;
+  var check = '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6 9 17l-5-5"/></svg>';
+  var spark = '<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M11.017 2.814a1 1 0 0 1 1.966 0l1.051 5.558a2 2 0 0 0 1.594 1.594l5.558 1.051a1 1 0 0 1 0 1.966l-5.558 1.051a2 2 0 0 0-1.594 1.594l-1.051 5.558a1 1 0 0 1-1.966 0l-1.051-5.558a2 2 0 0 0-1.594-1.594l-5.558-1.051a1 1 0 0 1 0-1.966l5.558-1.051a2 2 0 0 0 1.594-1.594z"/></svg>';
+  var itens = IG_BASE_CHANGELOG.map(function(t){ return '<li>' + check + '<span>' + escapeHtml(t) + '</span></li>'; }).join('');
+  var wrap = document.createElement('div');
+  wrap.id = 'igb-cl-overlay';
+  wrap.className = 'igb-cl-overlay';
+  wrap.innerHTML =
+    '<div class="igb-cl-card" role="dialog" aria-modal="true" aria-labelledby="igb-cl-title">' +
+      '<div class="igb-cl-top"><span class="igb-cl-badge">' + spark + '</span><span class="igb-cl-ver">Versão ' + escapeHtml(IG_BASE_VERSION) + '</span></div>' +
+      '<h2 class="igb-cl-title" id="igb-cl-title">Novidades do IG Base</h2>' +
+      '<p class="igb-cl-sub">Veja o que mudou nesta atualização:</p>' +
+      '<ul class="igb-cl-list">' + itens + '</ul>' +
+      '<button type="button" class="igb-cl-btn" id="igb-cl-ok">Entendi</button>' +
+    '</div>';
+  function fechar(){
+    try{ window.localStorage.setItem(KEY, IG_BASE_VERSION); }catch(e){}
+    document.removeEventListener('keydown', onKey);
+    if(wrap.parentNode) wrap.parentNode.removeChild(wrap);
+  }
+  function onKey(e){ if(e.key === 'Escape') fechar(); }
+  wrap.addEventListener('click', function(e){ if(e.target === wrap) fechar(); });
+  document.addEventListener('keydown', onKey);
+  document.body.appendChild(wrap);
+  var ok = document.getElementById('igb-cl-ok');
+  ok.addEventListener('click', fechar);
+  ok.focus();
+}
+var versionEl = document.querySelector('footer .version');
+if(versionEl) versionEl.textContent = 'IG Base v' + IG_BASE_VERSION;
+
 initAuth();
+igbMostrarChangelog();
 })();
 </script>
 </body>
