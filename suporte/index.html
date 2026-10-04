@@ -8,7 +8,6 @@
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@600;700;800&display=swap" rel="stylesheet">
-<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.js"></script>
 <style>
   :root{
     --bg-a:#eaf1e6; --bg-b:#f6f8f4;
@@ -42,10 +41,9 @@
 
   .support-card{ background:var(--panel); border:1px solid var(--panel-border); border-radius:var(--radius);
     padding:30px 26px; box-shadow:0 1px 2px rgba(31,42,34,0.05); }
-  .email-note{ font-size:13px; color:var(--ink-soft); margin-bottom:20px; line-height:1.5; padding:10px 14px; background:#f3f6f1; border-radius:10px; }
-  .email-note b{ color:var(--ink); }
-  .mailto-btn{ display:inline-flex; align-items:center; gap:9px; background:var(--green-deep); color:#fff !important;
+  .mailto-btn{ display:inline-flex; align-items:center; background:var(--green-deep); color:#fff !important;
     text-decoration:none; font-weight:600; font-size:15px; padding:13px 24px; border-radius:12px; transition:background .15s; }
+  .mailto-btn svg{ margin-right:9px; }
   .mailto-btn:hover{ background:#254f31; }
   .support-hint{ margin-top:16px; font-size:12.5px; color:var(--gray); }
 </style>
@@ -64,52 +62,12 @@
     <p>Precisa de ajuda com algum dos módulos do IG Base? Manda um e-mail pra gente que respondemos assim que possível.</p>
 
     <div class="support-card">
-      <div class="email-note" id="email-note">Verificando sua conta...</div>
-      <a id="mailto-btn" class="mailto-btn" href="mailto:suporteigbase@igbase.com.br?subject=Suporte%20IG%20Base">
+      <a id="mailto-btn" class="mailto-btn" href="mailto:suporteigbase@igbase.com.br">
         <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect width="20" height="16" x="2" y="4" rx="2"/><path d="m22 7-8.97 5.7a1.94 1.94 0 0 1-2.06 0L2 7"/></svg>
         Enviar e-mail para o suporte
       </a>
-      <div class="support-hint">Isso abre o seu aplicativo de e-mail padrão, com a mensagem já pronta para revisar e enviar.</div>
+      <div class="support-hint">Isso abre o seu aplicativo de e-mail padrão (Gmail, Outlook...), já com o destinatário preenchido.</div>
     </div>
   </main>
-
-<script>
-(function(){
-"use strict";
-var SUPABASE_URL = 'https://zhkolwskpqhlovvdrbmv.supabase.co';
-var SUPABASE_ANON_KEY = 'sb_publishable_3bqhMMM6CndF6MKl5N1FoA_GaS_mq7E';
-var supabaseClient = (window.supabase && typeof window.supabase.createClient === 'function')
-  ? window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY) : null;
-
-function escapeHtml(s){
-  return String(s == null ? '' : s).replace(/[&<>"']/g, function(c){
-    return { '&':'&amp;', '<':'&lt;', '>':'&gt;', '"':'&quot;', "'":'&#39;' }[c];
-  });
-}
-
-async function initSupport(){
-  var email = '';
-  if(supabaseClient){
-    try{
-      var r = await supabaseClient.auth.getSession();
-      var session = r.data && r.data.session;
-      if(session && session.user){ email = session.user.email || ''; }
-    }catch(e){}
-  }
-  var noteEl = document.getElementById('email-note');
-  var subject = encodeURIComponent('Suporte IG Base');
-  var body;
-  if(email){
-    noteEl.innerHTML = 'Sua mensagem vai incluir automaticamente o e-mail da sua conta: <b>' + escapeHtml(email) + '</b>.';
-    body = encodeURIComponent('Conta: ' + email + '\n\nDescreva sua dúvida ou problema abaixo:\n\n');
-  } else {
-    noteEl.textContent = 'Você não está logado — se quiser, faça login primeiro para que o e-mail da sua conta seja incluído automaticamente.';
-    body = encodeURIComponent('Descreva sua dúvida ou problema abaixo:\n\n');
-  }
-  document.getElementById('mailto-btn').href = 'mailto:suporteigbase@igbase.com.br?subject=' + subject + '&body=' + body;
-}
-initSupport();
-})();
-</script>
 </body>
 </html>
