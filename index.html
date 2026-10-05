@@ -171,7 +171,7 @@
       <a href="/suporte/">Suporte</a>
     </div>
     <div class="status"><span class="dot"></span>Todos os sistemas operacionais</div>
-    <div class="version">IG Base v1.02</div>
+    <div class="version">IG Base v1.03</div>
   </footer>
 
   <div class="modal-overlay" id="settings-overlay">
@@ -302,14 +302,12 @@ document.getElementById('settings-signout').addEventListener('click', sairDaCont
    O aviso aparece uma vez por versão por navegador (localStorage compartilhado
    entre o site principal e os subsites, pois ficam no mesmo domínio).
    ============================================================ */
-var IG_BASE_VERSION = '1.02';
+var IG_BASE_VERSION = '1.03';
 var IG_BASE_CHANGELOG = [
-  'Perfis de Faturamento agora ficam em Configurações, separados dos clientes.',
-  'Clicar na logo do Solar Organization leva de volta ao início do IG Base.',
-  'Configurações redesenhadas, no mesmo visual do site principal.',
-  'Ao gerar uma fatura em PDF, agora existe um único botão de download.',
-  'O botão de Suporte abre o seu e-mail já com o destinatário certo, sem texto pré-escrito.',
-  'Avisos de novidades como este, exibidos uma única vez por versão.'
+  'Histórico preserva o cálculo original e permite abrir a fatura salva.',
+  'Detalhamento de energia atualizado, preservando o cálculo financeiro existente.',
+  'Faturas mostram injeção, consumo real, saldo utilizado e energia faturada.',
+  'Saldo já cobrado aparece de forma explícita, sem nova cobrança de energia.'
 ];
 function igbMostrarChangelog(){
   var KEY = 'igbase_changelog_visto';
