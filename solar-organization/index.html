@@ -293,7 +293,7 @@
 <footer class="app-footer" id="app-footer" style="display:none">
   <div class="footer-links"><a href="/suporte/">Suporte</a></div>
   <div class="status"><span class="dot"></span>Todos os sistemas operacionais</div>
-  <div class="version">IG Base v1.02</div>
+  <div class="version">IG Base v1.03</div>
 </footer>
 
 <div id="modal-root"></div>
@@ -343,6 +343,18 @@ function fmtNum(n){
   var s = n.toLocaleString('pt-BR', {minimumFractionDigits:0, maximumFractionDigits:6});
   return s;
 }
+/* Formatação para reentrada: preserva a precisão do Number, sem separador de milhar.
+   fmtNum/BRL continuam sendo apenas formatos de exibição. */
+function numeroParaFormulario(n){
+  if(n === undefined || n === null) return '';
+  return Number(n).toLocaleString('pt-BR', {useGrouping:false, maximumSignificantDigits:21});
+}
+function copiarDados(valor){ return JSON.parse(JSON.stringify(valor)); }
+function perfilDoDocumento(d){ return d.perfilSnapshot || getProfile(d.profileId); }
+function clienteDoDocumento(d){
+  return d.clienteSnapshot || state.clients.find(function(c){ return c.id === d.clientId; });
+}
+function configDoDocumento(d){ return d.docConfigSnapshot || state.docConfig || docConfigPadrao(); }
 function formatarValor(v, formato){
   if(v === undefined || v === null || isNaN(v)) return '—';
   switch(formato){
@@ -693,7 +705,7 @@ async function storageSet(key, value){
 }
 async function saveProfiles(){ await storageSet('usinas:v2:profiles', JSON.stringify(state.profiles)); }
 async function saveClients(){ await storageSet('usinas:v2:clients', JSON.stringify(state.clients)); }
-async function saveQuotes(){ await storageSet('usinas:v2:quotes', JSON.stringify(state.quotes)); }
+async function saveQuotes(quotes){ return await storageSet('usinas:v2:quotes', JSON.stringify(quotes || state.quotes)); }
 async function saveDocConfig(){ await storageSet('usinas:v2:docconfig', JSON.stringify(state.docConfig)); }
 function docConfigPadrao(){
   return { nomeEmpresa: '', logoBase64: null, corPrimaria: '#1B4D3E', textoRodape: '', enderecoContato: '', email: '', telefones: [] };
@@ -1037,7 +1049,7 @@ function itemInputRowHtml(profile, nome, uc, valores){
       var checked = (valores && valores[v.chave]!==undefined) ? !!valores[v.chave] : !!v.valorPadrao;
       return '<div class="field field-checkbox"><label class="checkbox-field"><input type="checkbox" class="item-val item-val-checkbox" data-chave="'+v.chave+'"'+(checked?' checked':'')+'> '+escapeHtml(v.rotulo)+'</label></div>';
     }
-    var val = (valores && valores[v.chave]!==undefined) ? fmtNum(valores[v.chave]) : '';
+    var val = (valores && valores[v.chave]!==undefined) ? numeroParaFormulario(valores[v.chave]) : '';
     if(v.calculado){
       return '<div class="field field-calculado"><label>'+escapeHtml(v.rotulo)+' <span class="hint">(calculado)</span></label><input type="text" inputmode="decimal" class="item-val" data-chave="'+v.chave+'" value="'+val+'" placeholder="calculado ao clicar em Calcular" readonly title="Calculado automaticamente pelo sistema"></div>';
     }
@@ -1384,8 +1396,8 @@ function onCalcular(){
     return;
   }
 
-  /* Quando o consumo do ponto principal excede a injeção do mês e isso NÃO foi
-     coberto pelo saldo, a diferença vira seu próprio ajuste explícito no total —
+  /* Quando o consumo do ponto principal excede a injeção do mês e esse saldo JÁ foi
+     cobrado anteriormente, a diferença vira seu próprio ajuste explícito no total —
      nunca um valor negativo disfarçado de "ponto de consumo" (não existe fisicamente
      enviar energia negativa pra um ponto). */
   var ajusteExcedenteRS = 0;
@@ -1418,6 +1430,7 @@ function onCalcular(){
         });
         resultado.scope.liquidoTotal = resultado.itensResultado.reduce(function(s,it){ return s + (it[resultado.chaveItemValor]||0); }, 0);
         resultado.scope.valorComSolar = resultado.scope.liquidoTotal;
+        resultado.scope['itens_' + resultado.chaveItemValor] = resultado.itensResultado.map(function(item){ return item[resultado.chaveItemValor]; });
         ocultarFioBPorPonto = true;
       } else if(resultado.scope.injecaoComDescontoRS !== undefined){
         resultado.scope.injecaoComDescontoRS += fioBTotal;
@@ -1442,9 +1455,104 @@ function onCalcular(){
     ocultarFioBPorPonto: ocultarFioBPorPonto,
     scope: resultado.scope, itensResultado: resultado.itensResultado, chaveItemValor: resultado.chaveItemValor,
     repasseFatura: repasseFatura,
-    ajusteExcedenteRS: ajusteExcedenteRS
+    ajusteExcedenteRS: ajusteExcedenteRS,
+    /* Metadados de exibição: refletem o desconto que permaneceu no total,
+       sem modificar o cálculo financeiro existente. */
+    ajusteExcedenteAplicado: !(c.locadorPagaFatura && chaveFatura && fioBTotal > 0.004),
+    saldoIsentoKwh: (excedenteKwh > 0.004 && resultado.scope.precoComDesconto !== undefined &&
+      !(c.locadorPagaFatura && chaveFatura && fioBTotal > 0.004)) ? excedenteKwh : 0,
+    perfilSnapshot: copiarDados(profile), clienteSnapshot: copiarDados(c),
+    docConfigSnapshot: copiarDados(state.docConfig || docConfigPadrao()),
+    fixosEntrada: copiarDados(fixos), versaoCalculo: '1.03'
   };
+  state.lastDraft.resumoEnergia = construirResumoEnergia(profile, state.lastDraft);
   renderPreview();
+}
+
+/* Detalhamento físico separado dos valores financeiros. Não altera as fórmulas.
+   No rateio automático, o consumo de cada ponto é o já calculado pelo motor;
+   o saldo do principal não é removido desse consumo. */
+function construirResumoEnergia(profile, draft){
+  var sc = draft.scope || {};
+  if(sc.injecaoTotal === undefined) return null;
+  var injecao = Math.max(0, Number(sc.injecaoTotal) || 0);
+  var consumo, saldo, faturado, isento, naoCompensado = 0, pontos = [];
+  if(profile.distribuicaoAutomaticaPontos && draft.itensResultado){
+    consumo = draft.itensResultado.reduce(function(total, it){ return total + Math.max(0, Number(it.consumoKwh) || 0); }, 0);
+    saldo = Math.max(0, consumo - injecao);
+    /* Em históricos antigos, o ajuste em R$ permite recuperar o saldo isento
+       apenas quando a tarifa é diferente de zero. */
+    isento = draft.saldoIsentoKwh !== undefined ? draft.saldoIsentoKwh
+      : (sc.precoComDesconto > 0 ? (draft.ajusteExcedenteRS || 0) / sc.precoComDesconto : 0);
+    isento = Math.min(saldo, Math.max(0, isento));
+    faturado = Math.max(0, consumo - isento);
+    pontos = draft.itensResultado.map(function(it){
+      var real = Math.max(0, Number(it.consumoKwh) || 0);
+      var saldoPonto = it.pontoPrincipal ? saldo : 0;
+      return {nome:it.nome, uc:it.uc || '', consumoRealKwh:real,
+        saldoUtilizadoKwh:saldoPonto, faturadoKwh:Math.max(0, real - (it.pontoPrincipal ? isento : 0))};
+    });
+  } else if(!profile.possuiItensMultiplos && sc.injecaoEfetiva !== undefined && sc.saldoDelta !== undefined){
+    saldo = Math.max(0, -(Number(sc.saldoDelta) || 0));
+    var compensado = Math.max(0, injecao - (Number(sc.saldoDelta) || 0));
+    naoCompensado = Math.max(0, Number(sc.energiaAtiva) || 0);
+    consumo = compensado + naoCompensado;
+    faturado = Math.max(0, Number(sc.injecaoEfetiva) || 0);
+    isento = sc.saldoJaCobrado ? saldo : 0;
+  } else {
+    /* Perfis personalizados sem essas grandezas não recebem estimativas. */
+    return null;
+  }
+  return {injecaoMesKwh:injecao, consumoRealKwh:consumo, saldoUtilizadoKwh:saldo,
+    faturadoKwh:faturado, saldoNaoCobradoKwh:isento, energiaNaoCompensadaKwh:naoCompensado, pontos:pontos};
+}
+function resumoEnergiaDoDocumento(profile, draft){
+  return draft.resumoEnergia || construirResumoEnergia(profile, draft);
+}
+function linhasResumoEnergia(resumo){
+  if(!resumo) return [];
+  var linhas = [
+    {rotulo:'Injeção do mês', valor:fmtKwh(resumo.injecaoMesKwh)},
+    {rotulo:'Consumo real total', valor:fmtKwh(resumo.consumoRealKwh)},
+    {rotulo:'Saldo acumulado utilizado', valor:fmtKwh(resumo.saldoUtilizadoKwh)},
+    {rotulo:'Energia faturada na locação', valor:fmtKwh(resumo.faturadoKwh)}
+  ];
+  if(resumo.energiaNaoCompensadaKwh > 0){
+    linhas.push({rotulo:'Energia não compensada (concessionária)', valor:fmtKwh(resumo.energiaNaoCompensadaKwh)});
+  }
+  return linhas;
+}
+function notaResumoEnergia(resumo){
+  if(!resumo) return '';
+  var nota = '';
+  if(resumo.saldoNaoCobradoKwh > 0){
+    nota = 'Do saldo utilizado, ' + fmtKwh(resumo.saldoNaoCobradoKwh) + ' já foram cobrados em meses anteriores e não geram nova cobrança de energia nesta fatura.';
+  } else if(resumo.saldoUtilizadoKwh > 0){
+    nota = 'O saldo utilizado está incluído na energia faturada, conforme a regra de cobrança deste cliente.';
+  } else {
+    nota = 'Não houve utilização de saldo acumulado neste cálculo.';
+  }
+  if(resumo.energiaNaoCompensadaKwh > 0){
+    nota += ' O consumo real inclui a energia não compensada, cobrada na conta da concessionária.';
+  }
+  return nota;
+}
+function resumoEnergiaHtml(profile, draft, cor){
+  var resumo = resumoEnergiaDoDocumento(profile, draft);
+  if(!resumo) return '';
+  var linhas = linhasResumoEnergia(resumo).map(function(l){
+    return '<tr><td style="padding:5px 0;color:#5c6f63;font-size:12px">' + escapeHtml(l.rotulo) +
+      '</td><td style="padding:5px 0;text-align:right;font-weight:bold;font-size:12px">' + escapeHtml(l.valor) + '</td></tr>';
+  }).join('');
+  var pontos = (resumo.pontos || []).map(function(p){
+    return '<p style="font-size:11px;margin:8px 0 0">' + escapeHtml(p.nome + (p.uc ? ' (UC ' + p.uc + ')' : '')) +
+      ': consumo real ' + escapeHtml(fmtKwh(p.consumoRealKwh)) + ' | saldo utilizado ' + escapeHtml(fmtKwh(p.saldoUtilizadoKwh)) +
+      ' | faturado ' + escapeHtml(fmtKwh(p.faturadoKwh)) + '</p>';
+  }).join('');
+  return '<div style="padding:14px 16px;margin:0 0 16px;background:#f7f8f6;border:1px solid #dde5da;border-radius:6px">' +
+    '<div style="font-weight:bold;font-size:12px;color:' + cor + ';margin-bottom:6px">DETALHAMENTO DE ENERGIA</div>' +
+    '<table style="width:100%;border-collapse:collapse">' + linhas + '</table>' + pontos +
+    '<p style="font-size:11px;color:#5c6f63;margin:10px 0 0">' + escapeHtml(notaResumoEnergia(resumo)) + '</p></div>';
 }
 
 /* ============================================================
@@ -1483,8 +1591,8 @@ function construirHtmlFatura(client, profile, draft, dc, qrDataUrl){
   if(draft.repasseFatura > 0.004){
     linhasHtml += '<tr><td style="'+linhaTd1+'">Repasse da fatura de energia</td><td style="'+linhaTd2+'">' + escapeHtml(fmtBRL(draft.repasseFatura)) + '</td></tr>' + linhaSep;
   }
-  if(draft.ajusteExcedenteRS > 0.004){
-    linhasHtml += '<tr><td style="'+linhaTd1+'">Ajuste — consumo do mês maior que a injeção</td><td style="'+linhaTd2+'">-' + escapeHtml(fmtBRL(draft.ajusteExcedenteRS)) + '</td></tr>' + linhaSep;
+  if(draft.ajusteExcedenteRS > 0.004 && draft.ajusteExcedenteAplicado !== false){
+    linhasHtml += '<tr><td style="'+linhaTd1+'">Saldo já cobrado — desconto da energia utilizada</td><td style="'+linhaTd2+'">-' + escapeHtml(fmtBRL(draft.ajusteExcedenteRS)) + '</td></tr>' + linhaSep;
   }
 
   var intro = (profile.textoIntroducao || '').replace('{referencia}', draft.referencia);
@@ -1516,7 +1624,7 @@ function construirHtmlFatura(client, profile, draft, dc, qrDataUrl){
     '<div style="height:3px;background:'+cor+';margin:16px 0 20px 0;"></div>' +
     '<div style="font-size:15px;font-weight:bold;">USINA ' + escapeHtml((client.nome||'').toUpperCase()) + (client.uc ? ' — UC ' + escapeHtml(client.uc) : '') + '</div>' +
     '<div style="font-size:11.5px;color:#5c6f63;margin-bottom:14px;">Referência: ' + escapeHtml(draft.referencia) + '</div>' +
-    introHtml +
+    introHtml + resumoEnergiaHtml(profile, draft, cor) +
     '<table style="width:100%;border-collapse:collapse;">' + linhasHtml + '</table>' +
     obsHtml +
     '<table style="width:100%;border-collapse:collapse;margin-top:18px;"><tr style="background:'+cor+';"><td style="padding:14px 18px;color:#fff;font-weight:bold;font-size:12.5px;border-radius:6px 0 0 6px;">' + escapeHtml(totalLabel) + '</td><td style="padding:14px 18px;text-align:right;color:#fff;font-weight:bold;font-size:17px;border-radius:0 6px 6px 0;">' + totalVal + '</td></tr></table>' +
@@ -1538,7 +1646,7 @@ function renderPreview(){
   var col = document.getElementById('preview-col');
   if(!col || !state.lastDraft) return;
   var d = state.lastDraft;
-  var profile = getProfile(d.profileId);
+  var profile = perfilDoDocumento(d);
 
   /* O gestor confere os números pelo "Baixar PDF interno" — a tela fica só com o
      essencial: o que vai aparecer pro cliente, e os botões pra gerar os arquivos. */
@@ -1573,7 +1681,8 @@ function renderPreview(){
       '<button class="btn" data-action="baixar-pdf-interno">Baixar PDF interno</button>' +
     '</div>';
 
-  col.innerHTML = totalHtml + checklistHtml + botoesHtml;
+  var historicoAviso = d.id ? '<div class="panel"><b>Fatura do histórico</b><p class="hint">Valores originais salvos. Calcular novamente gera um novo orçamento com as configurações atuais.</p></div>' : '';
+  col.innerHTML = historicoAviso + totalHtml + resumoEnergiaHtml(profile, d, '#1B4D3E') + checklistHtml + botoesHtml;
 
   document.querySelectorAll('.campo-visivel-toggle').forEach(function(cb){
     cb.addEventListener('change', function(){
@@ -1596,21 +1705,50 @@ async function salvarCamposComoPadrao(){
 /* ============================================================
    HISTÓRICO
    ============================================================ */
+var salvandoHistorico = false;
 async function onSalvarHistorico(){
   if(!state.lastDraft){ toast('Calcule um orçamento antes de salvar.'); return; }
-  var q = Object.assign({ id: uid(), createdAt: new Date().toISOString() }, state.lastDraft);
-  state.quotes.unshift(q);
-  await saveQuotes();
-  limparRascunho(q.clientId);
-  toast('Orçamento salvo no histórico.');
-  if(state.activeTab === 'historico'){ renderTabContent(); }
+  if(salvandoHistorico) return;
+  salvandoHistorico = true;
+  try{
+    /* Snapshot profundo: nunca compartilhar arrays/objetos com o preview editável.
+       O histórico armazena o resultado final; não roda o motor novamente. */
+    var q = copiarDados(state.lastDraft);
+    q.id = uid(); q.createdAt = new Date().toISOString();
+    var quotes = [q].concat(state.quotes);
+    if(!await saveQuotes(quotes)){
+      toast('Não foi possível salvar no histórico. Confira sua conexão e tente novamente.');
+      return;
+    }
+    state.quotes = quotes;
+    limparRascunho(q.clientId);
+    toast('Orçamento salvo no histórico.');
+    if(state.activeTab === 'historico'){ renderTabContent(); }
+  } finally { salvandoHistorico = false; }
+}
+function abrirQuote(id){
+  var q = state.quotes.find(function(x){ return x.id === id; });
+  if(!q) return;
+  state.selectedClientId = q.clientId; state.activeTab = 'novo';
+  renderSidebar(); renderTopbar(); renderTabs();
+  document.getElementById('tab-content').innerHTML =
+    '<div class="btn-row" style="margin-bottom:16px">' +
+      '<button class="btn" data-action="duplicar-quote" data-id="' + q.id + '">Usar como base para novo orçamento</button>' +
+      '<button class="btn" data-action="set-tab" data-tab="historico">Voltar ao histórico</button>' +
+    '</div><div id="preview-col" style="max-width:720px"></div>';
+  state.lastDraft = copiarDados(q);
+  renderPreview();
+  var preview = document.getElementById('preview-col');
+  if(preview && preview.scrollIntoView) preview.scrollIntoView({behavior:'smooth', block:'start'});
+  toast(q.perfilSnapshot ? 'Fatura aberta com os valores originais do histórico.' : 'Fatura antiga aberta com os valores salvos. O perfil e os dados do cliente usam o cadastro atual.');
 }
 function historicoItemHtml(q){
   var data = new Date(q.createdAt).toLocaleDateString('pt-BR');
-  var totalStr = fmtBRL(q.scope[getProfile(q.profileId) ? getProfile(q.profileId).chaveTotalFinal : 'valorFinal']);
+  var totalStr = fmtBRL(q.scope[perfilDoDocumento(q) ? perfilDoDocumento(q).chaveTotalFinal : 'valorFinal']);
   return '<div class="history-item"><div class="info"><b>' + escapeHtml(q.referencia) + ' — ' + totalStr + '</b>' +
     '<span>Salvo em ' + data + '</span></div>' +
     '<div class="btn-row">' +
+      '<button class="btn" data-action="abrir-quote" data-id="' + q.id + '">Abrir fatura</button>' +
       '<button class="btn" data-action="duplicar-quote" data-id="' + q.id + '">Usar como base</button>' +
       '<button class="btn btn-danger" data-action="delete-quote-confirm" data-id="' + q.id + '">Excluir</button>' +
     '</div></div>';
@@ -1678,22 +1816,26 @@ function duplicarQuote(id){
   var q = state.quotes.find(function(x){ return x.id === id; });
   if(!q) return;
   state.selectedClientId = q.clientId; state.activeTab = 'novo';
+  state.lastDraft = null;
   renderSidebar(); renderTopbar(); renderTabs(); renderNovoOrcamento();
+  state.lastDraft = null;
+  var preview = document.getElementById('preview-col');
+  if(preview) preview.innerHTML = '<div class="panel">Dados carregados como base. Clique em Calcular orçamento para gerar o novo resultado.</div>';
   setReferenciaAtual(q.referencia);
-  setIf('f-ajuste', fmtNum(q.ajuste));
+  setIf('f-ajuste', numeroParaFormulario(q.ajuste));
   setIf('f-observacoes', q.observacoes);
   Object.keys(q.valoresEntrada||{}).forEach(function(chave){
     var el = document.querySelector('.in-mensal[data-chave="'+chave+'"]');
     if(!el) return;
     if(el.type === 'checkbox') el.checked = !!q.valoresEntrada[chave];
-    else el.value = fmtNum(q.valoresEntrada[chave]);
+    else el.value = numeroParaFormulario(q.valoresEntrada[chave]);
   });
   if(q.itens && q.itens.length){
-    var profile = getProfile(q.profileId);
+    var profile = getProfile(selectedClient().profileId);
     var wrap = document.getElementById('pontos-container');
     if(wrap && profile){ wrap.innerHTML = q.itens.map(function(it){ return itemInputRowHtml(profile, it.nome, it.uc, it); }).join(''); }
   }
-  toast('Dados carregados. Ajuste os valores e clique em Calcular.');
+  toast('Dados carregados como base. O novo cálculo usará o perfil e as configurações atuais.');
 }
 async function deleteQuote(id){
   state.quotes = state.quotes.filter(function(q){ return q.id !== id; });
@@ -1708,10 +1850,10 @@ async function deleteQuote(id){
 async function baixarDoc(){
   var d = state.lastDraft;
   if(!d){ toast('Calcule um orçamento antes de baixar o Word.'); return; }
-  var client = state.clients.find(function(c){ return c.id === d.clientId; });
-  var profile = getProfile(d.profileId);
+  var client = clienteDoDocumento(d);
+  var profile = perfilDoDocumento(d);
   if(!client || !profile) return;
-  var dc = state.docConfig || docConfigPadrao();
+  var dc = configDoDocumento(d);
   var qrDataUrl = await gerarQrPixDataUrl(client, d.scope[profile.chaveTotalFinal]);
   var corpo = construirHtmlFatura(client, profile, d, dc, qrDataUrl);
   var html = "<html xmlns:o='urn:schemas-microsoft-com:office:office' xmlns:w='urn:schemas-microsoft-com:office:word' xmlns='http://www.w3.org/TR/REC-html40'>" +
@@ -1880,10 +2022,10 @@ async function baixarPng(){
     toast('Não deu para carregar o gerador de imagem agora. Tente de novo em instantes.');
     return;
   }
-  var client = state.clients.find(function(c){ return c.id === d.clientId; });
-  var profile = getProfile(d.profileId);
+  var client = clienteDoDocumento(d);
+  var profile = perfilDoDocumento(d);
   if(!client || !profile){ if(abaPreAberta) abaPreAberta.close(); return; }
-  var dc = state.docConfig || docConfigPadrao();
+  var dc = configDoDocumento(d);
   var qrDataUrl = await gerarQrPixDataUrl(client, d.scope[profile.chaveTotalFinal]);
 
   var container = document.createElement('div');
@@ -2038,10 +2180,10 @@ async function baixarPdf(modo){
     toast('Não deu para carregar o gerador de PDF agora. Tente de novo em instantes.');
     return;
   }
-  var client = state.clients.find(function(c){ return c.id === d.clientId; });
-  var profile = getProfile(d.profileId);
+  var client = clienteDoDocumento(d);
+  var profile = perfilDoDocumento(d);
   if(!client || !profile){ if(abaPreAberta) abaPreAberta.close(); return; }
-  var dc = state.docConfig || docConfigPadrao();
+  var dc = configDoDocumento(d);
   var rgb = hexToRgb(dc.corPrimaria);
   var interno = (modo === 'interno');
 
@@ -2061,6 +2203,34 @@ async function baixarPdf(modo){
 
     function checkBreak(precisa){
       if(y + precisa > pageH - 50){ doc.addPage(); y = topoPagina; }
+    }
+    function desenharResumoEnergia(){
+      var resumo = resumoEnergiaDoDocumento(profile, d);
+      if(!resumo) return;
+      var linhas = linhasResumoEnergia(resumo);
+      var notaLinhas;
+      doc.setFont('helvetica','normal'); doc.setFontSize(9);
+      notaLinhas = doc.splitTextToSize(notaResumoEnergia(resumo), maxWidth);
+      checkBreak(28 + linhas.length * 18 + notaLinhas.length * 12);
+      doc.setFont('helvetica','bold'); doc.setFontSize(10.5); doc.setTextColor(rgb[0],rgb[1],rgb[2]);
+      doc.text('DETALHAMENTO DE ENERGIA', marginX, y); y += 20;
+      linhas.forEach(function(l){
+        checkBreak(18);
+        doc.setFont('helvetica','normal'); doc.setFontSize(9.5); doc.setTextColor(92,111,99);
+        doc.text(l.rotulo, marginX, y);
+        doc.setFont('helvetica','bold'); doc.setTextColor(22,36,29);
+        doc.text(l.valor, pageW - marginX, y, {align:'right'}); y += 18;
+      });
+      doc.setFont('helvetica','normal'); doc.setFontSize(9); doc.setTextColor(92,111,99);
+      (resumo.pontos || []).forEach(function(p){
+        var texto = p.nome + (p.uc ? ' (UC ' + p.uc + ')' : '') + ': consumo real ' + fmtKwh(p.consumoRealKwh) +
+          ' | saldo utilizado ' + fmtKwh(p.saldoUtilizadoKwh) + ' | faturado ' + fmtKwh(p.faturadoKwh);
+        doc.splitTextToSize(texto, maxWidth).forEach(function(l){ checkBreak(12); doc.text(l, marginX, y); y += 12; });
+        y += 4;
+      });
+      doc.setFont('helvetica','normal'); doc.setFontSize(9); doc.setTextColor(92,111,99);
+      notaLinhas.forEach(function(l){ checkBreak(12); doc.text(l, marginX, y); y += 12; });
+      y += 14;
     }
     function linhaSeparadora(yy){
       doc.setDrawColor(224,228,224); doc.setLineWidth(0.6);
@@ -2090,6 +2260,7 @@ async function baixarPdf(modo){
       doc.rect(marginX, y, maxWidth, 1.6, 'F');
       y += 16;
 
+      desenharResumoEnergia();
       var camposDisp = camposDisponiveisPerfil(profile);
       var colGutter = 18;
       var colWidth = (maxWidth - colGutter) / 2;
@@ -2112,7 +2283,7 @@ async function baixarPdf(modo){
 
       camposDisp.forEach(function(campo){
         var valor = formatarValor(d.scope[campo.chave], campo.formato);
-        if(y + 40 > pageH - 50){ doc.addPage(); y = topoPagina; colY[0]=y; colY[1]=y; col=0; }
+        if(colY[col] + 40 > pageH - 50){ doc.addPage(); y = topoPagina; colY[0]=y; colY[1]=y; col=0; }
         var altura = celulaCompacta(campo.rotulo, valor, colWidth - 8, colX[col], colY[col]);
         colY[col] += altura;
         col = 1 - col;
@@ -2170,10 +2341,10 @@ async function baixarPdf(modo){
         y += 14;
       }
 
-      if(d.ajusteExcedenteRS > 0.004){
+      if(d.ajusteExcedenteRS > 0.004 && d.ajusteExcedenteAplicado !== false){
         checkBreak(14);
         doc.setFont('helvetica','normal'); doc.setFontSize(8.5); doc.setTextColor(92,111,99);
-        doc.text('Ajuste — consumo do principal maior que a injeção (sem saldo cobrindo)', marginX, y);
+        doc.text('Saldo já cobrado — desconto da energia utilizada', marginX, y);
         doc.setFont('helvetica','bold'); doc.setTextColor(22,36,29);
         doc.text('-' + fmtBRL(d.ajusteExcedenteRS), pageW - marginX, y, { align:'right' });
         y += 14;
@@ -2248,6 +2419,7 @@ async function baixarPdf(modo){
       doc.text('Referência: ' + d.referencia, marginX, y);
       y += 22;
 
+      desenharResumoEnergia();
       var camposDispC = camposDisponiveisPerfil(profile);
       doc.setFontSize(10.5);
       camposDispC.forEach(function(campo){
@@ -2309,10 +2481,10 @@ async function baixarPdf(modo){
         y += 22;
       }
 
-      if(d.ajusteExcedenteRS > 0.004){
+      if(d.ajusteExcedenteRS > 0.004 && d.ajusteExcedenteAplicado !== false){
         checkBreak(20);
         doc.setFont('helvetica','normal'); doc.setTextColor(92,111,99);
-        doc.text('Ajuste — consumo do mês maior que a injeção', marginX, y);
+        doc.text('Saldo já cobrado — desconto da energia utilizada', marginX, y);
         doc.setFont('helvetica','bold'); doc.setTextColor(22,36,29);
         doc.text('-' + fmtBRL(d.ajusteExcedenteRS), pageW - marginX, y, { align:'right' });
         y += 22;
@@ -3325,14 +3497,12 @@ async function onSignOut(){
    O aviso aparece uma vez por versão por navegador (localStorage compartilhado
    entre o site principal e os subsites, pois ficam no mesmo domínio).
    ============================================================ */
-var IG_BASE_VERSION = '1.02';
+var IG_BASE_VERSION = '1.03';
 var IG_BASE_CHANGELOG = [
-  'Perfis de Faturamento agora ficam em Configurações, separados dos clientes.',
-  'Clicar na logo do Solar Organization leva de volta ao início do IG Base.',
-  'Configurações redesenhadas, no mesmo visual do site principal.',
-  'Ao gerar uma fatura em PDF, agora existe um único botão de download.',
-  'O botão de Suporte abre o seu e-mail já com o destinatário certo, sem texto pré-escrito.',
-  'Avisos de novidades como este, exibidos uma única vez por versão.'
+  'Histórico preserva o cálculo original e permite abrir a fatura salva.',
+  'Detalhamento de energia atualizado, preservando o cálculo financeiro existente.',
+  'Faturas mostram injeção, consumo real, saldo utilizado e energia faturada.',
+  'Saldo já cobrado aparece de forma explícita, sem nova cobrança de energia.'
 ];
 function igbMostrarChangelog(){
   var KEY = 'igbase_changelog_visto';
@@ -3486,6 +3656,7 @@ document.addEventListener('click', function(e){
     case 'baixar-pdf': baixarPdf('cliente'); break;
     case 'baixar-pdf-interno': baixarPdf('interno'); break;
 
+    case 'abrir-quote': abrirQuote(id); break;
     case 'duplicar-quote': duplicarQuote(id); break;
     case 'delete-quote-confirm': handleConfirmClick(el, function(){ deleteQuote(id); }); break;
 
