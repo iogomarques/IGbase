@@ -756,7 +756,7 @@ function presetGD1(){
     rotulosCampos: {
       precoSemDesconto:'Preço do kWh sem desconto', precoComDesconto:'Preço do kWh com desconto',
       saldoDeltaEfetivo:'Saldo considerado na conta (kWh)',
-      injecaoEfetiva:'Injeção efetiva (já descontado o saldo)',
+      injecaoEfetiva:'Base de injeção ajustada do perfil',
       injecaoSemDescontoRS:'Injeção em R$ sem desconto',
       injecaoComDescontoRS:'Injeção em R$ com desconto', multasEAdicionais:'Multas e adicionais',
       somaComponentes:'Soma dos componentes da fatura (confere com o valor da fatura)', valorSemSolar:'Valor sem solar (conta sem solar)',
@@ -793,7 +793,7 @@ function presetGD2ComFioBMultiplos(){
       {chave:'precoBase', rotulo:'Preço do kWh (sem bandeira)', categoria:'fixo', valorPadrao:1.185396, formato:'moeda'},
       {chave:'taxaBandeira', rotulo:'Taxa de bandeira por kWh', categoria:'fixo', valorPadrao:0.025054, formato:'moeda'},
       {chave:'desconto', rotulo:'Desconto concedido (decimal — 0.10 = 10%)', categoria:'fixo', valorPadrao:0.20, formato:'percentual'},
-      {chave:'consumoTotal', rotulo:'Consumo total (kWh)', categoria:'mensal', valorPadrao:0, formato:'kwh'},
+      {chave:'consumoTotal', rotulo:'Leitura de consumo da conta principal (kWh)', categoria:'mensal', valorPadrao:0, formato:'kwh'},
       {chave:'injecaoTotal', rotulo:'Injeção solar sem saldo (kWh)', categoria:'mensal', valorPadrao:0, formato:'kwh'},
       {chave:'saldoDelta', rotulo:'Saldo — variação do mês (kWh)', categoria:'mensal', valorPadrao:0, formato:'kwh'},
       {chave:'injecaoNaConta', rotulo:'Injeção que aparece na conta (kWh)', categoria:'mensal', valorPadrao:0, formato:'kwh'},
@@ -842,7 +842,7 @@ function presetGD2ComFioBMultiplos(){
     camposItemVisiveisCliente: ['fioBPonto'],
     rotulosCampos: {
       precoSemDesconto:'Preço do kWh sem desconto', precoComDesconto:'Preço do kWh com desconto',
-      injecaoEfetiva:'Injeção efetiva (já descontado o saldo)', consumoEfetivo:'Consumo efetivo (já descontado o saldo)',
+      injecaoEfetiva:'Base de injeção ajustada do perfil', consumoEfetivo:'Base de consumo ajustada do perfil',
       autoConsumo:'Autoconsumo (consumo total - injeção na conta)', valorFioBPorKwh:'Fio B por kWh (taxa da conta)',
       injecaoSemDescontoRS:'Injeção em R$ sem desconto', injecaoComDescontoRS:'Injeção em R$ com desconto (antes do Fio B)',
       valorSemSolar:'Valor sem solar', descontoRS:'Desconto concedido em R$', descontoReal:'Desconto real',
@@ -1143,7 +1143,7 @@ function renderNovoOrcamento(){
       '<fieldset><legend>Dados do mês</legend>' +
         '<p class="hint" style="margin:-4px 0 12px">Dica: em qualquer campo, pode digitar uma soma direto, ex.: <code class="mono">45,20+12,30+8</code></p>' +
         camposMensaisHtml + '</fieldset>' +
-      camposAdendo;
+      energiaDocumentoCamposHtml(profile) + camposAdendo;
   } else {
     var pontosSeed = pontosPadraoDoCliente(c);
     var pontosHtml = pontosSeed.map(function(p){ return itemInputRowHtml(profile, p.nome, p.uc, null); }).join('');
@@ -1156,7 +1156,7 @@ function renderNovoOrcamento(){
         '<div id="pontos-container">' + pontosHtml + '</div>' +
         '<button type="button" class="add-ponto-btn" data-action="add-ponto">+ Adicionar ponto</button>' +
       '</fieldset>' +
-      camposAdendo;
+      energiaDocumentoCamposHtml(profile) + camposAdendo;
   }
 
   container.innerHTML =
@@ -1208,6 +1208,7 @@ function lerFormularioBruto(){
     referencia: getReferenciaAtual(),
     ajusteRaw: ajusteEl ? ajusteEl.value : '',
     observacoes: txt('f-observacoes'),
+    energiaDocumento: lerEnergiaDocumento(),
     mensais: {}, itens: null
   };
   document.querySelectorAll('.in-mensal').forEach(function(inp){
@@ -1250,6 +1251,7 @@ function restaurarRascunhoSeExistir(client, profile){
   var ajusteEl = document.getElementById('f-ajuste');
   if(ajusteEl) ajusteEl.value = rascunho.ajusteRaw || '';
   setIf('f-observacoes', rascunho.observacoes || '');
+  restaurarEnergiaDocumento(rascunho.energiaDocumento);
   Object.keys(rascunho.mensais || {}).forEach(function(chave){
     var el = document.querySelector('.in-mensal[data-chave="' + chave + '"]');
     if(!el) return;
@@ -1379,6 +1381,10 @@ function onCalcular(){
   var observacoes = txt('f-observacoes');
   var fixos = fixosEfetivos(c, profile);
   var mensais = readMensaisFromForm();
+  var energiaDocumentoInputs = lerEnergiaDocumento();
+  if(Object.keys(energiaDocumentoInputs).some(function(k){
+    var n = energiaDocumentoInputs[k]; return n !== null && (!isFinite(n) || n < 0);
+  })){ toast('Consumo, injeção e saldo do documento precisam ser números iguais ou maiores que zero.'); return; }
   var valoresEntrada = Object.assign({}, fixos, mensais, { ajuste: ajuste });
 
   var itensInputRaw = profile.possuiItensMultiplos ? readItemRows() : null;
@@ -1447,7 +1453,7 @@ function onCalcular(){
   var camposVisiveis = (c.camposVisiveisPadrao && c.camposVisiveisPadrao.length) ? c.camposVisiveisPadrao.slice()
                       : (profile.camposVisiveisCliente ? profile.camposVisiveisCliente.slice() : []);
 
-  state.lastDraft = {
+  var novoDraft = {
     clientId: c.id, profileId: profile.id, referencia: referencia,
     valoresEntrada: Object.assign({}, mensais), ajuste: ajuste, observacoes: observacoes,
     itens: itensInputRaw,
@@ -1463,181 +1469,282 @@ function onCalcular(){
       !(c.locadorPagaFatura && chaveFatura && fioBTotal > 0.004)) ? excedenteKwh : 0,
     perfilSnapshot: copiarDados(profile), clienteSnapshot: copiarDados(c),
     docConfigSnapshot: copiarDados(state.docConfig || docConfigPadrao()),
-    fixosEntrada: copiarDados(fixos), versaoCalculo: '1.03'
+    fixosEntrada: copiarDados(fixos), versaoCalculo: '1.03',
+    energiaDocumentoInputs: copiarDados(energiaDocumentoInputs)
   };
-  state.lastDraft.resumoEnergia = construirResumoEnergia(profile, state.lastDraft);
+  novoDraft.resumoEnergia = construirResumoEnergia(profile, novoDraft);
+  if(novoDraft.resumoEnergia.erroSaldo){ toast(novoDraft.resumoEnergia.erroSaldo); return; }
+  state.lastDraft = novoDraft;
   renderPreview();
 }
 
-/* Detalhamento físico separado dos valores financeiros. Não altera as fórmulas.
-   No rateio automático, o consumo de cada ponto é o já calculado pelo motor;
-   o saldo do principal não é removido desse consumo. */
-function construirResumoEnergia(profile, draft){
-  var sc = draft.scope || {};
-  if(sc.injecaoTotal === undefined) return null;
-  var injecao = Math.max(0, Number(sc.injecaoTotal) || 0);
-  var consumo, saldo, faturado, isento, naoCompensado = 0, pontos = [];
-  if(profile.distribuicaoAutomaticaPontos && draft.itensResultado){
-    consumo = draft.itensResultado.reduce(function(total, it){ return total + Math.max(0, Number(it.consumoKwh) || 0); }, 0);
-    saldo = Math.max(0, consumo - injecao);
-    /* Em históricos antigos, o ajuste em R$ permite recuperar o saldo isento
-       apenas quando a tarifa é diferente de zero. */
-    isento = draft.saldoIsentoKwh !== undefined ? draft.saldoIsentoKwh
-      : (sc.precoComDesconto > 0 ? (draft.ajusteExcedenteRS || 0) / sc.precoComDesconto : 0);
-    isento = Math.min(saldo, Math.max(0, isento));
-    faturado = Math.max(0, consumo - isento);
-    pontos = draft.itensResultado.map(function(it){
-      var real = Math.max(0, Number(it.consumoKwh) || 0);
-      var saldoPonto = it.pontoPrincipal ? saldo : 0;
-      return {nome:it.nome, uc:it.uc || '', consumoRealKwh:real,
-        saldoUtilizadoKwh:saldoPonto, faturadoKwh:Math.max(0, real - (it.pontoPrincipal ? isento : 0))};
-    });
-  } else if(!profile.possuiItensMultiplos && sc.injecaoEfetiva !== undefined && sc.saldoDelta !== undefined){
-    saldo = Math.max(0, -(Number(sc.saldoDelta) || 0));
-    var compensado = Math.max(0, injecao - (Number(sc.saldoDelta) || 0));
-    naoCompensado = Math.max(0, Number(sc.energiaAtiva) || 0);
-    consumo = compensado + naoCompensado;
-    faturado = Math.max(0, Number(sc.injecaoEfetiva) || 0);
-    isento = sc.saldoJaCobrado ? saldo : 0;
-  } else {
-    /* Perfis personalizados sem essas grandezas não recebem estimativas. */
-    return null;
+/* Grandezas físicas do documento. Não altera scope, fórmulas ou total em reais. */
+function valorEnergiaInformado(v){
+  if(v === null || v === undefined || v === '') return null;
+  var n = Number(v);
+  return isFinite(n) && n >= 0 ? n : null;
+}
+function lerEnergiaDocumento(){
+  var dados = {};
+  ['consumoRealKwh','injecaoMesKwh','saldoDisponivelKwh','saldoUtilizadoKwh'].forEach(function(chave){
+    var el = document.querySelector('.energia-documento-input[data-chave="' + chave + '"]');
+    dados[chave] = !el || !el.value.trim() ? null : /[^0-9.,+\-\s]/.test(el.value) ? NaN : parseNumBR(el.value);
+  });
+  return dados;
+}
+function restaurarEnergiaDocumento(dados){
+  dados = dados || {};
+  document.querySelectorAll('.energia-documento-input').forEach(function(el){
+    el.value = dados[el.dataset.chave] === null || dados[el.dataset.chave] === undefined
+      ? '' : numeroParaFormulario(dados[el.dataset.chave]);
+  });
+}
+function energiaDocumentoCamposHtml(profile){
+  var temInjecao = (profile.variaveis || []).some(function(v){ return v.chave === 'injecaoTotal'; });
+  function campo(chave, rotulo, dica){
+    return '<div class="field"><label>' + rotulo + '</label>' +
+      '<input type="text" inputmode="decimal" class="energia-documento-input" data-chave="' + chave + '" placeholder="Não informado">' +
+      '<span class="hint">' + dica + '</span></div>';
   }
-  return {injecaoMesKwh:injecao, consumoRealKwh:consumo, saldoUtilizadoKwh:saldo,
-    faturadoKwh:faturado, saldoNaoCobradoKwh:isento, energiaNaoCompensadaKwh:naoCompensado, pontos:pontos};
+  return '<fieldset><legend>Consumo e saldo para o documento</legend>' +
+    '<p class="hint" style="margin:0 0 12px">Confira o consumo bruto, sem descontar créditos. Estes campos detalham a energia e preservam o valor em reais do cálculo.</p>' +
+    '<div class="field-row">' +
+      campo('consumoRealKwh','Consumo bruto real (kWh)','Se ficar vazio, usa o consumo bruto apurado nos dados do perfil. Nunca use aqui o consumo já compensado.') +
+      campo('saldoDisponivelKwh','Saldo disponível antes do uso (kWh)','Informe o crédito disponível para este mês. Vazio significa saldo restante não informado; zero significa nenhum crédito disponível.') +
+    '</div>' +
+    campo('saldoUtilizadoKwh','Saldo utilizado no mês (kWh)','Opcional: informe o uso confirmado na conta após a injeção do mês. Vazio usa a diferença apurada automaticamente; zero significa que não houve uso de saldo.') +
+    '<p class="hint">Saldo final disponível = saldo antes do uso − saldo utilizado no mês. A injeção excedente do mês fica separada.</p>' +
+    (temInjecao ? '' : campo('injecaoMesKwh','Energia gerada/injetada no mês (kWh)','Informe a energia deste mês, sem somar saldo acumulado.')) +
+    '</fieldset>';
+}
+function consumoBrutoDoCalculo(profile, draft){
+  var sc = draft.scope || {}, anterior = draft.resumoEnergia || {};
+  var informado = valorEnergiaInformado(sc.consumoReal);
+  if(informado !== null) return informado;
+  if(profile.possuiItensMultiplos && draft.itensResultado){
+    var conhecidos = draft.itensResultado.filter(function(it){ return valorEnergiaInformado(it.consumoKwh) !== null; });
+    if(conhecidos.length === draft.itensResultado.length && conhecidos.length){
+      var soma = conhecidos.reduce(function(t,it){ return t + Number(it.consumoKwh); }, 0);
+      /* consumoTotal é uma entrada da conta principal em alguns perfis. O rateio
+         bruto pode apurar mais energia do que essa entrada: não esconda o excedente. */
+      return Math.max(soma, valorEnergiaInformado(sc.consumoTotal) || 0);
+    }
+  }
+  var bruto = valorEnergiaInformado(sc.consumoTotal);
+  if(bruto !== null) return bruto;
+  if(!profile.possuiItensMultiplos && sc.injecaoTotal !== undefined && sc.saldoDelta !== undefined){
+    return Math.max(0, Number(sc.injecaoTotal) - Number(sc.saldoDelta)) + Math.max(0, Number(sc.energiaAtiva) || 0);
+  }
+  return valorEnergiaInformado(anterior.consumoRealKwh);
+}
+function construirResumoEnergia(profile, draft){
+  var sc = draft.scope || {}, dados = draft.energiaDocumentoInputs || {};
+  var realCalculo = consumoBrutoDoCalculo(profile, draft);
+  var realInformado = valorEnergiaInformado(dados.consumoRealKwh);
+  var consumo = realInformado !== null ? realInformado : realCalculo;
+  var injInformada = valorEnergiaInformado(dados.injecaoMesKwh);
+  var injecao = injInformada !== null ? injInformada : valorEnergiaInformado(sc.injecaoTotal);
+  var disponivel = valorEnergiaInformado(dados.saldoDisponivelKwh);
+  var naoCompensado = !profile.possuiItensMultiplos ? Math.max(0, Number(sc.energiaAtiva) || 0) : 0;
+  naoCompensado = consumo === null ? null : Math.min(consumo, naoCompensado);
+  var conhecida = consumo !== null && injecao !== null;
+  var compensavel = conhecida ? Math.max(0, consumo - naoCompensado) : null;
+  /* A: injeção deste mês. B: saldo só cobre a diferença ao final. */
+  var mesUtilizado = conhecida ? Math.min(compensavel, injecao) : null;
+  var falta = conhecida ? Math.max(0, compensavel - mesUtilizado) : null;
+  var saldoInformado = valorEnergiaInformado(dados.saldoUtilizadoKwh);
+  var saldoAutomatico = conhecida ? (disponivel === null ? falta : Math.min(falta, disponivel)) : null;
+  var erroSaldo = null;
+  if(saldoInformado !== null && disponivel !== null && saldoInformado > disponivel + 0.000001)
+    erroSaldo = 'O saldo utilizado não pode ser maior que o saldo disponível antes do uso.';
+  if(saldoInformado !== null && falta !== null && saldoInformado > falta + 0.000001)
+    erroSaldo = 'O saldo utilizado não pode superar a diferença após a injeção do mês.';
+  var saldo = saldoInformado !== null ? saldoInformado : saldoAutomatico;
+  if(!erroSaldo && saldo !== null){
+    if(disponivel !== null) saldo = Math.min(saldo,disponivel);
+    if(falta !== null) saldo = Math.min(saldo,falta);
+  }
+  var restante = disponivel !== null && saldo !== null ? Math.max(0,disponivel - saldo) : null;
+  var descoberto = conhecida ? Math.max(0, falta - saldo) : null;
+  var isento = null;
+  if(conhecida && !profile.possuiItensMultiplos && sc.injecaoEfetiva !== undefined){
+    isento = sc.saldoJaCobrado ? saldo : 0;
+  } else if(conhecida && profile.distribuicaoAutomaticaPontos){
+    var historico = draft.resumoEnergia || {};
+    var creditoSemCusto = draft.saldoIsentoKwh !== undefined ? draft.saldoIsentoKwh
+      : historico.saldoNaoCobradoKwh !== undefined ? historico.saldoNaoCobradoKwh
+      : sc.precoComDesconto > 0 ? (draft.ajusteExcedenteRS || 0) / sc.precoComDesconto : 0;
+    isento = Math.min(saldo, Math.max(0, creditoSemCusto));
+  }
+  var pontos = (draft.itensResultado || []).map(function(it){
+    return {nome:it.nome, uc:it.uc || '', consumoRealKwh:valorEnergiaInformado(it.consumoKwh),
+      saldoUtilizadoKwh:it.pontoPrincipal && conhecida ? saldo : 0};
+  });
+  var diverge = (realInformado !== null && realCalculo !== null && Math.abs(realInformado-realCalculo) > 0.000001) ||
+    (injInformada !== null && sc.injecaoTotal !== undefined && Math.abs(injInformada-Number(sc.injecaoTotal)) > 0.000001) ||
+    (saldoInformado !== null && saldoAutomatico !== null && Math.abs(saldoInformado-saldoAutomatico) > 0.000001);
+  return {schema:'fluxo-energia-v2', consumoRealKwh:consumo, injecaoMesKwh:injecao,
+    injecaoMesUtilizadaKwh:mesUtilizado, saldoDisponivelKwh:disponivel, saldoUtilizadoKwh:saldo,
+    saldoRestanteKwh:restante, saldoNaoCobradoKwh:isento,
+    saldoCobradoKwh:isento === null || saldo === null ? null : Math.max(0,saldo-isento),
+    faturadoKwh:conhecida && isento !== null ? mesUtilizado + saldo - isento : null,
+    energiaNaoCompensadaKwh:naoCompensado, consumoNaoCobertoKwh:descoberto,
+    creditoMesNaoUtilizadoKwh:conhecida ? Math.max(0,injecao-mesUtilizado) : null,
+    origemConsumo:realInformado !== null ? 'informado' : realCalculo !== null ? 'apurado nos dados do perfil' : 'não informado',
+    dadosDivergemDoCalculo:diverge, origemSaldo:saldoInformado !== null ? 'informado' : 'apurado', erroSaldo:erroSaldo, pontos:pontos};
 }
 function resumoEnergiaDoDocumento(profile, draft){
-  return draft.resumoEnergia || construirResumoEnergia(profile, draft);
+  return draft.resumoEnergia && draft.resumoEnergia.schema === 'fluxo-energia-v2'
+    ? draft.resumoEnergia : construirResumoEnergia(profile, draft);
 }
+function energiaTexto(v){ return v === null || v === undefined ? 'Não informado' : fmtKwh(v); }
 function linhasResumoEnergia(resumo){
-  if(!resumo) return [];
-  var linhas = [
-    {rotulo:'Injeção do mês', valor:fmtKwh(resumo.injecaoMesKwh)},
-    {rotulo:'Consumo real total', valor:fmtKwh(resumo.consumoRealKwh)},
-    {rotulo:'Saldo acumulado utilizado', valor:fmtKwh(resumo.saldoUtilizadoKwh)},
-    {rotulo:'Energia faturada na locação', valor:fmtKwh(resumo.faturadoKwh)}
+  return [
+    {rotulo:'Consumo total real', valor:energiaTexto(resumo.consumoRealKwh)},
+    {rotulo:'Geração / injeção do mês', valor:energiaTexto(resumo.injecaoMesKwh)},
+    {rotulo:'Saldo utilizado', valor:energiaTexto(resumo.saldoUtilizadoKwh)},
+    {rotulo:'Saldo restante', valor:energiaTexto(resumo.saldoRestanteKwh)}
   ];
-  if(resumo.energiaNaoCompensadaKwh > 0){
-    linhas.push({rotulo:'Energia não compensada (concessionária)', valor:fmtKwh(resumo.energiaNaoCompensadaKwh)});
-  }
-  return linhas;
 }
-function notaResumoEnergia(resumo){
-  if(!resumo) return '';
-  var nota = '';
-  if(resumo.saldoNaoCobradoKwh > 0){
-    nota = 'Do saldo utilizado, ' + fmtKwh(resumo.saldoNaoCobradoKwh) + ' já foram cobrados em meses anteriores e não geram nova cobrança de energia nesta fatura.';
-  } else if(resumo.saldoUtilizadoKwh > 0){
-    nota = 'O saldo utilizado está incluído na energia faturada, conforme a regra de cobrança deste cliente.';
-  } else {
-    nota = 'Não houve utilização de saldo acumulado neste cálculo.';
+function notaResumoEnergia(r){
+  var partes = r.consumoRealKwh === null || r.injecaoMesKwh === null
+    ? ['Informe consumo bruto e injeção do mês para completar o resumo de energia.']
+    : ['Compensação: ' + energiaTexto(r.injecaoMesUtilizadaKwh) + ' do mês + ' + energiaTexto(r.saldoUtilizadoKwh) + ' de saldo.'];
+  if(r.energiaNaoCompensadaKwh > 0) partes.push(energiaTexto(r.energiaNaoCompensadaKwh) + ' de energia não compensada na concessionária.');
+  if(r.saldoUtilizadoKwh > 0){
+    if(r.saldoNaoCobradoKwh === null) partes.push('Cobrança do saldo conforme o perfil de faturamento.');
+    else if(r.saldoNaoCobradoKwh === r.saldoUtilizadoKwh) partes.push('Saldo utilizado sem nova cobrança de energia.');
+    else if(r.saldoNaoCobradoKwh > 0) partes.push(energiaTexto(r.saldoNaoCobradoKwh) + ' sem nova cobrança; o restante segue a regra do contrato.');
+    else partes.push('Saldo utilizado incluído na cobrança de energia.');
   }
-  if(resumo.energiaNaoCompensadaKwh > 0){
-    nota += ' O consumo real inclui a energia não compensada, cobrada na conta da concessionária.';
-  }
-  return nota;
+  if(r.consumoNaoCobertoKwh > 0) partes.push('Diferença sem cobertura de energia: ' + energiaTexto(r.consumoNaoCobertoKwh) + '.');
+  if(r.saldoDisponivelKwh === null) partes.push('Saldo antes do uso e saldo final não informados.');
+  else partes.push('Saldo: ' + energiaTexto(r.saldoDisponivelKwh) + ' antes do uso − ' + energiaTexto(r.saldoUtilizadoKwh) + ' utilizado = ' + energiaTexto(r.saldoRestanteKwh) + ' disponível após a fatura.');
+  if(r.creditoMesNaoUtilizadoKwh > 0) partes.push('Injeção do mês não utilizada: ' + energiaTexto(r.creditoMesNaoUtilizadoKwh) + ' (separada do saldo anterior).');
+  return partes.join(' ');
 }
 function resumoEnergiaHtml(profile, draft, cor){
-  var resumo = resumoEnergiaDoDocumento(profile, draft);
-  if(!resumo) return '';
-  var linhas = linhasResumoEnergia(resumo).map(function(l){
-    return '<tr><td style="padding:5px 0;color:#5c6f63;font-size:12px">' + escapeHtml(l.rotulo) +
-      '</td><td style="padding:5px 0;text-align:right;font-weight:bold;font-size:12px">' + escapeHtml(l.valor) + '</td></tr>';
-  }).join('');
-  var pontos = (resumo.pontos || []).map(function(p){
-    return '<p style="font-size:11px;margin:8px 0 0">' + escapeHtml(p.nome + (p.uc ? ' (UC ' + p.uc + ')' : '')) +
-      ': consumo real ' + escapeHtml(fmtKwh(p.consumoRealKwh)) + ' | saldo utilizado ' + escapeHtml(fmtKwh(p.saldoUtilizadoKwh)) +
-      ' | faturado ' + escapeHtml(fmtKwh(p.faturadoKwh)) + '</p>';
-  }).join('');
-  return '<div style="padding:14px 16px;margin:0 0 16px;background:#f7f8f6;border:1px solid #dde5da;border-radius:6px">' +
-    '<div style="font-weight:bold;font-size:12px;color:' + cor + ';margin-bottom:6px">DETALHAMENTO DE ENERGIA</div>' +
-    '<table style="width:100%;border-collapse:collapse">' + linhas + '</table>' + pontos +
-    '<p style="font-size:11px;color:#5c6f63;margin:10px 0 0">' + escapeHtml(notaResumoEnergia(resumo)) + '</p></div>';
+  var r = resumoEnergiaDoDocumento(profile,draft), linhas = linhasResumoEnergia(r);
+  return '<div style="padding:10px 14px;margin:8px 0;background:#f4f7f3;border-radius:6px">' +
+    '<table style="width:100%;border-collapse:collapse">' + [0,2].map(function(i){
+      return '<tr>' + linhas.slice(i,i+2).map(function(l){return '<td style="width:50%;padding:4px 8px 4px 0;vertical-align:top">' +
+        '<div style="font-size:10px;color:#5c6f63;margin-bottom:2px">' + escapeHtml(l.rotulo) + '</div>' +
+        '<div style="font-size:14px;font-weight:700;color:' + cor + '">' + escapeHtml(l.valor) + '</div></td>';}).join('') + '</tr>';
+    }).join('') + '</table><p style="font-size:10px;color:#5c6f63;margin:6px 0 0;line-height:1.4">' + escapeHtml(notaResumoEnergia(r)) + '</p></div>';
 }
 
-/* ============================================================
-   HTML DO DOCUMENTO DO CLIENTE — usado para gerar Word e PNG
-   (o PDF do cliente é desenhado à parte, direto em jsPDF, mais abaixo)
-   ============================================================ */
-function construirHtmlFatura(client, profile, draft, dc, qrDataUrl){
-  var scope = draft.scope;
-  var rgbArr = hexToRgb(dc.corPrimaria);
-  var cor = 'rgb(' + rgbArr[0] + ',' + rgbArr[1] + ',' + rgbArr[2] + ')';
-  var linhaTd1 = 'padding:7px 0;color:#5c6f63;font-size:13px;';
-  var linhaTd2 = 'padding:7px 0;text-align:right;font-weight:bold;color:#16241d;font-size:13px;';
-  var linhaSep = '<tr><td colspan="2" style="border-bottom:1px solid #e0e4e0;font-size:1px;line-height:1px;">&nbsp;</td></tr>';
-
-  var linhasHtml = '';
-  camposDisponiveisPerfil(profile).forEach(function(campo){
-    if(draft.camposVisiveisEscolhidos.indexOf(campo.chave) === -1) return;
-    linhasHtml += '<tr><td style="'+linhaTd1+'">' + escapeHtml(campo.rotulo) + '</td><td style="'+linhaTd2+'">' + escapeHtml(formatarValor(scope[campo.chave], campo.formato)) + '</td></tr>' + linhaSep;
-  });
-
-  if(profile.possuiItensMultiplos && draft.itensResultado){
-    var prefixo = profile.rotuloItemPrefixo || 'Injeção em ';
-    var prefixoFioB = profile.rotuloItemFioBPrefixo || 'Fio B em ';
-    draft.itensResultado.forEach(function(item){
-      var nomeComUc = item.nome + (item.uc ? ' (UC ' + item.uc + ')' : '');
-      linhasHtml += '<tr><td style="'+linhaTd1+'">' + escapeHtml(prefixo + nomeComUc) + '</td><td style="'+linhaTd2+'">' + escapeHtml(fmtBRL(item[draft.chaveItemValor])) + '</td></tr>' + linhaSep;
-      if(!draft.ocultarFioBPorPonto && profile.chaveItemFioB && item[profile.chaveItemFioB] !== undefined){
-        linhasHtml += '<tr><td style="'+linhaTd1+'">' + escapeHtml(prefixoFioB + item.nome) + '</td><td style="'+linhaTd2+'">' + escapeHtml(fmtBRL(item[profile.chaveItemFioB])) + '</td></tr>' + linhaSep;
-      }
+/* Campos essenciais vêm do resumo físico; bases de fórmula nunca são chamadas de consumo real. */
+var CAMPOS_ENERGIA_RESUMO = ['consumoTotal','consumoReal','injecaoTotal','saldoDisponivelKwh','saldoUtilizadoKwh','saldoRestanteKwh'];
+function campoDocumento(campo, draft){
+  var sc = draft.scope || {}, r = resumoEnergiaDoDocumento(perfilDoDocumento(draft),draft);
+  var nomes = {
+    desconto:'Desconto contratado', saldoDelta:'Variação de saldo usada no perfil',
+    saldoCobreNegativo:'Saldo já cobrado anteriormente', saldoJaCobrado:'Saldo já cobrado anteriormente',
+    fioBAlocadoTotal:'Fio B total dos pontos', somaComponentes:'Componentes da concessionária',
+    consumoEfetivo:'Base de consumo ajustada do perfil', consumoAlocadoTotal:'Consumo bruto apurado no rateio',
+    injecaoEfetiva:'Base de injeção ajustada do perfil', saldoDeltaEfetivo:'Variação de saldo considerada na cobrança',
+    injecaoSemDescontoRS:'Base de energia do perfil sem desconto',
+    injecaoComDescontoRS:'Base de energia do perfil com desconto',
+    valorComSolar:'Locação antes dos ajustes finais', valorSemSolar:'Estimativa sem geração solar',
+    fioB:'Fio B da concessionária', energiaAtiva:'Energia ativa informada na conta'
+  };
+  var valor = sc[campo.chave];
+  if(campo.chave === 'consumoTotal' || campo.chave === 'consumoReal') valor = r.consumoRealKwh;
+  if(campo.chave === 'injecaoTotal') valor = r.injecaoMesKwh;
+  var formato = campo.formato;
+  if(['consumoTotal','consumoReal','consumoEfetivo','consumoAlocadoTotal','injecaoEfetiva','saldoDeltaEfetivo','saldoDelta'].indexOf(campo.chave) !== -1) formato='kwh';
+  var rotulo = nomes[campo.chave] || campo.rotulo;
+  if(campo.chave === 'consumoTotal' || campo.chave === 'consumoReal') rotulo = 'Consumo total real';
+  return {chave:campo.chave, rotulo:rotulo, valor:valor === null || valor === undefined ? 'Não informado' : formatarValor(valor,formato)};
+}
+function camposExtrasDocumento(profile,draft){
+  var vistos = {};
+  return camposDisponiveisPerfil(profile).filter(function(c){
+    if(vistos[c.chave] || CAMPOS_ENERGIA_RESUMO.indexOf(c.chave) !== -1 || /^lucro/i.test(c.chave)) return false;
+    vistos[c.chave]=true;
+    return (draft.camposVisiveisEscolhidos || []).indexOf(c.chave) !== -1;
+  }).map(function(c){return campoDocumento(c,draft);});
+}
+function linhasFinanceirasDocumento(profile,draft){
+  var total = Number(draft.scope[profile.chaveTotalFinal]) || 0;
+  var repasse = Number(draft.repasseFatura) || 0, ajuste = Number(draft.ajuste) || 0;
+  var locacao = total - repasse + ajuste;
+  var linhas = [];
+  if(profile.possuiItensMultiplos && draft.itensResultado && draft.itensResultado.length){
+    var principal = draft.itensResultado.findIndex(function(it){return !!it.pontoPrincipal;});
+    if(principal < 0) principal=0;
+    var credito = draft.ajusteExcedenteAplicado === false ? 0 : Number(draft.ajusteExcedenteRS) || 0;
+    var soma = 0;
+    draft.itensResultado.forEach(function(it,i){
+      var valor = (Number(it[draft.chaveItemValor]) || 0) - (i === principal ? credito : 0);
+      soma += valor;
+      linhas.push({rotulo:it.nome + (it.uc ? ' · UC ' + it.uc : ''), valor:fmtBRL(valor), valorNumerico:valor,
+        consumo:energiaTexto(valorEnergiaInformado(it.consumoKwh))});
+    });
+    /* Perfis personalizados podem ter fórmulas finais além da soma dos pontos. */
+    if(Math.abs(locacao-soma) > 0.000001) linhas.push({rotulo:'Complemento da regra de locação',valor:fmtBRL(locacao-soma),valorNumerico:locacao-soma,consumo:'—'});
+  } else linhas.push({rotulo:'Locação de energia',valor:fmtBRL(locacao),valorNumerico:locacao});
+  if(repasse !== 0) linhas.push({rotulo:'Repasse da concessionária',valor:fmtBRL(repasse),valorNumerico:repasse});
+  if(ajuste !== 0) linhas.push({rotulo:ajuste > 0 ? 'Desconto / ajuste do mês' : 'Acréscimo / ajuste do mês',valor:fmtBRL(-ajuste),valorNumerico:-ajuste});
+  return linhas;
+}
+function modeloDocumento(client,profile,draft,dc,interno){
+  var r = resumoEnergiaDoDocumento(profile,draft);
+  var entradas=[],calculados=[],vistos={};
+  if(interno){
+    (profile.variaveis || []).forEach(function(v){
+      if(vistos[v.chave]) return; vistos[v.chave]=true;
+      var c=campoDocumento({chave:v.chave,rotulo:v.rotulo,formato:v.formato},draft);
+      /* A entrada original deve continuar disponível na auditoria, com rótulo próprio. */
+      if(v.chave === 'consumoTotal') c={chave:v.chave,rotulo:'Leitura de consumo fornecida ao perfil',valor:formatarValor(draft.scope[v.chave],v.formato)};
+      entradas.push(c);
+    });
+    camposDisponiveisPerfil(profile).forEach(function(c){
+      if(vistos[c.chave]) return;vistos[c.chave]=true;calculados.push(campoDocumento(c,draft));
     });
   }
-
-  if(Math.abs(draft.ajuste) > 0.004){
-    linhasHtml += '<tr><td style="'+linhaTd1+'">Ajuste do mês</td><td style="'+linhaTd2+'">' + escapeHtml(fmtBRL(draft.ajuste)) + '</td></tr>' + linhaSep;
-  }
-  if(draft.repasseFatura > 0.004){
-    linhasHtml += '<tr><td style="'+linhaTd1+'">Repasse da fatura de energia</td><td style="'+linhaTd2+'">' + escapeHtml(fmtBRL(draft.repasseFatura)) + '</td></tr>' + linhaSep;
-  }
-  if(draft.ajusteExcedenteRS > 0.004 && draft.ajusteExcedenteAplicado !== false){
-    linhasHtml += '<tr><td style="'+linhaTd1+'">Saldo já cobrado — desconto da energia utilizada</td><td style="'+linhaTd2+'">-' + escapeHtml(fmtBRL(draft.ajusteExcedenteRS)) + '</td></tr>' + linhaSep;
-  }
-
-  var intro = (profile.textoIntroducao || '').replace('{referencia}', draft.referencia);
-  var introHtml = intro ? '<p style="color:#5c6f63;font-size:12.5px;margin:0 0 16px 0;">' + escapeHtml(intro) + '</p>' : '';
-  var obsHtml = draft.observacoes ? '<p style="font-style:italic;color:#5c6f63;font-size:12.5px;margin:16px 0 0 0;">' + escapeHtml(draft.observacoes).split('\n').join('<br>') + '</p>' : '';
-  var logoHtml = dc.logoBase64 ? '<img src="' + dc.logoBase64 + '" style="height:110px;width:auto;display:block;margin-bottom:14px;">' : '';
-  var enderecoHtml = dc.enderecoContato ? '<div style="color:#5a665e;font-size:11.5px;">' + escapeHtml(dc.enderecoContato) + '</div>' : '';
-  var totalLabel = profile.rotuloTotalCliente || 'VALOR FINAL A SER PAGO';
-  var totalVal = fmtBRL(scope[profile.chaveTotalFinal]);
-  var rodapeHtml = dc.textoRodape ? '<div style="margin-top:22px;color:#96a298;font-size:10px;">' + escapeHtml(dc.textoRodape) + '</div>' : '';
-
-  var contatoLinhas = [];
-  if(dc.email) contatoLinhas.push('E-mail: ' + dc.email);
-  (dc.telefones||[]).forEach(function(tel, i){
-    if(!tel) return;
-    contatoLinhas.push((dc.telefones.length > 1 ? 'Telefone ' + (i+1) + ': ' : 'Telefone: ') + tel);
-  });
-  var contatoHtml = contatoLinhas.length ? (
-    '<div style="margin-top:16px;padding:14px 18px;background:#f7f8f6;border-radius:6px;">' +
-      '<div style="color:'+cor+';font-weight:bold;font-size:10.5px;margin-bottom:7px;">MEIOS DE CONTATO</div>' +
-      contatoLinhas.map(function(l){ return '<div style="font-size:13.5px;color:#16241d;line-height:1.7;">' + escapeHtml(l) + '</div>'; }).join('') +
-    '</div>'
-  ) : '';
-
-  return '<div style="font-family:Helvetica,Arial,sans-serif;max-width:640px;color:#16241d;">' +
-    logoHtml +
-    '<div style="font-size:22px;font-weight:bold;color:'+cor+';">' + escapeHtml(dc.nomeEmpresa || 'IG Base') + '</div>' +
-    enderecoHtml +
-    '<div style="height:3px;background:'+cor+';margin:16px 0 20px 0;"></div>' +
-    '<div style="font-size:15px;font-weight:bold;">USINA ' + escapeHtml((client.nome||'').toUpperCase()) + (client.uc ? ' — UC ' + escapeHtml(client.uc) : '') + '</div>' +
-    '<div style="font-size:11.5px;color:#5c6f63;margin-bottom:14px;">Referência: ' + escapeHtml(draft.referencia) + '</div>' +
-    introHtml + resumoEnergiaHtml(profile, draft, cor) +
-    '<table style="width:100%;border-collapse:collapse;">' + linhasHtml + '</table>' +
-    obsHtml +
-    '<table style="width:100%;border-collapse:collapse;margin-top:18px;"><tr style="background:'+cor+';"><td style="padding:14px 18px;color:#fff;font-weight:bold;font-size:12.5px;border-radius:6px 0 0 6px;">' + escapeHtml(totalLabel) + '</td><td style="padding:14px 18px;text-align:right;color:#fff;font-weight:bold;font-size:17px;border-radius:0 6px 6px 0;">' + totalVal + '</td></tr></table>' +
-    '<table style="width:100%;border-collapse:collapse;margin-top:14px;border:1.5px solid '+cor+';border-radius:6px;"><tr>' +
-      '<td style="padding:14px 18px;"><div style="color:'+cor+';font-weight:bold;font-size:10.5px;">PAGAMENTO — CHAVE PIX</div><div style="font-weight:bold;font-size:15px;margin-top:4px;">' + escapeHtml(client.chavePix || '—') + '</div></td>' +
-      (qrDataUrl
-        ? '<td style="padding:14px 18px;text-align:right;"><img src="' + qrDataUrl + '" style="width:96px;height:96px;display:inline-block;"></td>'
-        : '<td style="padding:14px 18px;text-align:right;color:#5c6f63;font-size:10.5px;">' + escapeHtml(client.banco||'') + (client.banco&&client.beneficiario?'<br>':'') + escapeHtml(client.beneficiario||'') + '</td>') +
+  var avisos=[];
+  if(r.dadosDivergemDoCalculo) avisos.push('Os dados de energia do documento diferem das entradas do cálculo. Confira ambos; o total em reais foi preservado.');
+  if(r.consumoNaoCobertoKwh > 0) avisos.push('O saldo disponível não cobre toda a diferença. Confira a parcela sem cobertura; a cobrança em reais segue o cálculo existente.');
+  return {client:client,profile:profile,referencia:draft.referencia,total:fmtBRL(draft.scope[profile.chaveTotalFinal]),
+    energia:r,financeiro:linhasFinanceirasDocumento(profile,draft),extras:camposExtrasDocumento(profile,draft),
+    entradas:entradas,calculados:calculados,avisos:avisos,observacoes:draft.observacoes || '',dc:dc};
+}
+function construirHtmlFatura(client,profile,draft,dc,qrDataUrl){
+  var m=modeloDocumento(client,profile,draft,dc,false),cor=dc.corPrimaria || '#1B4D3E';
+  function linhasTabela(linhas){return linhas.map(function(l){return '<tr><td style="padding:6px 0;color:#5c6f63;font-size:12px">' +
+    escapeHtml(l.rotulo) + '</td><td style="padding:6px 0;text-align:right;font-size:12px;font-weight:600">' + escapeHtml(l.valor) + '</td></tr>';}).join('');}
+  var logo=dc.logoBase64 ? '<img src="' + dc.logoBase64 + '" style="max-width:220px;max-height:118px;display:block;margin-left:auto">' : '';
+  var contatos=[dc.email].concat(dc.telefones || []).filter(Boolean);
+  return '<div style="font-family:Arial,Helvetica,sans-serif;max-width:640px;color:#16241d;font-size:12px;line-height:1.45">' +
+    '<table style="width:100%;border-collapse:collapse"><tr><td style="vertical-align:top">' +
+      '<div style="font-size:21px;font-weight:700;color:' + cor + '">' + escapeHtml(dc.nomeEmpresa || 'IG Base') + '</div>' +
+      '<div style="font-size:10px;color:#5c6f63">' + escapeHtml(dc.enderecoContato || '') + '</div></td>' +
+      '<td style="text-align:right;vertical-align:middle;width:220px">' + logo + '</td></tr></table>' +
+    '<div style="margin:16px 0 10px;padding-top:12px;border-top:2px solid ' + cor + '">' +
+      '<div style="font-size:16px;font-weight:700">' + escapeHtml(client.nome || '') + '</div>' +
+      '<div style="color:#5c6f63;font-size:11px">' + escapeHtml('Referência: ' + m.referencia + (client.uc ? ' · UC ' + client.uc : '')) + '</div></div>' +
+    '<table style="width:100%;border-collapse:collapse;border-top:1px solid #dde5da;border-bottom:1px solid #dde5da"><tr>' +
+      '<td style="padding:7px 0;font-size:12px;font-weight:700">VALOR A PAGAR</td>' +
+      '<td style="padding:7px 0;text-align:right;font-size:16px;font-weight:700">' + escapeHtml(m.total) + '</td></tr></table>' +
+    resumoEnergiaHtml(profile,draft,cor) +
+    '<div style="font-size:12px;font-weight:700;color:' + cor + ';margin:16px 0 5px">COMPOSIÇÃO DA COBRANÇA</div>' +
+    '<table style="width:100%;border-collapse:collapse">' + linhasTabela(m.financeiro) + '</table>' +
+    (m.extras.length ? '<div style="font-size:12px;font-weight:700;color:' + cor + ';margin:16px 0 5px">DETALHES SELECIONADOS</div><table style="width:100%;border-collapse:collapse">' + linhasTabela(m.extras) + '</table>' : '') +
+    (m.observacoes ? '<div style="margin:14px 0;padding:10px 12px;border-left:3px solid #dde5da;color:#5c6f63;font-size:11px">' + escapeHtml(m.observacoes).split('\n').join('<br>') + '</div>' : '') +
+    '<table style="width:100%;border-collapse:collapse;margin-top:18px;border-top:1px solid #dde5da"><tr><td style="padding:12px 0;vertical-align:middle">' +
+      '<div style="font-size:11px;font-weight:700;color:' + cor + '">PAGAMENTO VIA PIX</div>' +
+      '<div style="font-size:13px;font-weight:600;overflow-wrap:anywhere">' + escapeHtml(client.chavePix || 'Chave não informada') + '</div>' +
+      '<div style="font-size:10px;color:#5c6f63">' + escapeHtml([client.banco,client.beneficiario].filter(Boolean).join(' · ')) + '</div></td>' +
+      (qrDataUrl ? '<td style="padding:10px 0 10px 14px;text-align:right;width:122px"><img src="' + qrDataUrl + '" style="width:108px;height:108px"></td>' : '') +
     '</tr></table>' +
-    contatoHtml +
-    rodapeHtml +
+    (client.condicaoPagamento ? '<div style="font-size:10px;color:#5c6f63">' + escapeHtml(client.condicaoPagamento) + '</div>' : '') +
+    (contatos.length ? '<div style="margin-top:12px;padding-top:8px;border-top:1px solid #dde5da"><div style="font-size:11px;font-weight:700;color:' + cor + '">MEIOS DE CONTATO</div>' +
+      contatos.map(function(c,i){return '<div style="font-size:10px;color:#5c6f63;margin-top:3px">' + (dc.email && i === 0 ? 'E-mail: ' : 'Telefone: ') + escapeHtml(c) + '</div>';}).join('') + '</div>' : '') +
+    (dc.textoRodape ? '<div style="margin-top:14px;font-size:9px;color:#859387">' + escapeHtml(dc.textoRodape) + '</div>' : '') +
   '</div>';
 }
+
 
 /* ============================================================
    PREVIEW: DOCUMENTO DO CLIENTE (o gestor confere pelo PDF interno)
@@ -1650,11 +1757,13 @@ function renderPreview(){
 
   /* O gestor confere os números pelo "Baixar PDF interno" — a tela fica só com o
      essencial: o que vai aparecer pro cliente, e os botões pra gerar os arquivos. */
-  var camposDisp = camposDisponiveisPerfil(profile);
-  var checklistHtml = '<div class="panel"><h2>Campos visíveis no documento do cliente</h2><div class="checklist">' +
+  var camposDisp = camposDisponiveisPerfil(profile).filter(function(c){
+    return CAMPOS_ENERGIA_RESUMO.indexOf(c.chave) === -1 && !/^lucro/i.test(c.chave);
+  });
+  var checklistHtml = '<div class="panel"><h2>Detalhes extras para o cliente</h2><p class="hint">Consumo real, injeção e saldo aparecem no resumo. Marque abaixo apenas os detalhes extras desejados.</p><div class="checklist">' +
     camposDisp.map(function(campo){
       var checked = d.camposVisiveisEscolhidos.indexOf(campo.chave) > -1;
-      return '<label><input type="checkbox" class="campo-visivel-toggle" data-chave="' + campo.chave + '"' + (checked?' checked':'') + '> ' + escapeHtml(campo.rotulo) + '</label>';
+      return '<label><input type="checkbox" class="campo-visivel-toggle" data-chave="' + campo.chave + '"' + (checked?' checked':'') + '> ' + escapeHtml(campoDocumento(campo,d).rotulo) + '</label>';
     }).join('') +
     '</div><span class="hint" style="font-size:11.5px;color:var(--ink-soft);display:block;margin-top:8px">' +
     (profile.possuiItensMultiplos ? 'Os pontos de consumo e o total sempre aparecem no documento; aqui você escolhe quais campos extras também aparecem.' : 'O valor final sempre aparece no documento; aqui você escolhe quais campos extras também aparecem.') +
@@ -1681,8 +1790,17 @@ function renderPreview(){
       '<button class="btn" data-action="baixar-pdf-interno">Baixar PDF interno</button>' +
     '</div>';
 
+  var r = resumoEnergiaDoDocumento(profile,d);
+  var avisos = modeloDocumento(clienteDoDocumento(d),profile,d,configDoDocumento(d),false).avisos;
+  var avisoHtml = avisos.length ? '<div class="panel" style="border-color:#d5ad72"><b>Conferir dados de energia</b>' +
+    avisos.map(function(a){return '<p class="hint">' + escapeHtml(a) + '</p>';}).join('') + '</div>' : '';
   var historicoAviso = d.id ? '<div class="panel"><b>Fatura do histórico</b><p class="hint">Valores originais salvos. Calcular novamente gera um novo orçamento com as configurações atuais.</p></div>' : '';
-  col.innerHTML = historicoAviso + totalHtml + resumoEnergiaHtml(profile, d, '#1B4D3E') + checklistHtml + botoesHtml;
+  var client = clienteDoDocumento(d);
+  var documentoHtml = construirHtmlFatura(client,profile,d,configDoDocumento(d),null);
+  col.innerHTML = historicoAviso + avisoHtml + botoesHtml +
+    '<details class="panel" open><summary style="font-weight:600;cursor:pointer">Prévia da fatura do cliente</summary>' +
+    '<div data-fatura-previa style="padding-top:14px">' + documentoHtml + '</div></details>' +
+    '<details class="panel"><summary style="font-weight:600;cursor:pointer">Escolher detalhes extras</summary>' + checklistHtml + '</details>';
 
   document.querySelectorAll('.campo-visivel-toggle').forEach(function(cb){
     cb.addEventListener('change', function(){
@@ -1690,6 +1808,8 @@ function renderPreview(){
       var idx = state.lastDraft.camposVisiveisEscolhidos.indexOf(chave);
       if(cb.checked && idx === -1) state.lastDraft.camposVisiveisEscolhidos.push(chave);
       if(!cb.checked && idx > -1) state.lastDraft.camposVisiveisEscolhidos.splice(idx,1);
+      var previa = col.querySelector('[data-fatura-previa]');
+      if(previa) previa.innerHTML = construirHtmlFatura(clienteDoDocumento(state.lastDraft),perfilDoDocumento(state.lastDraft),state.lastDraft,configDoDocumento(state.lastDraft),null);
     });
   });
 }
@@ -1745,8 +1865,10 @@ function abrirQuote(id){
 function historicoItemHtml(q){
   var data = new Date(q.createdAt).toLocaleDateString('pt-BR');
   var totalStr = fmtBRL(q.scope[perfilDoDocumento(q) ? perfilDoDocumento(q).chaveTotalFinal : 'valorFinal']);
+  var saldoFinal = q.resumoEnergia ? valorEnergiaInformado(q.resumoEnergia.saldoRestanteKwh) : null;
   return '<div class="history-item"><div class="info"><b>' + escapeHtml(q.referencia) + ' — ' + totalStr + '</b>' +
-    '<span>Salvo em ' + data + '</span></div>' +
+    '<span>Salvo em ' + data + '</span>' +
+    '<span><strong>Saldo disponível após a fatura:</strong> ' + escapeHtml(energiaTexto(saldoFinal)) + '</span></div>' +
     '<div class="btn-row">' +
       '<button class="btn" data-action="abrir-quote" data-id="' + q.id + '">Abrir fatura</button>' +
       '<button class="btn" data-action="duplicar-quote" data-id="' + q.id + '">Usar como base</button>' +
@@ -1824,6 +1946,7 @@ function duplicarQuote(id){
   setReferenciaAtual(q.referencia);
   setIf('f-ajuste', numeroParaFormulario(q.ajuste));
   setIf('f-observacoes', q.observacoes);
+  restaurarEnergiaDocumento(q.energiaDocumentoInputs);
   Object.keys(q.valoresEntrada||{}).forEach(function(chave){
     var el = document.querySelector('.in-mensal[data-chave="'+chave+'"]');
     if(!el) return;
@@ -2167,431 +2290,157 @@ function formatoImagemBase64(base64){
 }
 
 async function baixarPdf(modo){
-  modo = modo || 'cliente';
-  var d = state.lastDraft;
-  if(!d){ toast('Calcule um orçamento antes de baixar o PDF.'); return; }
-  var abaPreAberta = window.open('', '_blank');
-  if(abaPreAberta){
-    try{ abaPreAberta.document.write('<title>Gerando PDF…</title><body style="font-family:sans-serif;padding:40px;color:#667">Gerando o PDF, aguarde…</body>'); }catch(e){}
-  }
-  var ok = await carregarJsPdf();
-  if(!ok || !window.jspdf){
-    if(abaPreAberta) abaPreAberta.close();
-    toast('Não deu para carregar o gerador de PDF agora. Tente de novo em instantes.');
-    return;
-  }
-  var client = clienteDoDocumento(d);
-  var profile = perfilDoDocumento(d);
-  if(!client || !profile){ if(abaPreAberta) abaPreAberta.close(); return; }
-  var dc = configDoDocumento(d);
-  var rgb = hexToRgb(dc.corPrimaria);
-  var interno = (modo === 'interno');
-
-  var logoDim = null;
-  if(dc.logoBase64){ logoDim = await carregarDimensoesImagem(dc.logoBase64); }
-  var qrDataUrl = interno ? null : await gerarQrPixDataUrl(client, d.scope[profile.chaveTotalFinal]);
-
+  modo=modo || 'cliente';
+  var d=state.lastDraft;
+  if(!d){toast('Calcule um orçamento antes de baixar o PDF.');return;}
+  var abaPreAberta=window.open('','_blank');
+  if(abaPreAberta){try{abaPreAberta.document.write('<title>Gerando PDF…</title><body style="font-family:sans-serif;padding:40px">Gerando o PDF, aguarde…</body>');}catch(e){}}
+  var ok=await carregarJsPdf();
+  if(!ok || !window.jspdf){if(abaPreAberta)abaPreAberta.close();toast('Não deu para carregar o gerador de PDF agora. Tente de novo em instantes.');return;}
+  var client=clienteDoDocumento(d),profile=perfilDoDocumento(d);
+  if(!client || !profile){if(abaPreAberta)abaPreAberta.close();return;}
+  var dc=configDoDocumento(d),interno=modo==='interno';
+  var m=modeloDocumento(client,profile,d,dc,interno),rgb=hexToRgb(dc.corPrimaria || '#1B4D3E');
+  var logoDim=dc.logoBase64 ? await carregarDimensoesImagem(dc.logoBase64) : null;
+  var qr=interno ? null : await gerarQrPixDataUrl(client,d.scope[profile.chaveTotalFinal]);
   try{
-    var jsPDF = window.jspdf.jsPDF;
-    var doc = new jsPDF({ unit:'pt', format:'a4' });
-    var pageW = doc.internal.pageSize.getWidth();
-    var pageH = doc.internal.pageSize.getHeight();
-    var marginX = interno ? 40 : 48;
-    var maxWidth = pageW - marginX*2;
-    var topoPagina = interno ? 40 : 54;
-    var y = topoPagina;
-
-    function checkBreak(precisa){
-      if(y + precisa > pageH - 50){ doc.addPage(); y = topoPagina; }
+    var doc=new window.jspdf.jsPDF({unit:'pt',format:'a4'});
+    var pageW=doc.internal.pageSize.getWidth(),pageH=doc.internal.pageSize.getHeight();
+    var margin=44,width=pageW-margin*2,y=42;
+    /* jsPDF Helvetica suporta acentos latinos; NBSP vindo do Intl precisa virar
+       espaço normal para não quebrar a largura/kerning dos valores monetários. */
+    function texto(s){return String(s === null || s === undefined ? '' : s).replace(/[\u00a0\u202f]/g,' ').replace(/[—–]/g,'-');}
+    function fonte(size,bold,color){doc.setFont('helvetica',bold?'bold':'normal');doc.setFontSize(size);doc.setTextColor.apply(doc,color || [22,36,29]);}
+    function escrever(s,x,yy,opts){doc.text(texto(s),x,yy,opts || {});}
+    function novaPagina(){
+      doc.addPage();y=38;
+      fonte(9,true,rgb);escrever(dc.nomeEmpresa || 'IG Base',margin,y);
+      fonte(8,false,[92,111,99]);escrever(m.referencia + ' · ' + client.nome,pageW-margin,y,{align:'right',maxWidth:width-130});
+      y+=12;doc.setDrawColor(221,229,218);doc.line(margin,y,pageW-margin,y);y+=24;
     }
-    function desenharResumoEnergia(){
-      var resumo = resumoEnergiaDoDocumento(profile, d);
-      if(!resumo) return;
-      var linhas = linhasResumoEnergia(resumo);
-      var notaLinhas;
-      doc.setFont('helvetica','normal'); doc.setFontSize(9);
-      notaLinhas = doc.splitTextToSize(notaResumoEnergia(resumo), maxWidth);
-      checkBreak(28 + linhas.length * 18 + notaLinhas.length * 12);
-      doc.setFont('helvetica','bold'); doc.setFontSize(10.5); doc.setTextColor(rgb[0],rgb[1],rgb[2]);
-      doc.text('DETALHAMENTO DE ENERGIA', marginX, y); y += 20;
+    function checkBreak(h){if(y+h>pageH-48)novaPagina();}
+    function paragrafo(s,size,color,gap){
+      fonte(size || 9,false,color || [92,111,99]);
+      doc.splitTextToSize(texto(s),width).forEach(function(l){checkBreak((size || 9)+4);escrever(l,margin,y);y+=(size || 9)+4;});
+      y+=gap === undefined ? 7 : gap;
+    }
+    function titulo(s){
+      checkBreak(44);fonte(10,true,rgb);escrever(s,margin,y);y+=9;
+      doc.setDrawColor(221,229,218);doc.setLineWidth(0.5);doc.line(margin,y,pageW-margin,y);y+=18;
+    }
+    function linhas(linhas){
       linhas.forEach(function(l){
-        checkBreak(18);
-        doc.setFont('helvetica','normal'); doc.setFontSize(9.5); doc.setTextColor(92,111,99);
-        doc.text(l.rotulo, marginX, y);
-        doc.setFont('helvetica','bold'); doc.setTextColor(22,36,29);
-        doc.text(l.valor, pageW - marginX, y, {align:'right'}); y += 18;
-      });
-      doc.setFont('helvetica','normal'); doc.setFontSize(9); doc.setTextColor(92,111,99);
-      (resumo.pontos || []).forEach(function(p){
-        var texto = p.nome + (p.uc ? ' (UC ' + p.uc + ')' : '') + ': consumo real ' + fmtKwh(p.consumoRealKwh) +
-          ' | saldo utilizado ' + fmtKwh(p.saldoUtilizadoKwh) + ' | faturado ' + fmtKwh(p.faturadoKwh);
-        doc.splitTextToSize(texto, maxWidth).forEach(function(l){ checkBreak(12); doc.text(l, marginX, y); y += 12; });
-        y += 4;
-      });
-      doc.setFont('helvetica','normal'); doc.setFontSize(9); doc.setTextColor(92,111,99);
-      notaLinhas.forEach(function(l){ checkBreak(12); doc.text(l, marginX, y); y += 12; });
-      y += 14;
+        fonte(9.5,false,[92,111,99]);
+        var ls=doc.splitTextToSize(texto(l.rotulo),width-155),vs=doc.splitTextToSize(texto(l.valor),145);
+        var h=Math.max(ls.length,vs.length)*12+6;
+        checkBreak(h);
+        fonte(9.5,false,[92,111,99]);ls.forEach(function(s,i){escrever(s,margin,y+i*12);});
+        fonte(9.5,true);vs.forEach(function(s,i){escrever(s,pageW-margin,y+i*12,{align:'right'});});
+        y+=h;
+      });y+=8;
     }
-    function linhaSeparadora(yy){
-      doc.setDrawColor(224,228,224); doc.setLineWidth(0.6);
-      doc.line(marginX, yy, pageW - marginX, yy);
+    /* Cabeçalho compacto, para não empurrar o valor da cobrança para outra folha. */
+    var logoW=0,logoH=0;
+    if(logoDim){
+      logoH=92;logoW=logoH*logoDim.w/logoDim.h;
+      if(logoW>170){logoW=170;logoH=logoW*logoDim.h/logoDim.w;}
+      try{doc.addImage(dc.logoBase64,formatoImagemBase64(dc.logoBase64),pageW-margin-logoW,y-8,logoW,logoH);}catch(e){}
     }
-
+    fonte(19,true,rgb);
+    var empresaLinhas=doc.splitTextToSize(texto(dc.nomeEmpresa || 'IG Base'),width-(logoW ? logoW+20 : 0));
+    empresaLinhas.forEach(function(l,i){escrever(l,margin,y+i*22);});
+    y+=empresaLinhas.length*22;
+    if(dc.enderecoContato){
+      fonte(8.5,false,[92,111,99]);
+      doc.splitTextToSize(texto(dc.enderecoContato),width-(logoW ? logoW+20 : 0)).forEach(function(l){escrever(l,margin,y);y+=11;});
+    }
+    y=Math.max(y,42+logoH)+15;
+    fonte(12,true);doc.splitTextToSize(texto(client.nome || ''),width).forEach(function(l){escrever(l,margin,y);y+=15;});
+    fonte(9,false,[92,111,99]);
+    doc.splitTextToSize(texto('Referência: '+m.referencia+(client.uc?' · UC '+client.uc:'')+(interno?' · Documento interno':'')),width).forEach(function(l){escrever(l,margin,y);y+=12;});
+    y+=10;
+    checkBreak(34);
+    doc.setDrawColor(221,229,218);doc.setLineWidth(0.5);doc.line(margin,y,pageW-margin,y);
+    fonte(10,true,rgb);escrever(interno?'TOTAL DA FATURA · USO INTERNO':'VALOR A PAGAR',margin,y+18);
+    fonte(13,true,rgb);escrever(m.total,pageW-margin,y+18,{align:'right'});
+    y+=26;doc.line(margin,y,pageW-margin,y);y+=9;
+    /* Quadro 2 × 2: consumo bruto, injeção atual, uso e restante de saldo. */
+    checkBreak(66);
+    doc.setFillColor(244,247,243);doc.roundedRect(margin,y,width,58,5,5,'F');
+    var metricas=linhasResumoEnergia(m.energia);
+    metricas.forEach(function(l,i){
+      var x=margin+12+(i%2)*(width/2),yy=y+13+Math.floor(i/2)*27;
+      fonte(8.2,false,[92,111,99]);escrever(l.rotulo,x,yy);
+      fonte(11.5,true,rgb);escrever(l.valor,x,yy+13);
+    });y+=69;
+    paragrafo(notaResumoEnergia(m.energia),8.5,[92,111,99],7);
+    titulo('COMPOSIÇÃO DA COBRANÇA');linhas(m.financeiro);
+    if(m.extras.length && !interno){titulo('DETALHES SELECIONADOS');linhas(m.extras);}
     if(interno){
-      /* ============================================================
-         MODO INTERNO — compacto, grade de 2 colunas, cabe numa folha
-         ============================================================ */
-      doc.setFillColor(43,50,46);
-      doc.rect(marginX, y, maxWidth, 20, 'F');
-      doc.setFont('helvetica','bold'); doc.setFontSize(8.5);
-      doc.setTextColor(255,255,255);
-      doc.text('DOCUMENTO INTERNO — USO PROFISSIONAL, NÃO ENVIAR AO CLIENTE', marginX + 8, y + 13.5);
-      y += 32;
-
-      doc.setFont('helvetica','bold'); doc.setFontSize(12.5);
-      doc.setTextColor(22,36,29);
-      doc.text('RESUMO INTERNO — ' + client.nome.toUpperCase() + (client.uc ? ' — UC ' + client.uc : ''), marginX, y);
-      y += 15;
-      doc.setFont('helvetica','normal'); doc.setFontSize(9);
-      doc.setTextColor(92,111,99);
-      doc.text('Referência: ' + d.referencia + '  ·  Perfil: ' + profile.nome + (dc.nomeEmpresa ? '  ·  ' + dc.nomeEmpresa : ''), marginX, y);
-      y += 13;
-      doc.setFillColor(rgb[0],rgb[1],rgb[2]);
-      doc.rect(marginX, y, maxWidth, 1.6, 'F');
-      y += 16;
-
-      desenharResumoEnergia();
-      var camposDisp = camposDisponiveisPerfil(profile);
-      var colGutter = 18;
-      var colWidth = (maxWidth - colGutter) / 2;
-      var colX = [marginX, marginX + colWidth + colGutter];
-      var colY = [y, y];
-      var col = 0;
-
-      function celulaCompacta(rotulo, valor, larguraCol, xCol, yCol){
-        doc.setFont('helvetica','normal'); doc.setFontSize(7.6);
-        doc.setTextColor(110,124,116);
-        var linhasRotulo = doc.splitTextToSize(rotulo, larguraCol);
-        var linhasUsadas = Math.min(linhasRotulo.length, 2);
-        for(var i=0; i<linhasUsadas; i++){ doc.text(linhasRotulo[i], xCol, yCol + i*9); }
-        var yValor = yCol + linhasUsadas*9 + 2;
-        doc.setFont('helvetica','bold'); doc.setFontSize(9.5);
-        doc.setTextColor(22,36,29);
-        doc.text(valor, xCol, yValor);
-        return (yValor - yCol) + 13;
-      }
-
-      camposDisp.forEach(function(campo){
-        var valor = formatarValor(d.scope[campo.chave], campo.formato);
-        if(colY[col] + 40 > pageH - 50){ doc.addPage(); y = topoPagina; colY[0]=y; colY[1]=y; col=0; }
-        var altura = celulaCompacta(campo.rotulo, valor, colWidth - 8, colX[col], colY[col]);
-        colY[col] += altura;
-        col = 1 - col;
-      });
-      y = Math.max(colY[0], colY[1]) + 6;
-
+      paragrafo('Perfil: '+profile.nome+' · Consumo: '+m.energia.origemConsumo+'. O total financeiro foi preservado.',9);
+      if(m.avisos.length){titulo('CONFERÊNCIA');m.avisos.forEach(function(a){paragrafo(a,9,[139,76,30]);});}
+      titulo('DADOS INFORMADOS AO PERFIL');linhas(m.entradas);
+      if(m.calculados.length){titulo('RESULTADOS E BASES DO PERFIL');linhas(m.calculados);}
       if(profile.possuiItensMultiplos && d.itensResultado){
-        var prefixo = profile.rotuloItemPrefixo || 'Injeção em ';
-        checkBreak(16);
-        linhaSeparadora(y);
-        y += 12;
-        var linhasItemPdf = linhasExecutaveis(profile.itemFormulas);
-        d.itensResultado.forEach(function(item){
-          checkBreak(14);
-          var nomeComUc = item.nome + (item.uc ? ' (UC ' + item.uc + ')' : '');
-          doc.setFont('helvetica','normal'); doc.setFontSize(8.5); doc.setTextColor(92,111,99);
-          doc.text(prefixo + nomeComUc + ' — ' + fmtKwh(item.consumoKwh||0), marginX, y);
-          doc.setFont('helvetica','bold'); doc.setTextColor(22,36,29);
-          doc.text(fmtBRL(item[d.chaveItemValor]), pageW - marginX, y, { align:'right' });
-          y += 12;
-          (profile.itemVariaveis||[]).forEach(function(v){
-            if(v.chave === 'consumoKwh') return; /* já mostrado na linha de cima */
-            checkBreak(11);
-            doc.setFont('helvetica','normal'); doc.setFontSize(7.8); doc.setTextColor(120,132,124);
-            doc.text('   ' + v.rotulo + ': ' + formatarValor(item[v.chave], v.formato), marginX, y);
-            y += 10;
-          });
-          linhasItemPdf.forEach(function(line){
-            var k = parseAssignKey(line);
-            if(!k || k === d.chaveItemValor) return;
-            checkBreak(11);
-            doc.setFont('helvetica','normal'); doc.setFontSize(7.8); doc.setTextColor(120,132,124);
-            doc.text('   ' + rotuloCampo(profile,k) + ': ' + formatarValor(item[k], formatoCampo(profile,k)), marginX, y);
-            y += 10;
-          });
-          y += 3;
-        });
-      }
-
-      if(Math.abs(d.ajuste) > 0.004){
-        checkBreak(14);
-        doc.setFont('helvetica','normal'); doc.setFontSize(8.5); doc.setTextColor(92,111,99);
-        doc.text('Ajuste do mês', marginX, y);
-        doc.setFont('helvetica','bold'); doc.setTextColor(22,36,29);
-        doc.text(fmtBRL(d.ajuste), pageW - marginX, y, { align:'right' });
-        y += 14;
-      }
-
-      if(d.repasseFatura > 0.004){
-        checkBreak(14);
-        doc.setFont('helvetica','normal'); doc.setFontSize(8.5); doc.setTextColor(92,111,99);
-        doc.text('Repasse da fatura de energia (locadora paga a fatura)', marginX, y);
-        doc.setFont('helvetica','bold'); doc.setTextColor(22,36,29);
-        doc.text(fmtBRL(d.repasseFatura), pageW - marginX, y, { align:'right' });
-        y += 14;
-      }
-
-      if(d.ajusteExcedenteRS > 0.004 && d.ajusteExcedenteAplicado !== false){
-        checkBreak(14);
-        doc.setFont('helvetica','normal'); doc.setFontSize(8.5); doc.setTextColor(92,111,99);
-        doc.text('Saldo já cobrado — desconto da energia utilizada', marginX, y);
-        doc.setFont('helvetica','bold'); doc.setTextColor(22,36,29);
-        doc.text('-' + fmtBRL(d.ajusteExcedenteRS), pageW - marginX, y, { align:'right' });
-        y += 14;
-      }
-
-      if(d.observacoes){
-        checkBreak(20);
-        doc.setFont('helvetica','italic'); doc.setFontSize(8.5); doc.setTextColor(92,111,99);
-        var obsLinhasI = doc.splitTextToSize('Obs.: ' + d.observacoes, maxWidth);
-        obsLinhasI.forEach(function(linha){ checkBreak(11); doc.text(linha, marginX, y); y += 11; });
-      }
-
-      y += 10;
-      checkBreak(38);
-      doc.setFillColor(rgb[0],rgb[1],rgb[2]);
-      doc.roundedRect(marginX, y, maxWidth, 34, 4, 4, 'F');
-      doc.setFont('helvetica','bold'); doc.setFontSize(10);
-      doc.setTextColor(255,255,255);
-      doc.text('VALOR FINAL DA LOCAÇÃO', marginX + 12, y + 21);
-      doc.setFontSize(13);
-      doc.text(fmtBRL(d.scope[profile.chaveTotalFinal]), pageW - marginX - 12, y + 22, { align:'right' });
-      y += 34 + 14;
-
-      if(client.condicaoPagamento){
-        checkBreak(14);
-        doc.setFont('helvetica','normal'); doc.setFontSize(8.5); doc.setTextColor(92,111,99);
-        doc.text('Condição de pagamento: ' + client.condicaoPagamento, marginX, y);
-        y += 12;
-      }
-
-      var totalPaginasI = doc.internal.getNumberOfPages();
-      for(var pi=1; pi<=totalPaginasI; pi++){
-        doc.setPage(pi);
-        doc.setFont('helvetica','normal'); doc.setFontSize(7.5);
-        doc.setTextColor(150,158,152);
-        doc.text('Documento de uso interno — não enviar ao cliente.', marginX, pageH - 24);
-        doc.text('Página ' + pi + ' de ' + totalPaginasI, pageW - marginX, pageH - 24, { align:'right' });
-      }
-
-    } else {
-      /* ============================================================
-         MODO CLIENTE — cabeçalho grande, Pix e total bem em destaque
-         ============================================================ */
-      var logoH = 0, logoW = 0;
-      if(logoDim){
-        logoH = 130;
-        logoW = (logoDim.w/logoDim.h) * logoH;
-        if(logoW > 260){ logoW = 260; logoH = (logoDim.h/logoDim.w) * logoW; }
-        try{ doc.addImage(dc.logoBase64, formatoImagemBase64(dc.logoBase64), marginX, y - 6, logoW, logoH); }catch(e){}
-      }
-      var textoX = marginX + (logoW > 0 ? logoW + 20 : 0);
-      doc.setFont('helvetica','bold'); doc.setFontSize(21);
-      doc.setTextColor(rgb[0],rgb[1],rgb[2]);
-      doc.text(dc.nomeEmpresa || 'IG Base', textoX, y + 22);
-      if(dc.enderecoContato){
-        doc.setFont('helvetica','normal'); doc.setFontSize(11.5);
-        doc.setTextColor(90,102,94);
-        doc.text(dc.enderecoContato, textoX, y + 42);
-      }
-      y += Math.max(logoH, 46) + 20;
-
-      doc.setFillColor(rgb[0],rgb[1],rgb[2]);
-      doc.rect(marginX, y, maxWidth, 3, 'F');
-      y += 28;
-
-      doc.setFont('helvetica','bold'); doc.setFontSize(13);
-      doc.setTextColor(22,36,29);
-      doc.text('USINA ' + client.nome.toUpperCase() + (client.uc ? ' — UC ' + client.uc : ''), marginX, y);
-      y += 18;
-      doc.setFont('helvetica','normal'); doc.setFontSize(10.5);
-      doc.setTextColor(92,111,99);
-      doc.text('Referência: ' + d.referencia, marginX, y);
-      y += 22;
-
-      desenharResumoEnergia();
-      var camposDispC = camposDisponiveisPerfil(profile);
-      doc.setFontSize(10.5);
-      camposDispC.forEach(function(campo){
-        if(d.camposVisiveisEscolhidos.indexOf(campo.chave) === -1) return;
-        checkBreak(20);
-        var valor = formatarValor(d.scope[campo.chave], campo.formato);
-        doc.setFont('helvetica','normal'); doc.setTextColor(92,111,99);
-        doc.text(campo.rotulo, marginX, y);
-        doc.setFont('helvetica','bold'); doc.setTextColor(22,36,29);
-        doc.text(valor, pageW - marginX, y, { align:'right' });
-        y += 8;
-        linhaSeparadora(y);
-        y += 14;
-      });
-
-      if(profile.possuiItensMultiplos && d.itensResultado){
-        var prefixoC = profile.rotuloItemPrefixo || 'Injeção em ';
-        var prefixoFioBC = profile.rotuloItemFioBPrefixo || 'Fio B em ';
-        d.itensResultado.forEach(function(item){
-          checkBreak(20);
-          var nomeComUcC = item.nome + (item.uc ? ' (UC ' + item.uc + ')' : '');
-          doc.setFont('helvetica','normal'); doc.setTextColor(92,111,99);
-          doc.text(prefixoC + nomeComUcC, marginX, y);
-          doc.setFont('helvetica','bold'); doc.setTextColor(22,36,29);
-          doc.text(fmtBRL(item[d.chaveItemValor]), pageW - marginX, y, { align:'right' });
-          y += 8;
-          linhaSeparadora(y);
-          y += 14;
-          if(!d.ocultarFioBPorPonto && profile.chaveItemFioB && item[profile.chaveItemFioB] !== undefined){
-            checkBreak(20);
-            doc.setFont('helvetica','normal'); doc.setTextColor(92,111,99);
-            doc.text(prefixoFioBC + item.nome, marginX, y);
-            doc.setFont('helvetica','bold'); doc.setTextColor(22,36,29);
-            doc.text(fmtBRL(item[profile.chaveItemFioB]), pageW - marginX, y, { align:'right' });
-            y += 8;
-            linhaSeparadora(y);
-            y += 14;
-          }
-        });
-      }
-
-      if(Math.abs(d.ajuste) > 0.004){
-        checkBreak(20);
-        doc.setFont('helvetica','normal'); doc.setTextColor(92,111,99);
-        doc.text('Ajuste do mês', marginX, y);
-        doc.setFont('helvetica','bold'); doc.setTextColor(22,36,29);
-        doc.text(fmtBRL(d.ajuste), pageW - marginX, y, { align:'right' });
-        y += 22;
-      } else {
-        y += 8;
-      }
-
-      if(d.repasseFatura > 0.004){
-        checkBreak(20);
-        doc.setFont('helvetica','normal'); doc.setTextColor(92,111,99);
-        doc.text('Repasse da fatura de energia', marginX, y);
-        doc.setFont('helvetica','bold'); doc.setTextColor(22,36,29);
-        doc.text(fmtBRL(d.repasseFatura), pageW - marginX, y, { align:'right' });
-        y += 22;
-      }
-
-      if(d.ajusteExcedenteRS > 0.004 && d.ajusteExcedenteAplicado !== false){
-        checkBreak(20);
-        doc.setFont('helvetica','normal'); doc.setTextColor(92,111,99);
-        doc.text('Saldo já cobrado — desconto da energia utilizada', marginX, y);
-        doc.setFont('helvetica','bold'); doc.setTextColor(22,36,29);
-        doc.text('-' + fmtBRL(d.ajusteExcedenteRS), pageW - marginX, y, { align:'right' });
-        y += 22;
-      }
-
-      if(d.observacoes){
-        checkBreak(30);
-        doc.setFont('helvetica','italic'); doc.setFontSize(10);
-        doc.setTextColor(92,111,99);
-        var obsLinhasC = doc.splitTextToSize(d.observacoes, maxWidth);
-        obsLinhasC.forEach(function(linha){ checkBreak(14); doc.text(linha, marginX, y); y += 14; });
-        y += 8;
-      }
-
-      /* Total — caixa grande de destaque */
-      checkBreak(60);
-      doc.setFillColor(rgb[0],rgb[1],rgb[2]);
-      doc.roundedRect(marginX, y, maxWidth, 46, 6, 6, 'F');
-      doc.setFont('helvetica','bold'); doc.setFontSize(12);
-      doc.setTextColor(255,255,255);
-      doc.text((profile.rotuloTotalCliente || 'VALOR FINAL A SER PAGO'), marginX + 18, y + 29);
-      doc.setFontSize(17);
-      doc.text(fmtBRL(d.scope[profile.chaveTotalFinal]), pageW - marginX - 18, y + 30, { align:'right' });
-      y += 46 + 20;
-
-      /* Pix — caixa de destaque própria, igualmente visível.
-         Quando tem QR, a caixa precisa ser alta o bastante pra conter o QR inteiro
-         (52pt do topo + 90pt do QR + 16pt de respiro embaixo) — senão a próxima
-         seção desenha por cima da base do QR e corrompe a leitura dele. */
-      var alturaPix = qrDataUrl ? 170 : 58;
-      checkBreak(alturaPix + 12);
-      doc.setDrawColor(rgb[0],rgb[1],rgb[2]);
-      doc.setLineWidth(1.4);
-      doc.roundedRect(marginX, y, maxWidth, alturaPix, 6, 6, 'S');
-      doc.setFont('helvetica','bold'); doc.setFontSize(9.5);
-      doc.setTextColor(rgb[0],rgb[1],rgb[2]);
-      doc.text('PAGAMENTO — CHAVE PIX', marginX + 16, y + 18);
-      doc.setFont('helvetica','bold'); doc.setFontSize(15);
-      doc.setTextColor(22,36,29);
-      doc.text(client.chavePix || '—', marginX + 16, y + 40);
-      if(qrDataUrl){
-        try{ doc.addImage(qrDataUrl, 'PNG', marginX + 16, y + 54, 100, 100); }catch(e){}
-        if(client.banco || client.beneficiario){
-          doc.setFont('helvetica','normal'); doc.setFontSize(9.5);
-          doc.setTextColor(92,111,99);
-          doc.text('Escaneie o QR ao lado —', marginX + 130, y + 68, { maxWidth: maxWidth - 160 });
-          doc.text('o valor já vem preenchido', marginX + 130, y + 82, { maxWidth: maxWidth - 160 });
-          if(client.banco) doc.text(client.banco, marginX + 130, y + 106);
-          if(client.beneficiario) doc.text(client.beneficiario, marginX + 130, y + 120);
+        checkBreak(90);titulo('RATEIO POR PONTO');
+        var colunas=[{x:margin,w:width-265,rotulo:'Ponto'},{x:margin+width-255,w:85,rotulo:'Consumo bruto'},
+          {x:margin+width-165,w:65,rotulo:'Fio B'},{x:margin+width-95,w:95,rotulo:'Valor no perfil'}];
+        function cabecalhoRateio(){
+          fonte(8,true,[92,111,99]);
+          colunas.forEach(function(c,i){escrever(c.rotulo,i ? c.x+c.w : c.x,y,i?{align:'right'}:{});});y+=20;
         }
-      } else {
-        if(client.banco){
-          doc.setFont('helvetica','normal'); doc.setFontSize(10);
-          doc.setTextColor(92,111,99);
-          doc.text(client.banco, pageW - marginX - 16, y + 18, { align:'right' });
+        cabecalhoRateio();
+        d.itensResultado.forEach(function(it){
+          fonte(9,false);
+          var nome=it.nome+(it.pontoPrincipal?' (principal)':'')+(it.uc?' · UC '+it.uc:'');
+          var nomes=doc.splitTextToSize(texto(nome),colunas[0].w),h=nomes.length*12+9;
+          var paginaAntes=doc.internal.getNumberOfPages();checkBreak(h+20);
+          if(doc.internal.getNumberOfPages()!==paginaAntes)cabecalhoRateio();
+          fonte(9,false);nomes.forEach(function(l,i){escrever(l,margin,y+i*12);});
+          var valores=[energiaTexto(valorEnergiaInformado(it.consumoKwh)),
+            profile.chaveItemFioB ? formatarValor(it[profile.chaveItemFioB],'moeda') : '—',fmtBRL(it[d.chaveItemValor])];
+          fonte(9,true);valores.forEach(function(v,i){var c=colunas[i+1];escrever(v,c.x+c.w,y,{align:'right'});});y+=h;
+          var outros=(profile.itemVariaveis || []).filter(function(v){return ['consumoKwh','pontoPrincipal',profile.chaveItemFioB].indexOf(v.chave)===-1;});
+          outros.forEach(function(v){paragrafo(it.nome+' · '+v.rotulo+': '+formatarValor(it[v.chave],v.formato),8.5,null,3);});
+        });y+=8;
+        if(d.ajusteExcedenteAplicado !== false && d.ajusteExcedenteRS > 0.004){
+          linhas([{rotulo:'Compensação financeira do saldo já cobrado',valor:fmtBRL(-d.ajusteExcedenteRS)}]);
         }
-        if(client.beneficiario){
-          doc.setFont('helvetica','normal'); doc.setFontSize(10);
-          doc.setTextColor(92,111,99);
-          doc.text(client.beneficiario, pageW - marginX - 16, y + 40, { align:'right' });
-        }
-      }
-      y += alturaPix + 20;
-
-      /* Meios de contato — e-mail e telefone(s), fonte confortável de ler */
-      var linhasContato = [];
-      if(dc.email) linhasContato.push('E-mail: ' + dc.email);
-      (dc.telefones||[]).forEach(function(tel, i){
-        if(!tel) return;
-        linhasContato.push((dc.telefones.length > 1 ? 'Telefone ' + (i+1) + ': ' : 'Telefone: ') + tel);
-      });
-      if(linhasContato.length){
-        var alturaContato = 24 + linhasContato.length * 17;
-        checkBreak(alturaContato + 10);
-        doc.setFillColor(247,248,246);
-        doc.roundedRect(marginX, y, maxWidth, alturaContato, 6, 6, 'F');
-        doc.setFont('helvetica','bold'); doc.setFontSize(9.5);
-        doc.setTextColor(rgb[0],rgb[1],rgb[2]);
-        doc.text('MEIOS DE CONTATO', marginX + 16, y + 18);
-        doc.setFont('helvetica','normal'); doc.setFontSize(11.5);
-        doc.setTextColor(22,36,29);
-        linhasContato.forEach(function(linha, i){
-          doc.text(linha, marginX + 16, y + 38 + i*17);
-        });
-        y += alturaContato + 20;
-      }
-
-      var totalPaginasC = doc.internal.getNumberOfPages();
-      for(var pc=1; pc<=totalPaginasC; pc++){
-        doc.setPage(pc);
-        doc.setFont('helvetica','normal'); doc.setFontSize(8.5);
-        doc.setTextColor(150,158,152);
-        if(dc.textoRodape) doc.text(dc.textoRodape, marginX, pageH - 30);
-        doc.text('Página ' + pc + ' de ' + totalPaginasC, pageW - marginX, pageH - 30, { align:'right' });
       }
     }
-
-    var nomeArquivo = nomeArquivoDocumento(client, d.referencia, interno ? 'RESUMO' : 'FATURA') + '.pdf';
-    doc.setProperties({ title: nomeArquivo });
-    var blobPdf = doc.output('blob');
-    await compartilharOuBaixarBlob(blobPdf, nomeArquivo, 'application/pdf', abaPreAberta);
-  }catch(e){
-    console.error(e);
-    if(abaPreAberta) abaPreAberta.close();
-    toast('Erro ao gerar o PDF. Tente novamente em instantes.');
-  }
+    if(m.observacoes){titulo('OBSERVAÇÕES');paragrafo(m.observacoes,9);}
+    if(!interno){
+      var pixH=qr?114:62;checkBreak(pixH+16);
+      doc.setDrawColor(221,229,218);doc.setLineWidth(0.6);doc.line(margin,y,pageW-margin,y);y+=18;
+      fonte(9,true,rgb);escrever('PAGAMENTO VIA PIX',margin,y);
+      var pixY=y+17,pixW=width-(qr?126:0);
+      fonte(10.5,true);
+      var chaveLinhas=doc.splitTextToSize(texto(client.chavePix || 'Chave não informada'),pixW);
+      chaveLinhas.forEach(function(l){checkBreak(14);escrever(l,margin,pixY);pixY+=14;});
+      fonte(8.5,false,[92,111,99]);
+      doc.splitTextToSize(texto([client.banco,client.beneficiario].filter(Boolean).join(' · ')),pixW).forEach(function(l){escrever(l,margin,pixY);pixY+=11;});
+      if(qr){try{doc.addImage(qr,'PNG',pageW-margin-100,y-8,100,100);}catch(e){}}
+      y=Math.max(pixY+10,y+(qr?106:45));
+      if(client.condicaoPagamento)paragrafo(client.condicaoPagamento,8.5);
+      var contatos=[dc.email].concat(dc.telefones || []).filter(Boolean);
+      if(contatos.length){
+        titulo('MEIOS DE CONTATO');
+        contatos.forEach(function(c,i){paragrafo((dc.email && i === 0 ? 'E-mail: ' : 'Telefone: ') + c,8.5,null,2);});
+      }
+    }
+    if(dc.textoRodape)paragrafo(dc.textoRodape,8,[133,147,135]);
+    var paginas=doc.internal.getNumberOfPages();
+    for(var i=1;i<=paginas;i++){
+      doc.setPage(i);fonte(8,false,[133,147,135]);
+      if(interno)escrever('Uso interno - não enviar ao cliente.',margin,pageH-24);
+      escrever('Página '+i+' de '+paginas,pageW-margin,pageH-24,{align:'right'});
+    }
+    var filename=nomeArquivoDocumento(client,d.referencia,interno?'RESUMO':'FATURA')+'.pdf';
+    doc.setProperties({title:filename});
+    await compartilharOuBaixarBlob(doc.output('blob'),filename,'application/pdf',abaPreAberta);
+  }catch(e){console.error(e);if(abaPreAberta)abaPreAberta.close();toast('Erro ao gerar o PDF. Tente novamente em instantes.');}
 }
+
 
 function handleConfirmClick(el, cb){
   if(el.dataset.confirming === '1'){ clearTimeout(el._confirmTimeout); cb(); }
@@ -3499,10 +3348,11 @@ async function onSignOut(){
    ============================================================ */
 var IG_BASE_VERSION = '1.03';
 var IG_BASE_CHANGELOG = [
-  'Histórico preserva o cálculo original e permite abrir a fatura salva.',
-  'Detalhamento de energia atualizado, preservando o cálculo financeiro existente.',
-  'Faturas mostram injeção, consumo real, saldo utilizado e energia faturada.',
-  'Saldo já cobrado aparece de forma explícita, sem nova cobrança de energia.'
+  'Fatura com layout mais limpo e total a pagar em destaque.',
+  'Consumo bruto, injeção do mês, saldo utilizado e saldo restante separados.',
+  'Saldo do documento pode ser informado sem alterar o total em reais.',
+  'PDF interno organizado em entradas, resultados e rateio.',
+  'Histórico mantém os valores originais das faturas.'
 ];
 function igbMostrarChangelog(){
   var KEY = 'igbase_changelog_visto';
@@ -3600,7 +3450,7 @@ var _rascunhoTimer = null;
 document.addEventListener('input', function(e){
   var t = e.target;
   var relevante = t.id === 'f-ref-mes' || t.id === 'f-ref-ano' || t.id === 'f-ajuste' || t.id === 'f-observacoes' ||
-    (t.classList && (t.classList.contains('in-mensal') || t.classList.contains('item-nome') || t.classList.contains('item-val')));
+    (t.classList && (t.classList.contains('in-mensal') || t.classList.contains('energia-documento-input') || t.classList.contains('item-nome') || t.classList.contains('item-val')));
   if(!relevante) return;
   clearTimeout(_rascunhoTimer);
   _rascunhoTimer = setTimeout(salvarRascunhoAtual, 400);
