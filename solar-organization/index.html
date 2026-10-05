@@ -1158,7 +1158,9 @@ function renderNovoOrcamento(){
     if(v.tipo === 'checkbox'){
       return '<div class="field field-checkbox"><label class="checkbox-field"><input type="checkbox" class="in-mensal in-mensal-checkbox" data-chave="' + v.chave + '"' + (v.valorPadrao?' checked':'') + '> ' + escapeHtml(v.rotulo) + '</label></div>';
     }
-    return '<div class="field"><label>' + escapeHtml(v.rotulo) + '</label><input type="text" inputmode="decimal" class="in-mensal" data-chave="' + v.chave + '" value="" placeholder="0,00"></div>';
+    var gd1Ativa = perfilConsumoGD1(profile) && v.chave === 'energiaAtiva';
+    return '<div class="field"><label>' + escapeHtml(gd1Ativa ? 'Consumo não compensado da concessionária (kWh)' : v.rotulo) + '</label><input type="text" inputmode="decimal" class="in-mensal" data-chave="' + v.chave + '" value="" placeholder="0,00">' +
+      (gd1Ativa ? '<span class="hint">Informe somente a parcela não compensada, sem somar o consumo solar. Ex.: 384 kWh compensados + 306 kWh não compensados = 690 kWh de consumo total; aqui entram 306.</span>' : '') + '</div>';
   };
 
   var varsSaldo = mensalVars.filter(function(v){ return /saldo/i.test(v.chave); });
@@ -1337,6 +1339,9 @@ function aplicarDistribuicaoAutomatica(profile, itens, valoresEntrada){
 
   var autoConsumo = consumoTotal - injecaoNaConta;
   var consumoPrincipal = energiaAtiva + autoConsumo;
+  if(consumoPrincipal < 0 || energiaAtiva < 0 || consumoTotal < 0 || injecaoNaConta < 0 || injecaoSolar < 0){
+    return {itens:itens,excedenteKwh:0,erro:'Os dados do mês resultam em consumo negativo no GD2. Confira a leitura de consumo, a energia ativa e a injeção que aparece na conta antes de calcular.'};
+  }
 
   /* Um ponto de consumo NUNCA pode ter injeção negativa — não existe fisicamente
      "mandar energia negativa" pra um ponto. Quando o consumo do principal (naquele
@@ -1410,6 +1415,9 @@ function onCalcular(){
   var observacoes = txt('f-observacoes');
   var fixos = fixosEfetivos(c, profile);
   var mensais = readMensaisFromForm();
+  if(perfilConsumoGD1(profile) && (mensais.energiaAtiva < 0 || mensais.injecaoTotal < 0)){
+    toast('No GD1, o consumo não compensado e a injeção precisam ser iguais ou maiores que zero. A variação de saldo pode ser negativa.'); return;
+  }
   var energiaDocumentoInputs = lerEnergiaDocumento();
   if(Object.keys(energiaDocumentoInputs).some(function(k){
     var n = energiaDocumentoInputs[k]; return n !== null && (!isFinite(n) || n < 0);
@@ -1420,6 +1428,7 @@ function onCalcular(){
   var excedenteKwh = 0;
   if(profile.possuiItensMultiplos && profile.distribuicaoAutomaticaPontos){
     var distrib = aplicarDistribuicaoAutomatica(profile, itensInputRaw, valoresEntrada);
+    if(distrib.erro){ toast(distrib.erro); return; }
     itensInputRaw = distrib.itens;
     excedenteKwh = distrib.excedenteKwh;
     refletirValoresCalculadosNoFormulario(profile, itensInputRaw);
@@ -1515,7 +1524,7 @@ function valorEnergiaInformado(v){
 }
 function lerEnergiaDocumento(){
   var dados = {};
-  ['consumoRealKwh','injecaoMesKwh','saldoDisponivelKwh','saldoUtilizadoKwh'].forEach(function(chave){
+  ['consumoRealKwh','consumoCompensadoKwh','injecaoMesKwh','saldoDisponivelKwh','saldoUtilizadoKwh'].forEach(function(chave){
     var el = document.querySelector('.energia-documento-input[data-chave="' + chave + '"]');
     dados[chave] = !el || !el.value.trim() ? null : /[^0-9.,+\-\s]/.test(el.value) ? NaN : parseNumBR(el.value);
   });
@@ -1528,7 +1537,8 @@ function restaurarEnergiaDocumento(dados){
       ? '' : numeroParaFormulario(dados[el.dataset.chave]);
   });
   var manual = document.getElementById('consumo-manual-details');
-  if(manual) manual.open = dados.consumoRealKwh !== null && dados.consumoRealKwh !== undefined;
+  if(manual) manual.open = (dados.consumoRealKwh !== null && dados.consumoRealKwh !== undefined) ||
+    (dados.consumoCompensadoKwh !== null && dados.consumoCompensadoKwh !== undefined);
   var resetSaldo = document.getElementById('saldo-reset-automatico');
   if(resetSaldo) resetSaldo.hidden = dados.saldoUtilizadoKwh === null || dados.saldoUtilizadoKwh === undefined;
 }
@@ -1542,7 +1552,9 @@ function energiaDocumentoCamposHtml(profile){
   return '<fieldset><legend>Consumo real</legend>' +
     '<p class="hint" style="margin:0 0 12px">O consumo real é apurado automaticamente com os dados do mês, sem descontar o uso de saldo.</p>' +
     '<div class="field"><label for="consumo-real-automatico">Consumo bruto real (automático)</label><input type="text" id="consumo-real-automatico" readonly aria-readonly="true" placeholder="Calculado ao gerar o orçamento"><span class="hint" id="consumo-real-dica">Preencha os dados do mês e clique em Calcular orçamento.</span></div>' +
-    '<details id="consumo-manual-details" style="margin:0 0 14px"><summary style="cursor:pointer;color:var(--ink-soft);font-size:12px">Informar outra leitura de consumo (opcional)</summary><div style="margin-top:10px">' +
+    (perfilConsumoGD1(profile) ? '<p class="hint" id="gd1-conferencia-consumo" role="status">Consumo total = consumo compensado + consumo não compensado. A cobrança do saldo não altera essa soma em kWh.</p>' : '') +
+    '<details id="consumo-manual-details" style="margin:0 0 14px"><summary style="cursor:pointer;color:var(--ink-soft);font-size:12px">Conferir as leituras da conta (opcional)</summary><div style="margin-top:10px">' +
+      (perfilConsumoGD1(profile) ? campo('consumoCompensadoKwh','Consumo compensado confirmado na conta (kWh)','Leitura de energia consumida e compensada, incluindo eventual uso de saldo. Não é a geração do mês. Vazio estima esta parcela pela injeção menos a variação de saldo.') : '') +
       campo('consumoRealKwh','Leitura bruta confirmada na conta (kWh)','Use somente para corrigir a leitura apurada ou quando o perfil não possui dados suficientes. Vazio mantém o cálculo automático; não informe aqui o consumo compensado.') + '</div></details>' +
     (temInjecao ? '' : campo('injecaoMesKwh','Energia gerada/injetada no mês (kWh)','Informe a energia deste mês, sem somar saldo acumulado.')) +
     '</fieldset>';
@@ -1571,6 +1583,14 @@ function atualizarConsumoAutomatico(profile, draft){
     : 'Apurado automaticamente com os dados do mês, sem descontar o saldo utilizado.';
   var manual = document.getElementById('consumo-manual-details');
   if(manual && (resumo.consumoRealKwh === null || resumo.origemConsumo === 'informado')) manual.open = true;
+  var conferencia = document.getElementById('gd1-conferencia-consumo');
+  if(conferencia){
+    var gd1 = resumo.conferenciaConsumoGD1 || conferirConsumoGD1(profile,draft);
+    conferencia.textContent = gd1 ? 'Conferência: ' + energiaTexto(gd1.compensadoKwh) + ' compensados + ' +
+      energiaTexto(gd1.naoCompensadoKwh) + ' não compensados = ' + energiaTexto(gd1.totalKwh) + '.' +
+      (gd1.origem === 'leitura da conta' ? ' Parcela compensada confirmada na conta.' : ' Parcela compensada estimada pela injeção e variação do saldo; confira a leitura da conta.') +
+      (gd1.diferencaTotalKwh ? ' A leitura total informada difere desta soma em ' + energiaTexto(Math.abs(gd1.diferencaTotalKwh)) + '; confira as parcelas.' : '') : '';
+  }
   var saldoFinal = document.getElementById('saldo-final-automatico');
   if(saldoFinal) saldoFinal.value = energiaTexto(resumo.saldoRestanteKwh);
   var uso = document.getElementById('saldo-resumo-uso');
@@ -1580,10 +1600,32 @@ function atualizarConsumoAutomatico(profile, draft){
   var resetSaldo = document.getElementById('saldo-reset-automatico');
   if(resetSaldo) resetSaldo.hidden = resumo.origemSaldo !== 'informado';
 }
+function perfilConsumoGD1(profile){
+  var vars = profile.variaveis || [];
+  return !profile.possuiItensMultiplos && !/GD2/i.test(profile.nome || '') &&
+    ['injecaoTotal','saldoDelta','energiaAtiva'].every(function(chave){return vars.some(function(v){return v.chave === chave;});}) &&
+    !vars.some(function(v){return /fioB/i.test(v.chave);}) &&
+    !(profile.formulas || []).some(function(f){return /fioB/i.test(f);});
+}
+function conferirConsumoGD1(profile, draft){
+  if(!perfilConsumoGD1(profile)) return null;
+  var sc = draft.scope || {}, dados = draft.energiaDocumentoInputs || {};
+  var naoCompensado = valorEnergiaInformado(sc.energiaAtiva);
+  var leitura = valorEnergiaInformado(dados.consumoCompensadoKwh);
+  var compensado = leitura !== null ? leitura :
+    sc.injecaoTotal !== undefined && sc.saldoDelta !== undefined ? Math.max(0, Number(sc.injecaoTotal) - Number(sc.saldoDelta)) : null;
+  if(naoCompensado === null || compensado === null || !isFinite(compensado)) return null;
+  var total = compensado + naoCompensado, informado = valorEnergiaInformado(dados.consumoRealKwh);
+  return {compensadoKwh:compensado, naoCompensadoKwh:naoCompensado, totalKwh:total,
+    origem:leitura !== null ? 'leitura da conta' : 'estimado pela injeção e variação de saldo',
+    diferencaTotalKwh:informado === null ? 0 : informado-total};
+}
 function consumoBrutoDoCalculo(profile, draft){
   var sc = draft.scope || {}, anterior = draft.resumoEnergia || {};
   var informado = valorEnergiaInformado(sc.consumoReal);
   if(informado !== null) return informado;
+  var gd1 = conferirConsumoGD1(profile,draft);
+  if(gd1 && gd1.origem === 'leitura da conta') return gd1.totalKwh;
   if(profile.possuiItensMultiplos && draft.itensResultado){
     var conhecidos = draft.itensResultado.filter(function(it){ return valorEnergiaInformado(it.consumoKwh) !== null; });
     if(conhecidos.length === draft.itensResultado.length && conhecidos.length){
@@ -1603,6 +1645,7 @@ function consumoBrutoDoCalculo(profile, draft){
 function construirResumoEnergia(profile, draft){
   var sc = draft.scope || {}, dados = draft.energiaDocumentoInputs || {};
   var realCalculo = consumoBrutoDoCalculo(profile, draft);
+  var conferenciaGD1 = conferirConsumoGD1(profile,draft);
   var realInformado = valorEnergiaInformado(dados.consumoRealKwh);
   var consumo = realInformado !== null ? realInformado : realCalculo;
   var injInformada = valorEnergiaInformado(dados.injecaoMesKwh);
@@ -1644,6 +1687,8 @@ function construirResumoEnergia(profile, draft){
       saldoUtilizadoKwh:it.pontoPrincipal && conhecida ? saldo : 0};
   });
   var diverge = (realInformado !== null && realCalculo !== null && Math.abs(realInformado-realCalculo) > 0.000001) ||
+    (conferenciaGD1 && conferenciaGD1.origem === 'leitura da conta' && sc.injecaoTotal !== undefined && sc.saldoDelta !== undefined &&
+      Math.abs(conferenciaGD1.compensadoKwh-Math.max(0,Number(sc.injecaoTotal)-Number(sc.saldoDelta))) > 0.000001) ||
     (injInformada !== null && sc.injecaoTotal !== undefined && Math.abs(injInformada-Number(sc.injecaoTotal)) > 0.000001) ||
     (saldoInformado !== null && saldoAutomatico !== null && Math.abs(saldoInformado-saldoAutomatico) > 0.000001);
   return {schema:'fluxo-energia-v2', consumoRealKwh:consumo, injecaoMesKwh:injecao,
@@ -1654,7 +1699,8 @@ function construirResumoEnergia(profile, draft){
     energiaNaoCompensadaKwh:naoCompensado, consumoNaoCobertoKwh:descoberto,
     creditoMesNaoUtilizadoKwh:conhecida ? Math.max(0,injecao-mesUtilizado) : null,
     origemConsumo:realInformado !== null ? 'informado' : realCalculo !== null ? 'apurado nos dados do perfil' : 'não informado',
-    dadosDivergemDoCalculo:diverge, origemSaldo:saldoInformado !== null ? 'informado' : 'apurado', erroSaldo:erroSaldo, pontos:pontos};
+    dadosDivergemDoCalculo:diverge, origemSaldo:saldoInformado !== null ? 'informado' : 'apurado', erroSaldo:erroSaldo,
+    conferenciaConsumoGD1:conferenciaGD1, pontos:pontos};
 }
 function resumoEnergiaDoDocumento(profile, draft){
   return draft.resumoEnergia && draft.resumoEnergia.schema === 'fluxo-energia-v2'
@@ -1765,6 +1811,11 @@ function modeloDocumento(client,profile,draft,dc,interno){
     camposDisponiveisPerfil(profile).forEach(function(c){
       if(vistos[c.chave]) return;vistos[c.chave]=true;calculados.push(campoDocumento(c,draft));
     });
+    if(r.conferenciaConsumoGD1){
+      var gd1 = r.conferenciaConsumoGD1;
+      entradas.push({chave:'consumoCompensadoKwh',rotulo:'Consumo compensado (' + gd1.origem + ')',valor:energiaTexto(gd1.compensadoKwh)});
+      calculados.push({chave:'totalConferenciaGD1',rotulo:'Soma de consumo compensado e não compensado',valor:energiaTexto(gd1.totalKwh)});
+    }
   }
   var avisos=[];
   if(r.dadosDivergemDoCalculo) avisos.push('Os dados de energia do documento diferem das entradas do cálculo. Confira ambos; o total em reais foi preservado.');
@@ -3579,6 +3630,8 @@ document.addEventListener('input', function(e){
     var dicaEl = document.getElementById('consumo-real-dica');
     if(consumoEl){consumoEl.value='';consumoEl.placeholder='Recalcule para atualizar';}
     if(dicaEl) dicaEl.textContent='Os dados mudaram. Clique em Calcular orçamento para atualizar o consumo real.';
+    var conferenciaEl = document.getElementById('gd1-conferencia-consumo');
+    if(conferenciaEl) conferenciaEl.textContent='Os dados mudaram. Recalcule para conferir consumo compensado + não compensado.';
     var saldoEl = document.getElementById('saldo-final-automatico');
     var usoEl = document.getElementById('saldo-resumo-uso');
     if(saldoEl){saldoEl.value='';saldoEl.placeholder='Recalcule para atualizar';}
