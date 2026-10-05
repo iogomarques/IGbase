@@ -289,6 +289,12 @@
   @keyframes igb-loading-turn{ to{ transform:rotate(360deg); } }
   @media(prefers-reduced-motion:reduce){ .startup-spinner{ animation:none; } }
   /* FIM IG BASE: CARREGAMENTO */
+
+  /* LANÇAMENTO: CAMPOS PADRONIZADOS */
+  .quote-form-col .field input[type=text], .quote-form-col .field input[type=number], .quote-form-col .field select{ height:38px;font-size:13px;line-height:20px; }
+  .quote-form-col .field input[readonly]{ background:var(--surface-2);color:var(--accent); }
+  #saldo-reset-automatico[hidden]{ display:none; }
+  /* FIM LANÇAMENTO: CAMPOS PADRONIZADOS */
 </style>
 </head>
 <body>
@@ -1155,18 +1161,22 @@ function renderNovoOrcamento(){
     return '<div class="field"><label>' + escapeHtml(v.rotulo) + '</label><input type="text" inputmode="decimal" class="in-mensal" data-chave="' + v.chave + '" value="" placeholder="0,00"></div>';
   };
 
+  var varsSaldo = mensalVars.filter(function(v){ return /saldo/i.test(v.chave); });
+  var varsDados = mensalVars.filter(function(v){ return !/saldo/i.test(v.chave); });
+  var saldoHtml = saldoDocumentoCamposHtml(profile, varsSaldo.map(mensalFieldHtml).join(''));
+
   var formHtml;
   if(!profile.possuiItensMultiplos){
-    var camposMensaisHtml = mensalVars.map(mensalFieldHtml).join('');
+    var camposMensaisHtml = varsDados.map(mensalFieldHtml).join('');
     formHtml = camposComuns +
       '<fieldset><legend>Dados do mês</legend>' +
         '<p class="hint" style="margin:-4px 0 12px">Dica: em qualquer campo, pode digitar uma soma direto, ex.: <code class="mono">45,20+12,30+8</code></p>' +
         camposMensaisHtml + '</fieldset>' +
-      energiaDocumentoCamposHtml(profile) + camposAdendo;
+      energiaDocumentoCamposHtml(profile) + camposAdendo + saldoHtml;
   } else {
     var pontosSeed = pontosPadraoDoCliente(c);
     var pontosHtml = pontosSeed.map(function(p){ return itemInputRowHtml(profile, p.nome, p.uc, null); }).join('');
-    var camposCompartilhadosHtml = mensalVars.map(mensalFieldHtml).join('');
+    var camposCompartilhadosHtml = varsDados.map(mensalFieldHtml).join('');
     formHtml = camposComuns +
       (camposCompartilhadosHtml ? '<fieldset><legend>Dados compartilhados do mês</legend>' +
         '<p class="hint" style="margin:-4px 0 12px">Dica: em qualquer campo, pode digitar uma soma direto, ex.: <code class="mono">45,20+12,30+8</code></p>' +
@@ -1175,7 +1185,7 @@ function renderNovoOrcamento(){
         '<div id="pontos-container">' + pontosHtml + '</div>' +
         '<button type="button" class="add-ponto-btn" data-action="add-ponto">+ Adicionar ponto</button>' +
       '</fieldset>' +
-      energiaDocumentoCamposHtml(profile) + camposAdendo;
+      energiaDocumentoCamposHtml(profile) + camposAdendo + saldoHtml;
   }
 
   container.innerHTML =
@@ -1519,6 +1529,8 @@ function restaurarEnergiaDocumento(dados){
   });
   var manual = document.getElementById('consumo-manual-details');
   if(manual) manual.open = dados.consumoRealKwh !== null && dados.consumoRealKwh !== undefined;
+  var resetSaldo = document.getElementById('saldo-reset-automatico');
+  if(resetSaldo) resetSaldo.hidden = dados.saldoUtilizadoKwh === null || dados.saldoUtilizadoKwh === undefined;
 }
 function energiaDocumentoCamposHtml(profile){
   var temInjecao = (profile.variaveis || []).some(function(v){ return v.chave === 'injecaoTotal'; });
@@ -1527,17 +1539,24 @@ function energiaDocumentoCamposHtml(profile){
       '<input type="text" inputmode="decimal" class="energia-documento-input" data-chave="' + chave + '" placeholder="Não informado">' +
       '<span class="hint">' + dica + '</span></div>';
   }
-  return '<fieldset><legend>Consumo e saldo para o documento</legend>' +
+  return '<fieldset><legend>Consumo real</legend>' +
     '<p class="hint" style="margin:0 0 12px">O consumo real é apurado automaticamente com os dados do mês, sem descontar o uso de saldo.</p>' +
-    '<div class="field-row">' +
-      '<div class="field"><label for="consumo-real-automatico">Consumo bruto real (automático)</label><input type="text" id="consumo-real-automatico" readonly aria-readonly="true" placeholder="Calculado ao gerar o orçamento" style="background:var(--surface-2);font-weight:600;color:var(--accent)"><span class="hint" id="consumo-real-dica">Preencha os dados do mês e clique em Calcular orçamento.</span></div>' +
-      campo('saldoDisponivelKwh','Saldo disponível antes do uso (kWh)','Informe o crédito disponível para este mês. Vazio significa saldo restante não informado; zero significa nenhum crédito disponível.') +
-    '</div>' +
+    '<div class="field"><label for="consumo-real-automatico">Consumo bruto real (automático)</label><input type="text" id="consumo-real-automatico" readonly aria-readonly="true" placeholder="Calculado ao gerar o orçamento"><span class="hint" id="consumo-real-dica">Preencha os dados do mês e clique em Calcular orçamento.</span></div>' +
     '<details id="consumo-manual-details" style="margin:0 0 14px"><summary style="cursor:pointer;color:var(--ink-soft);font-size:12px">Informar outra leitura de consumo (opcional)</summary><div style="margin-top:10px">' +
       campo('consumoRealKwh','Leitura bruta confirmada na conta (kWh)','Use somente para corrigir a leitura apurada ou quando o perfil não possui dados suficientes. Vazio mantém o cálculo automático; não informe aqui o consumo compensado.') + '</div></details>' +
-    campo('saldoUtilizadoKwh','Saldo utilizado no mês (kWh)','Opcional: informe o uso confirmado na conta após a injeção do mês. Vazio usa a diferença apurada automaticamente; zero significa que não houve uso de saldo.') +
-    '<p class="hint">Saldo final disponível = saldo antes do uso − saldo utilizado no mês. A injeção excedente do mês fica separada.</p>' +
     (temInjecao ? '' : campo('injecaoMesKwh','Energia gerada/injetada no mês (kWh)','Informe a energia deste mês, sem somar saldo acumulado.')) +
+    '</fieldset>';
+}
+function saldoDocumentoCamposHtml(profile, camposPerfil){
+  var temVariacao = (profile.variaveis || []).some(function(v){return v.categoria === 'mensal' && v.chave === 'saldoDelta';});
+  return '<fieldset id="saldo-dados"><legend>Saldo de energia</legend>' + camposPerfil +
+    (temVariacao ? '<p class="hint" style="margin:0 0 12px">Na variação do mês, use negativo para saldo consumido e positivo para energia acumulada, conforme a conta. Zero indica nenhuma variação.</p>' : '') +
+    '<div class="field"><label for="saldo-disponivel-entrada">Saldo disponível antes do uso (kWh)</label><input type="text" inputmode="decimal" id="saldo-disponivel-entrada" class="energia-documento-input" data-chave="saldoDisponivelKwh" placeholder="Não informado"><span class="hint">Informe o crédito disponível no início do ciclo. Vazio significa desconhecido; zero significa nenhum crédito.</span></div>' +
+    /* Compatibilidade: preserva leituras explícitas em rascunhos/histórico anteriores,
+       sem criar um segundo lançamento editável do mesmo uso de saldo. */
+    '<input type="hidden" class="energia-documento-input" data-chave="saldoUtilizadoKwh" value="">' +
+    '<div class="field"><label for="saldo-final-automatico">Saldo disponível após a fatura (automático)</label><input type="text" id="saldo-final-automatico" readonly aria-readonly="true" placeholder="Calculado ao gerar o orçamento"><span class="hint" id="saldo-resumo-uso" role="status">O uso de saldo e o saldo final serão apurados ao calcular o orçamento.</span></div>' +
+    '<button type="button" class="btn" id="saldo-reset-automatico" data-action="reset-saldo-automatico" hidden>Usar apuração automática de saldo</button>' +
     '</fieldset>';
 }
 function atualizarConsumoAutomatico(profile, draft){
@@ -1552,6 +1571,14 @@ function atualizarConsumoAutomatico(profile, draft){
     : 'Apurado automaticamente com os dados do mês, sem descontar o saldo utilizado.';
   var manual = document.getElementById('consumo-manual-details');
   if(manual && (resumo.consumoRealKwh === null || resumo.origemConsumo === 'informado')) manual.open = true;
+  var saldoFinal = document.getElementById('saldo-final-automatico');
+  if(saldoFinal) saldoFinal.value = energiaTexto(resumo.saldoRestanteKwh);
+  var uso = document.getElementById('saldo-resumo-uso');
+  if(uso) uso.textContent = 'Saldo utilizado no mês: ' + energiaTexto(resumo.saldoUtilizadoKwh) +
+    (resumo.origemSaldo === 'informado' ? ' (leitura preservada do registro anterior).' : ' (automático).') +
+    ' Saldo final = saldo disponível antes do uso − saldo utilizado. A injeção excedente fica separada.';
+  var resetSaldo = document.getElementById('saldo-reset-automatico');
+  if(resetSaldo) resetSaldo.hidden = resumo.origemSaldo !== 'informado';
 }
 function consumoBrutoDoCalculo(profile, draft){
   var sc = draft.scope || {}, anterior = draft.resumoEnergia || {};
@@ -3552,6 +3579,10 @@ document.addEventListener('input', function(e){
     var dicaEl = document.getElementById('consumo-real-dica');
     if(consumoEl){consumoEl.value='';consumoEl.placeholder='Recalcule para atualizar';}
     if(dicaEl) dicaEl.textContent='Os dados mudaram. Clique em Calcular orçamento para atualizar o consumo real.';
+    var saldoEl = document.getElementById('saldo-final-automatico');
+    var usoEl = document.getElementById('saldo-resumo-uso');
+    if(saldoEl){saldoEl.value='';saldoEl.placeholder='Recalcule para atualizar';}
+    if(usoEl) usoEl.textContent='Os dados mudaram. Calcule o orçamento para atualizar o saldo utilizado e o saldo final.';
   }
   clearTimeout(_rascunhoTimer);
   _rascunhoTimer = setTimeout(salvarRascunhoAtual, 400);
@@ -3577,6 +3608,12 @@ document.addEventListener('click', function(e){
   var el = e.target.closest('[data-action]');
   if(!el) return;
   var action = el.dataset.action;
+  if(action === 'reset-saldo-automatico'){
+    var saldoAntigo = document.querySelector('.energia-documento-input[data-chave="saldoUtilizadoKwh"]');
+    if(saldoAntigo) saldoAntigo.value = '';
+    el.hidden = true;
+    salvarRascunhoAtual(); onCalcular(); return;
+  }
   var id = el.dataset.id;
 
   switch(action){
