@@ -295,6 +295,37 @@
   .quote-form-col .field input[readonly]{ background:var(--surface-2);color:var(--accent); }
   #saldo-reset-automatico[hidden]{ display:none; }
   /* FIM LANÇAMENTO: CAMPOS PADRONIZADOS */
+
+  /* TEXTO E FILTROS DAS LISTAS */
+  .client-row .meta{ display:flex;flex-direction:column;gap:3px; }
+  .client-row .meta .nome,.client-row .meta .uc,.brand-email{ white-space:normal;overflow:visible;text-overflow:clip;overflow-wrap:anywhere;word-break:normal; }
+  .client-row:focus-within .edit-btn{ opacity:1; }
+  .topbar > div{ min-width:0;max-width:100%; }
+  .topbar h1,.topbar .sub,.ponto-breakdown .nome{ overflow-wrap:anywhere; }
+  .history-item{ gap:14px;flex-wrap:wrap; }
+  .history-item .info{ min-width:0;flex:1 1 240px;display:flex;flex-direction:column;gap:5px;overflow-wrap:anywhere; }
+  .history-item .info > span{ display:block;white-space:normal; }
+  .history-item .btn-row{ flex-wrap:wrap; }
+  .filtros-clientes{ display:flex;flex-direction:column;gap:6px;margin-bottom:14px; }
+  .filter-label{ display:block;font-size:12px;font-weight:600; }
+  .filtros-clientes .busca-wrap{ margin:0;min-width:0; }
+  .busca-input{ min-width:0; }
+  input[type=search]::-webkit-search-cancel-button{ -webkit-appearance:none; }
+  .filtros-clientes select,.filtros-historico input:not(.busca-input),.filtros-historico select{ width:100%;min-width:0;height:38px;padding:8px 9px;border:1px solid var(--line);border-radius:var(--radius-s);background:var(--surface);font-size:13px; }
+  .filtros-clientes .btn{ justify-content:center;font-size:12px; }
+  .filtros-grid{ display:grid;grid-template-columns:repeat(auto-fit,minmax(min(100%,200px),1fr));gap:12px; }
+  .filtros-grid .field{ min-width:0;margin:0; }
+  .filtros-grid .busca-wrap{ margin:0; }
+  .filtros-grid .busca-input{ height:38px; }
+  .filtros-footer{ display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:10px;margin-top:12px; }
+  .filtros-footer .hint{ flex:1 1 250px;margin:0;font-size:12px; }
+  @media(max-width:880px){
+    .sidebar{ flex-direction:column;align-items:stretch;overflow-x:visible; }
+    .client-list{ flex-direction:column;flex:auto;max-height:240px;overflow-y:auto;overflow-x:hidden; }
+    .client-row{ flex:0 0 auto; }
+    .btn-new-client{ width:100%; }
+  }
+  /* FIM TEXTO E FILTROS DAS LISTAS */
 </style>
 </head>
 <body>
@@ -384,7 +415,7 @@ function formatarValor(v, formato){
     default: return (v||0).toLocaleString('pt-BR', {minimumFractionDigits:2, maximumFractionDigits:2});
   }
 }
-function escapeHtml(s){ return String(s===undefined||s===null?'':s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;'); }
+function escapeHtml(s){ return String(s===undefined||s===null?'':s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;').replace(/'/g,'&#39;'); }
 function slugify(s){
   return (s||'').toString().normalize('NFD').replace(/[\u0300-\u036f]/g,'')
     .replace(/[^a-zA-Z0-9]+/g,' ').trim().split(' ').filter(Boolean)
@@ -670,7 +701,7 @@ var state = {
   selectedClientId: null, activeTab: 'novo',
   editingProfileId: null, /* perfil sendo editado/criado no momento (id ou null=novo) */
   lastDraft: null,
-  buscaCliente: '', buscaHistorico: ''
+  buscaCliente: '', buscaHistorico: '', tipoCliente:'', ordemCliente:'cliente-az', filtrosHistorico:null
 };
 
 /* ============================================================
@@ -967,39 +998,90 @@ function sunIconSvg(size){
 var ICON_SEARCH = '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m21 21-4.34-4.34"/><circle cx="11" cy="11" r="8"/></svg>';
 var ICON_X = '<svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M18 6 6 18"/><path d="m6 6 12 12"/></svg>';
 
+/* Funções integradas ao HTML existente; não carregar como outro script. */
+function limparTextoExibicao(valor){
+  return String(valor === undefined || valor === null ? '' : valor).normalize('NFC')
+    .replace(/[\u0000-\u0008\u000B\u000C\u000E-\u001F\u007F\u200B\uFEFF]/g,' ')
+    .replace(/\s+/g,' ').trim();
+}
+function textoExibicao(valor){ return escapeHtml(limparTextoExibicao(valor)); }
+function textoBusca(valor){
+  return limparTextoExibicao(valor).normalize('NFD').replace(/[\u0300-\u036f]/g,'').toLowerCase();
+}
+function correspondeBusca(termo, campos){
+  var tokens = textoBusca(termo).split(/\s+/).filter(Boolean);
+  var texto = campos.map(textoBusca).join(' ');
+  return tokens.every(function(token){
+    return texto.indexOf(token) !== -1 || (/^[\d.\/-]+$/.test(token) && /\d/.test(token) &&
+      campos.some(function(c){return String(c || '').replace(/\D/g,'').indexOf(token.replace(/\D/g,'')) !== -1;}));
+  });
+}
+function tipoGDDoPerfil(p){
+  if(!p) return '';
+  var tipo = textoBusca(p.tipoUsina || p.tipoGD || p.regime || p.nome).replace(/\s/g,'');
+  if(/gd2/.test(tipo)) return 'GD2';
+  if(/gd1/.test(tipo)) return 'GD1';
+  if(p.chaveItemFioB || (p.variaveis || []).some(function(v){return /fioB/i.test(v.chave);})) return 'GD2';
+  return perfilConsumoGD1(p) ? 'GD1' : '';
+}
+function dadosBuscaCliente(c){
+  if(!c) return [];
+  var campos = [c.nome,c.uc,c.documento,c.cpf,c.cnpj,c.local,c.endereco,c.cidade];
+  (c.pontosPadrao || []).forEach(function(p){if(typeof p === 'string') campos.push(p);else campos.push(p.nome,p.uc);});
+  return campos;
+}
+function localCliente(c){ return limparTextoExibicao(c && (c.local || c.endereco || c.cidade) || ''); }
+function ordenarPorIdentificacao(lista, ordem, clienteFn){
+  var local = /^local-/.test(ordem), inverso = /-za$/.test(ordem);
+  var colador = new Intl.Collator('pt-BR',{sensitivity:'base',numeric:true});
+  return lista.slice().sort(function(a,b){
+    var ca=clienteFn(a) || {}, cb=clienteFn(b) || {};
+    var ta=local ? localCliente(ca) : limparTextoExibicao(ca.nome);
+    var tb=local ? localCliente(cb) : limparTextoExibicao(cb.nome);
+    if(!ta && tb) return 1; if(ta && !tb) return -1;
+    var resultado=colador.compare(ta,tb) || colador.compare(ca.nome || '',cb.nome || '');
+    if(resultado) return inverso ? -resultado : resultado;
+    return String(a.id || '').localeCompare(String(b.id || ''));
+  });
+}
+function opcoesFiltro(opcoes, valor){
+  return opcoes.map(function(o){return '<option value="' + escapeHtml(o[0]) + '"' + (o[0] === valor ? ' selected' : '') + '>' + escapeHtml(o[1]) + '</option>';}).join('');
+}
+function clientesFiltrados(){
+  var items=state.clients.filter(function(c){
+    return correspondeBusca(state.buscaCliente,dadosBuscaCliente(c)) &&
+      (!state.tipoCliente || tipoGDDoPerfil(getProfile(c.profileId)) === state.tipoCliente);
+  });
+  return ordenarPorIdentificacao(items,state.ordemCliente || 'cliente-az',function(c){return c;});
+}
 function clientRowsHtml(){
-  var termo = (state.buscaCliente || '').trim().toLowerCase();
-  var lista = state.clients;
-  if(termo){
-    lista = lista.filter(function(c){
-      return (c.nome||'').toLowerCase().indexOf(termo) !== -1 ||
-             (c.uc||'').toLowerCase().indexOf(termo) !== -1;
-    });
-  }
-  if(lista.length === 0){
-    return '<div class="busca-vazio">' + (termo ? 'Nenhum cliente encontrado para "' + escapeHtml(state.buscaCliente) + '".' : 'Nenhum cliente cadastrado ainda.') + '</div>';
-  }
+  var lista = clientesFiltrados();
+  if(!lista.length) return '<div class="busca-vazio">Nenhum cliente corresponde aos filtros. Limpe a busca ou altere o tipo de usina.</div>';
   return lista.map(function(c){
-    var active = c.id === state.selectedClientId ? ' active' : '';
-    var profile = getProfile(c.profileId);
-    var dotColor = (profile && profile.possuiItensMultiplos) ? 'var(--dot-multi)' : 'var(--dot-single)';
-    return '<div class="client-row' + active + '" data-action="select-client" data-id="' + c.id + '">' +
+    var p=getProfile(c.profileId), tipo=tipoGDDoPerfil(p), local=localCliente(c);
+    var documento=limparTextoExibicao(c.documento || c.cpf || c.cnpj);
+    var dotColor=p && p.possuiItensMultiplos ? 'var(--dot-multi)' : 'var(--dot-single)';
+    return '<div class="client-row' + (c.id === state.selectedClientId ? ' active' : '') + '" data-action="select-client" data-id="' + escapeHtml(c.id) + '">' +
       '<span class="client-dot" style="background:' + dotColor + '"></span>' +
-      '<span class="meta"><span class="nome">' + escapeHtml(c.nome) + '</span>' +
-      '<span class="uc">' + (c.uc ? 'UC ' + escapeHtml(c.uc) : 'sem UC') + '</span></span>' +
-      '<button class="edit-btn" data-action="edit-client" data-id="' + c.id + '" title="Editar cliente" aria-label="Editar cliente">' +
-      '<svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M12 20h9"/><path d="M16.5 3.5a2.1 2.1 0 0 1 3 3L7 19l-4 1 1-4Z"/></svg>' +
-      '</button></div>';
+      '<span class="meta"><span class="nome">' + textoExibicao(c.nome) + '</span> ' +
+      '<span class="uc">' + (c.uc ? 'UC: ' + textoExibicao(c.uc) : 'UC não informada') + (tipo ? ' · ' + tipo : '') + '</span> ' +
+      (documento ? '<span class="uc">Documento: ' + textoExibicao(documento) + '</span> ' : '') +
+      (local ? '<span class="uc">Local: ' + textoExibicao(local) + '</span> ' : '') + '</span>' +
+      '<button class="edit-btn" data-action="edit-client" data-id="' + escapeHtml(c.id) + '" title="Editar cliente" aria-label="Editar cliente">' +
+      '<svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M12 20h9"/><path d="M16.5 3.5a2.1 2.1 0 0 1 3 3L7 19l-4 1 1-4Z"/></svg></button></div>';
   }).join('');
 }
 function buscaClienteInputHtml(){
-  var termo = state.buscaCliente || '';
-  var clearBtn = termo ? '<button type="button" class="busca-clear" data-action="limpar-busca-cliente" aria-label="Limpar busca">' + ICON_X + '</button>' : '';
-  return '<div class="busca-wrap">' + ICON_SEARCH +
-    '<input type="text" id="busca-cliente" class="busca-input" placeholder="Buscar cliente por nome ou UC" value="' + escapeHtml(termo) + '" autocomplete="off" aria-label="Buscar cliente por nome ou UC">' +
-    clearBtn +
-  '</div>';
+  return '<div class="filtros-clientes"><label class="filter-label" for="busca-cliente">Buscar cliente</label>' +
+    '<div class="busca-wrap">' + ICON_SEARCH + '<input type="search" id="busca-cliente" class="busca-input" placeholder="Nome, documento ou UC" value="' + escapeHtml(state.buscaCliente || '') + '" autocomplete="off">' +
+    (state.buscaCliente ? '<button type="button" class="busca-clear" data-action="limpar-busca-cliente" aria-label="Limpar busca">' + ICON_X + '</button>' : '') + '</div>' +
+    '<label class="filter-label" for="tipo-cliente">Tipo de usina</label><select id="tipo-cliente">' + opcoesFiltro([['','Todos os tipos'],['GD1','GD1'],['GD2','GD2']],state.tipoCliente || '') + '</select>' +
+    '<label class="filter-label" for="ordem-cliente">Ordenar clientes</label><select id="ordem-cliente">' +
+    opcoesFiltro([['cliente-az','Cliente: A–Z'],['cliente-za','Cliente: Z–A'],['local-az','Local: A–Z'],['local-za','Local: Z–A']],state.ordemCliente || 'cliente-az') + '</select>' +
+    '<button type="button" class="btn btn-ghost" data-action="limpar-filtros-clientes">Limpar filtros</button></div>';
 }
+
+
 function limparBuscaCliente(){
   state.buscaCliente = '';
   atualizarListaClientes();
@@ -1046,8 +1128,9 @@ function renderTopbar(){
   }
   var profile = getProfile(c.profileId);
   var profileNome = profile ? profile.nome : '(perfil não encontrado — edite o cliente)';
-  el.innerHTML = '<div><h1>' + escapeHtml(c.nome) + '</h1>' +
-    '<div class="sub">' + (c.uc ? 'UC ' + escapeHtml(c.uc) + ' · ' : '') + 'Perfil: ' + escapeHtml(profileNome) + '</div></div>' +
+  el.innerHTML = '<div><h1>' + textoExibicao(c.nome) + '</h1>' +
+    '<div class="sub">' + (c.uc ? 'UC: ' + textoExibicao(c.uc) + ' · ' : '') + 'Perfil: ' + textoExibicao(profileNome) + '</div>' +
+    (localCliente(c) ? '<div class="sub">Local: ' + textoExibicao(localCliente(c)) + '</div>' : '') + '</div>' +
     '<button class="btn btn-ghost" data-action="edit-client" data-id="' + c.id + '">Editar dados do cliente</button>';
 }
 
@@ -1062,7 +1145,7 @@ function renderTabs(){
   }).join('');
 }
 function setTab(tab){ state.activeTab = tab; renderTabs(); renderTabContent(); }
-function selectClient(id){ state.selectedClientId = id; state.activeTab = 'novo'; state.lastDraft = null; state.buscaHistorico = ''; renderAll(); }
+function selectClient(id){ state.selectedClientId = id; state.activeTab = 'novo'; state.lastDraft = null; state.buscaHistorico = ''; state.filtrosHistorico=filtrosHistoricoPadrao(); renderAll(); }
 
 /* ============================================================
    NOVO ORÇAMENTO
@@ -1977,78 +2060,120 @@ function abrirQuote(id){
   if(preview && preview.scrollIntoView) preview.scrollIntoView({behavior:'smooth', block:'start'});
   toast(q.perfilSnapshot ? 'Fatura aberta com os valores originais do histórico.' : 'Fatura antiga aberta com os valores salvos. O perfil e os dados do cliente usam o cadastro atual.');
 }
-function historicoItemHtml(q){
-  var data = new Date(q.createdAt).toLocaleDateString('pt-BR');
-  var totalStr = fmtBRL(q.scope[perfilDoDocumento(q) ? perfilDoDocumento(q).chaveTotalFinal : 'valorFinal']);
-  var saldoFinal = q.resumoEnergia ? valorEnergiaInformado(q.resumoEnergia.saldoRestanteKwh) : null;
-  return '<div class="history-item"><div class="info"><b>' + escapeHtml(q.referencia) + ' — ' + totalStr + '</b>' +
-    '<span>Salvo em ' + data + '</span>' +
-    '<span><strong>Saldo disponível após a fatura:</strong> ' + escapeHtml(energiaTexto(saldoFinal)) + '</span></div>' +
-    '<div class="btn-row">' +
-      '<button class="btn" data-action="abrir-quote" data-id="' + q.id + '">Abrir fatura</button>' +
-      '<button class="btn" data-action="duplicar-quote" data-id="' + q.id + '">Usar como base</button>' +
-      '<button class="btn btn-danger" data-action="delete-quote-confirm" data-id="' + q.id + '">Excluir</button>' +
-    '</div></div>';
-}
-function historicoItemsFiltrados(c){
-  var termo = (state.buscaHistorico || '').trim().toLowerCase();
-  var items = state.quotes.filter(function(q){ return q.clientId === c.id; });
-  if(termo){
-    items = items.filter(function(q){
-      var data = new Date(q.createdAt).toLocaleDateString('pt-BR');
-      return (q.referencia||'').toLowerCase().indexOf(termo) !== -1 || data.indexOf(termo) !== -1;
-    });
+/* Datas de referência representam meses; um intervalo inclui os meses que o cruzam. */
+function isoDia(ano,mes,dia){ return String(ano).padStart(4,'0') + '-' + String(mes).padStart(2,'0') + '-' + String(dia).padStart(2,'0'); }
+function referenciaPeriodo(referencia){
+  var ref=textoBusca(referencia), m=/^(\d{1,2})\/(\d{4})$/.exec(ref), mes,ano;
+  if(m){mes=Number(m[1]);ano=Number(m[2]);}
+  else{
+    m=/^([a-z]+)[\/\s-]+(\d{4})$/.exec(ref);
+    if(m){ano=Number(m[2]);mes=MESES_PT.findIndex(function(n){return textoBusca(n) === m[1] || textoBusca(n).slice(0,3) === m[1];})+1;}
+    else {m=/^(\d{4})-(\d{2})$/.exec(ref);if(m){ano=Number(m[1]);mes=Number(m[2]);}}
   }
-  return items;
+  if(!ano || !mes || mes > 12 || ano < 1000) return null;
+  return {ano:ano,mes:mes,inicio:isoDia(ano,mes,1),fim:isoDia(ano,mes,new Date(Date.UTC(ano,mes,0)).getUTCDate())};
+}
+function dataSalvamentoPeriodo(q){
+  var d=new Date(q.createdAt);if(!isFinite(d.getTime())) return null;
+  var iso=isoDia(d.getFullYear(),d.getMonth()+1,d.getDate());
+  return {ano:d.getFullYear(),inicio:iso,fim:iso};
+}
+function dataFiltroValida(valor){
+  if(!/^\d{4}-\d{2}-\d{2}$/.test(valor)) return false;
+  var p=valor.split('-').map(Number), d=new Date(Date.UTC(p[0],p[1]-1,p[2]));
+  return d.getUTCFullYear() === p[0] && d.getUTCMonth()+1 === p[1] && d.getUTCDate() === p[2];
+}
+function filtrosHistoricoPadrao(){return {escopo:'atual',cliente:'',tipo:'',ano:'',baseData:'referencia',de:'',ate:'',ordem:'recentes'};}
+function filtrosHistorico(){ if(!state.filtrosHistorico) state.filtrosHistorico=filtrosHistoricoPadrao();return state.filtrosHistorico; }
+function erroFiltrosHistorico(){
+  var f=filtrosHistorico();
+  if(f.ano && !/^\d{4}$/.test(f.ano)) return 'Informe um ano com quatro dígitos.';
+  if((f.de && !dataFiltroValida(f.de)) || (f.ate && !dataFiltroValida(f.ate))) return 'Informe datas válidas para o período.';
+  if(f.de && f.ate && f.de > f.ate) return 'A data inicial deve ser anterior ou igual à data final.';
+  return '';
+}
+function clienteBuscaQuote(q){return q.clienteSnapshot || state.clients.find(function(c){return c.id === q.clientId;}) || {nome:'Cliente não encontrado'};}
+function historicoItemsFiltrados(c){
+  var f=filtrosHistorico(); if(erroFiltrosHistorico()) return [];
+  var items=state.quotes.filter(function(q){
+    if(f.escopo !== 'todos' && (!c || q.clientId !== c.id)) return false;
+    var cliente=clienteBuscaQuote(q), atual=state.clients.find(function(x){return x.id === q.clientId;});
+    var campos=dadosBuscaCliente(cliente).concat(dadosBuscaCliente(atual));
+    (q.itensResultado || q.itens || []).forEach(function(p){campos.push(p.nome,p.uc);});
+    if(!correspondeBusca(f.cliente,campos)) return false;
+    if(f.tipo && tipoGDDoPerfil(perfilDoDocumento(q)) !== f.tipo) return false;
+    var referencia=referenciaPeriodo(q.referencia), periodo=f.baseData === 'salvamento' ? dataSalvamentoPeriodo(q) : referencia;
+    if((f.ano || f.de || f.ate) && !periodo) return false;
+    if(f.ano && String(periodo.ano) !== f.ano) return false;
+    if(f.de && periodo.fim < f.de) return false;
+    if(f.ate && periodo.inicio > f.ate) return false;
+    var salvo=dataSalvamentoPeriodo(q);
+    return correspondeBusca(state.buscaHistorico,[q.referencia,salvo ? salvo.inicio.split('-').reverse().join('/') : '',
+      referencia ? String(referencia.mes).padStart(2,'0')+'/'+referencia.ano : '']);
+  });
+  if(f.ordem !== 'recentes') return ordenarPorIdentificacao(items,f.ordem,clienteBuscaQuote);
+  return items.slice().sort(function(a,b){return (Date.parse(b.createdAt) || 0)-(Date.parse(a.createdAt) || 0);});
+}
+function historicoItemHtml(q){
+  var p=perfilDoDocumento(q), cliente=clienteBuscaQuote(q), local=localCliente(cliente);
+  var data=new Date(q.createdAt), dataStr=isFinite(data.getTime()) ? data.toLocaleDateString('pt-BR') : 'não informada';
+  var totalStr=fmtBRL((q.scope || {})[p ? p.chaveTotalFinal : 'valorFinal']);
+  var saldo=q.resumoEnergia ? valorEnergiaInformado(q.resumoEnergia.saldoRestanteKwh) : null;
+  return '<div class="history-item"><div class="info"><b>' + textoExibicao(cliente.nome) + ' — ' + textoExibicao(q.referencia) + ' — ' + totalStr + '</b> ' +
+    '<span>' + (tipoGDDoPerfil(p) || 'Perfil personalizado') + (cliente.uc ? ' · UC: '+textoExibicao(cliente.uc) : '') + (local ? ' · Local: '+textoExibicao(local) : '') + '</span> ' +
+    '<span>Salvo em ' + dataStr + '</span> ' +
+    '<span><strong>Saldo disponível após a fatura:</strong> ' + escapeHtml(energiaTexto(saldo)) + '</span></div>' +
+    '<div class="btn-row"><button class="btn" data-action="abrir-quote" data-id="' + escapeHtml(q.id) + '">Abrir fatura</button>' +
+    '<button class="btn" data-action="duplicar-quote" data-id="' + escapeHtml(q.id) + '">Usar como base</button>' +
+    '<button class="btn btn-danger" data-action="delete-quote-confirm" data-id="' + escapeHtml(q.id) + '">Excluir</button></div></div>';
 }
 function historicoListaHtml(c){
-  var items = historicoItemsFiltrados(c);
-  if(items.length === 0){
-    var termo = (state.buscaHistorico||'').trim();
-    var msg = termo ? 'Nenhuma fatura encontrada para "' + escapeHtml(termo) + '".' : ('Ainda não há orçamentos salvos para ' + escapeHtml(c.nome) + '.');
-    return '<div class="empty-state"><p>' + msg + '</p></div>';
-  }
-  return items.map(historicoItemHtml).join('');
+  var erro=erroFiltrosHistorico();if(erro) return '<div class="empty-state" role="alert"><p>'+escapeHtml(erro)+'</p></div>';
+  var items=historicoItemsFiltrados(c);
+  return '<p class="hint">' + items.length + ' fatura(s) encontrada(s).</p>' +
+    (items.length ? items.map(historicoItemHtml).join('') : '<div class="empty-state"><p>Nenhuma fatura corresponde aos filtros selecionados.</p></div>');
 }
 function buscaHistoricoInputHtml(){
-  var termo = state.buscaHistorico || '';
-  var clearBtn = termo ? '<button type="button" class="busca-clear" data-action="limpar-busca-historico" aria-label="Limpar busca">' + ICON_X + '</button>' : '';
-  return '<div class="busca-wrap" style="max-width:340px;margin:0 0 16px">' + ICON_SEARCH +
-    '<input type="text" id="busca-historico" class="busca-input" placeholder="Buscar por data ou mês (ex.: 09/2026)" value="' + escapeHtml(termo) + '" autocomplete="off" aria-label="Buscar fatura por data ou mês de referência">' +
-    clearBtn +
-  '</div>';
+  var f=filtrosHistorico();
+  function select(id,label,key,opcoes){return '<div class="field"><label for="'+id+'">'+label+'</label><select id="'+id+'" data-filtro-historico="'+key+'">'+opcoesFiltro(opcoes,f[key])+'</select></div>';}
+  function input(id,label,key,tipo,placeholder){return '<div class="field"><label for="'+id+'">'+label+'</label><input id="'+id+'" type="'+tipo+'" data-filtro-historico="'+key+'" value="'+escapeHtml(f[key])+'"'+(placeholder ? ' placeholder="'+placeholder+'"' : '')+'></div>';}
+  return '<div class="panel filtros-historico" aria-label="Filtros de faturas"><div class="filtros-grid">' +
+    select('hist-escopo','Consultar','escopo',[['atual','Cliente selecionado'],['todos','Todos os clientes']]) +
+    input('hist-cliente','Cliente, documento ou local','cliente','search','Nome, documento ou UC') +
+    select('hist-tipo','Tipo de usina','tipo',[['','Todos os tipos'],['GD1','GD1'],['GD2','GD2']]) +
+    select('hist-base-data','Data usada nos filtros','baseData',[['referencia','Mês da fatura'],['salvamento','Data de salvamento']]) +
+    input('hist-ano','Ano','ano','text','Ex.: 2026') + input('hist-de','De','de','date','') + input('hist-ate','Até','ate','date','') +
+    select('hist-ordem','Ordenar por','ordem',[['recentes','Mais recentes'],['cliente-az','Cliente: A–Z'],['cliente-za','Cliente: Z–A'],['local-az','Local: A–Z'],['local-za','Local: Z–A']]) +
+    '<div class="field"><label for="busca-historico">Buscar referência ou data</label><div class="busca-wrap">'+ICON_SEARCH+
+    '<input type="search" id="busca-historico" class="busca-input" placeholder="Ex.: 09/2026" value="'+escapeHtml(state.buscaHistorico || '')+'" autocomplete="off">'+
+    (state.buscaHistorico ? '<button type="button" class="busca-clear" data-action="limpar-busca-historico" aria-label="Limpar busca">'+ICON_X+'</button>' : '')+'</div></div></div>'+
+    '<div class="filtros-footer"><p class="hint" id="hist-periodo-dica">'+(f.baseData === 'referencia' ? 'Mês da fatura: o período inclui os meses que cruzam as datas escolhidas.' : 'Data de salvamento: o período usa o dia em que a fatura foi gravada, no horário do navegador.')+'</p>'+
+    '<button type="button" class="btn btn-ghost" data-action="limpar-filtros-historico">Limpar filtros</button></div></div>';
 }
 function atualizarListaHistorico(){
-  var c = selectedClient();
-  if(!c) return;
-  var listEl = document.getElementById('historico-list');
-  if(listEl) listEl.innerHTML = historicoListaHtml(c);
-  var wrap = document.querySelector('#tab-content .busca-wrap');
-  if(wrap){
-    var existente = wrap.querySelector('.busca-clear');
-    if(state.buscaHistorico && !existente){
-      wrap.insertAdjacentHTML('beforeend', '<button type="button" class="busca-clear" data-action="limpar-busca-historico" aria-label="Limpar busca">' + ICON_X + '</button>');
-    } else if(!state.buscaHistorico && existente){
-      existente.remove();
-    }
+  var list=document.getElementById('historico-list');if(list) list.innerHTML=historicoListaHtml(selectedClient());
+  var dica=document.getElementById('hist-periodo-dica');if(dica) dica.textContent=filtrosHistorico().baseData === 'referencia'
+    ? 'Mês da fatura: o período inclui os meses que cruzam as datas escolhidas.'
+    : 'Data de salvamento: o período usa o dia em que a fatura foi gravada, no horário do navegador.';
+  var wrap=document.querySelector('#tab-content .busca-wrap');if(wrap){
+    var botao=wrap.querySelector('.busca-clear');
+    if(state.buscaHistorico && !botao) wrap.insertAdjacentHTML('beforeend','<button type="button" class="busca-clear" data-action="limpar-busca-historico" aria-label="Limpar busca">'+ICON_X+'</button>');
+    if(!state.buscaHistorico && botao) botao.remove();
   }
 }
-function limparBuscaHistorico(){
-  state.buscaHistorico = '';
-  atualizarListaHistorico();
-  var inp = document.getElementById('busca-historico');
-  if(inp){ inp.value=''; inp.focus(); }
-}
+function limparBuscaHistorico(){state.buscaHistorico='';var input=document.getElementById('busca-historico');if(input){input.value='';input.focus();}atualizarListaHistorico();}
 function renderHistorico(){
-  var c = selectedClient();
-  var container = document.getElementById('tab-content');
-  if(!c){ container.innerHTML=''; return; }
-  if(state.quotes.filter(function(q){ return q.clientId === c.id; }).length === 0){
-    container.innerHTML = '<div class="empty-state"><p>Ainda não há orçamentos salvos para ' + escapeHtml(c.nome) + '.</p></div>';
-    return;
-  }
-  container.innerHTML = buscaHistoricoInputHtml() + '<div id="historico-list" aria-live="polite">' + historicoListaHtml(c) + '</div>';
+  document.getElementById('tab-content').innerHTML=buscaHistoricoInputHtml()+'<div id="historico-list" aria-live="polite">'+historicoListaHtml(selectedClient())+'</div>';
 }
+function atualizarFiltroLista(target){
+  if(target.id === 'tipo-cliente'){state.tipoCliente=target.value;atualizarListaClientes();}
+  if(target.id === 'ordem-cliente'){state.ordemCliente=target.value;atualizarListaClientes();}
+  var chave=target.dataset && target.dataset.filtroHistorico;
+  if(chave && Object.prototype.hasOwnProperty.call(filtrosHistorico(),chave)){filtrosHistorico()[chave]=target.value;atualizarListaHistorico();}
+}
+function limparFiltrosClientes(){state.buscaCliente='';state.tipoCliente='';state.ordemCliente='cliente-az';renderSidebar();}
+function limparFiltrosHistorico(){state.buscaHistorico='';state.filtrosHistorico=filtrosHistoricoPadrao();renderHistorico();}
+
 function duplicarQuote(id){
   var q = state.quotes.find(function(x){ return x.id === id; });
   if(!q) return;
@@ -3177,6 +3302,8 @@ function openClientModal(id){
           '<div class="field"><label>Nome do cliente</label><input type="text" id="m-nome" value="' + (editing?escapeHtml(editing.nome):'') + '" placeholder="Ex.: Leandro"></div>' +
           '<div class="field"><label>Código da usina / UC (opcional)</label><input type="text" id="m-uc" value="' + (editing?escapeHtml(editing.uc):'') + '"></div>' +
         '</div>' +
+        '<div class="field"><label>Documento do cliente (CPF/CNPJ, opcional)</label><input type="text" id="m-documento" value="' + (editing ? escapeHtml(editing.documento || editing.cpf || editing.cnpj || '') : '') + '" inputmode="numeric"></div>' +
+        '<div class="field"><label>Local / endereço (opcional)</label><input type="text" id="m-local" value="' + (editing ? escapeHtml(localCliente(editing)) : '') + '" placeholder="Ex.: Unidade Centro — Rua das Flores, 120"></div>' +
         '<div class="field"><label>Perfil de faturamento</label><select id="m-profile">' +
           state.profiles.map(function(p){ return '<option value="'+p.id+'"'+(profileAtual&&p.id===profileAtual.id?' selected':'')+'>'+escapeHtml(p.nome)+'</option>'; }).join('') +
         '</select></div>' +
@@ -3215,7 +3342,7 @@ function openClientModal(id){
 function closeModal(){ document.getElementById('modal-root').innerHTML = ''; }
 
 async function saveClientFromModal(existingId){
-  var nome = txt('m-nome');
+  var nome = limparTextoExibicao(txt('m-nome'));
   if(!nome){ toast('Informe o nome do cliente.'); return; }
   var profileId = document.getElementById('m-profile').value;
   var overridesFixos = {};
@@ -3223,20 +3350,21 @@ async function saveClientFromModal(existingId){
   var pontosTexto = txt('m-pontos');
   var pontosPadrao = pontosTexto ? pontosTexto.split('\n').map(function(linha){
     var partes = linha.split(' - ');
-    if(partes.length >= 2){ return { nome: partes[0].trim(), uc: partes.slice(1).join(' - ').trim() }; }
-    return { nome: linha.trim(), uc: '' };
+    if(partes.length >= 2){ return { nome: limparTextoExibicao(partes[0]), uc: limparTextoExibicao(partes.slice(1).join(' - ')) }; }
+    return { nome: limparTextoExibicao(linha), uc: '' };
   }).filter(function(p){ return p.nome; }) : [];
 
   var existente = existingId ? state.clients.find(function(c){ return c.id === existingId; }) : null;
-  var data = {
-    id: existingId || uid(), nome: nome, uc: txt('m-uc'), profileId: profileId,
+  var data = Object.assign({}, existente || {}, {
+    id: existingId || uid(), nome: nome, uc: limparTextoExibicao(txt('m-uc')), profileId: profileId,
+    documento:limparTextoExibicao(txt('m-documento')), local:limparTextoExibicao(txt('m-local')),
     overridesFixos: overridesFixos, pontosPadrao: pontosPadrao,
     chavePix: txt('m-pix'), banco: txt('m-banco'), beneficiario: txt('m-beneficiario'), condicaoPagamento: txt('m-condicao'),
     locadorPagaFatura: !!(document.getElementById('m-paga-fatura') && document.getElementById('m-paga-fatura').checked),
     cidadePix: txt('m-cidade-pix'),
     gerarQrCodePix: !!(document.getElementById('m-gerar-qr-pix') && document.getElementById('m-gerar-qr-pix').checked),
     camposVisiveisPadrao: existente ? existente.camposVisiveisPadrao : undefined
-  };
+  });
   if(existingId){
     var idx = state.clients.findIndex(function(c){ return c.id === existingId; });
     if(idx > -1) state.clients[idx] = data;
@@ -3462,16 +3590,21 @@ async function onSignOut(){
    entre o site principal e os subsites, pois ficam no mesmo domínio).
    ============================================================ */
 var IG_BASE_VERSION = '1.03';
+var IG_BASE_RELEASE_ID = '1.03-2026-10-05';
 var IG_BASE_CHANGELOG = [
-  'Fatura com layout mais limpo e total a pagar em destaque.',
-  'Consumo bruto, injeção do mês, saldo utilizado e saldo restante separados.',
-  'Saldo do documento pode ser informado sem alterar o total em reais.',
-  'PDF interno organizado em entradas, resultados e rateio.',
-  'Histórico mantém os valores originais das faturas.'
+  "Faturas do cliente e internas com layout mais limpo, logo e Pix proporcionais e meios de contato identificados.",
+  "Consumo real, injeção do mês, saldo utilizado e saldo final apresentados separadamente.",
+  "Conferência GD1 com parcelas compensada e não compensada e identificação de leitura confirmada ou estimada.",
+  "Campos de saldo reunidos no fim do lançamento; uso e saldo final automáticos e campos padronizados.",
+  "Histórico preserva o cálculo original, inclusive no GD2 com múltiplos pontos, e mostra o saldo após cada fatura.",
+  "GD1 e GD2 bloqueiam dados que produziriam consumo negativo, preservando a última fatura válida.",
+  "Busca combinada por nome, documento, UC e local; filtros GD1/GD2, ano ou período e ordenação A–Z/Z–A.",
+  "Nomes, locais e informações do histórico em linhas separadas, com quebra de textos longos.",
+  "Carregamento com logo IG Base e círculo verde animado; falhas de conexão exibem opções de recuperação."
 ];
 function igbMostrarChangelog(){
   var KEY = 'igbase_changelog_visto';
-  try{ if(window.localStorage.getItem(KEY) === IG_BASE_VERSION) return; }
+  try{ if(window.localStorage.getItem(KEY) === IG_BASE_RELEASE_ID) return; }
   catch(e){ return; } /* sem acesso ao armazenamento: melhor não insistir a cada carregamento */
   if(document.getElementById('igb-cl-overlay')) return;
   var check = '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6 9 17l-5-5"/></svg>';
@@ -3489,7 +3622,7 @@ function igbMostrarChangelog(){
       '<button type="button" class="igb-cl-btn" id="igb-cl-ok">Entendi</button>' +
     '</div>';
   function fechar(){
-    try{ window.localStorage.setItem(KEY, IG_BASE_VERSION); }catch(e){}
+    try{ window.localStorage.setItem(KEY, IG_BASE_RELEASE_ID); }catch(e){}
     document.removeEventListener('keydown', onKey);
     if(wrap.parentNode) wrap.parentNode.removeChild(wrap);
   }
@@ -3552,7 +3685,7 @@ function aoLogar(user){
   if(usuarioProntoId === user.id && currentUser && currentUser.id === user.id) return Promise.resolve(true);
   currentUser = user; var geracao = ++geracaoInicio;
   renderInicio('Carregando seus clientes, perfis e faturas…',false);
-  state.profiles = []; state.clients = []; state.quotes = []; state.docConfig = docConfigPadrao(); state.username = ''; state.buscaCliente = ''; state.buscaHistorico = '';
+  state.profiles = []; state.clients = []; state.quotes = []; state.docConfig = docConfigPadrao(); state.username = ''; state.buscaCliente = ''; state.buscaHistorico = ''; state.tipoCliente='';state.ordemCliente='cliente-az';state.filtrosHistorico=null;
   state.selectedClientId = null; state.activeTab = 'novo'; state.editingProfileId = null; state.lastDraft = null;
   var tarefa = (async function(){
     try{
@@ -3578,7 +3711,7 @@ async function tentarInicioNovamente(){
 function aoDeslogar(){
   geracaoInicio++; cargaUsuario = null; usuarioProntoId = null;
   currentUser = null;
-  state.profiles = []; state.clients = []; state.quotes = []; state.docConfig = docConfigPadrao(); state.username = ''; state.buscaCliente = ''; state.buscaHistorico = '';
+  state.profiles = []; state.clients = []; state.quotes = []; state.docConfig = docConfigPadrao(); state.username = ''; state.buscaCliente = ''; state.buscaHistorico = ''; state.tipoCliente='';state.ordemCliente='cliente-az';state.filtrosHistorico=null;
   state.selectedClientId = null; state.lastDraft = null;
   authMsg = null; authMode = 'signin';
   renderAuthScreen();
@@ -3606,6 +3739,7 @@ function renderAll(){ renderSidebar(); renderTopbar(); renderTabs(); renderTabCo
    EVENTOS (DELEGAÇÃO)
    ============================================================ */
 document.addEventListener('input', function(e){
+  atualizarFiltroLista(e.target);
   if(e.target.id === 'busca-cliente'){ state.buscaCliente = e.target.value; atualizarListaClientes(); }
   if(e.target.id === 'busca-historico'){ state.buscaHistorico = e.target.value; atualizarListaHistorico(); }
   if(e.target.classList && e.target.classList.contains('v-rotulo')){
@@ -3644,6 +3778,7 @@ document.addEventListener('input', function(e){
 /* Dentro de "Pontos de consumo", no máximo um ponto pode ser "principal" por vez —
    marcar um desmarca os outros automaticamente (comportamento de rádio). */
 document.addEventListener('change', function(e){
+  atualizarFiltroLista(e.target);
   var t = e.target;
   if(t.classList && t.classList.contains('item-val-checkbox') && t.dataset.chave === 'pontoPrincipal' && t.checked){
     var wrap = document.getElementById('pontos-container');
@@ -3681,6 +3816,8 @@ document.addEventListener('click', function(e){
 
     case 'select-client': selectClient(id); break;
     case 'new-client': openClientModal(null); break;
+    case 'limpar-filtros-clientes': limparFiltrosClientes(); break;
+    case 'limpar-filtros-historico': limparFiltrosHistorico(); break;
     case 'limpar-busca-cliente': limparBuscaCliente(); break;
     case 'limpar-busca-historico': limparBuscaHistorico(); break;
     case 'edit-client': openClientModal(id); break;
