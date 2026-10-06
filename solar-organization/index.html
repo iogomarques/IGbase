@@ -326,6 +326,23 @@
     .btn-new-client{ width:100%; }
   }
   /* FIM TEXTO E FILTROS DAS LISTAS */
+
+  /* REVISÃO 1.04: HISTÓRICO E EMISSÃO */
+  .historico-busca-principal{display:grid;grid-template-columns:minmax(0,2fr) minmax(150px,1fr) minmax(150px,1fr);gap:12px}
+  .historico-busca-principal .field{min-width:0;margin:0}
+  .historico-mais-filtros{margin-top:14px;border-top:1px solid var(--line);padding-top:12px}
+  .historico-mais-filtros summary,.exportacoes-secundarias summary,.conferencia-consumo summary{cursor:pointer;font-size:13px;font-weight:600}
+  .historico-mais-filtros .filtros-grid{margin-top:14px}
+  #hist-filtros-quantidade{color:var(--accent);font-size:12px}
+  .filtros-historico .filtros-footer{margin-top:10px}
+  .emissao-toolbar{display:flex;gap:8px;flex-wrap:wrap;align-items:center}
+  .exportacoes-secundarias .btn-row{margin-top:10px}
+  .conferencia-consumo{margin:10px 0}
+  #consumo-reset-automatico[hidden],#consumo-leitura-preservada[hidden]{display:none}
+  .quote-preview-col{position:static}
+  @media(max-width:700px){.historico-busca-principal{grid-template-columns:1fr}.emissao-toolbar .btn-primary{width:100%;justify-content:center}}
+  @media print{body > *{display:none!important}#app-root{display:block!important}.app,.main,.content,.quote-grid,.quote-preview-col{display:block!important;margin:0!important;padding:0!important;width:100%!important}.sidebar,.topbar,.tabs,.quote-form-col,#app-footer,#modal-root,.emissao-toolbar,#emissao-status,.exportacoes-secundarias{display:none!important}#preview-col>*,#preview-col summary{display:none!important}#preview-col>details:has([data-fatura-previa]){display:block!important;border:0!important;padding:0!important;margin:0!important}#preview-col [data-fatura-previa]{display:block!important;padding:0!important}}
+  /* FIM REVISÃO 1.04 */
 </style>
 </head>
 <body>
@@ -1590,12 +1607,13 @@ function onCalcular(){
       !(c.locadorPagaFatura && chaveFatura && fioBTotal > 0.004)) ? excedenteKwh : 0,
     perfilSnapshot: copiarDados(profile), clienteSnapshot: copiarDados(c),
     docConfigSnapshot: copiarDados(state.docConfig || docConfigPadrao()),
-    fixosEntrada: copiarDados(fixos), versaoCalculo: '1.03',
+    fixosEntrada: copiarDados(fixos), versaoCalculo: '1.04',
     energiaDocumentoInputs: copiarDados(energiaDocumentoInputs)
   };
   novoDraft.resumoEnergia = construirResumoEnergia(profile, novoDraft);
   if(novoDraft.resumoEnergia.erroSaldo){ toast(novoDraft.resumoEnergia.erroSaldo); return; }
   state.lastDraft = novoDraft;
+  state.faturaDesatualizada = false;
   renderPreview();
 }
 
@@ -1619,29 +1637,40 @@ function restaurarEnergiaDocumento(dados){
     el.value = dados[el.dataset.chave] === null || dados[el.dataset.chave] === undefined
       ? '' : numeroParaFormulario(dados[el.dataset.chave]);
   });
-  var manual = document.getElementById('consumo-manual-details');
-  if(manual) manual.open = (dados.consumoRealKwh !== null && dados.consumoRealKwh !== undefined) ||
-    (dados.consumoCompensadoKwh !== null && dados.consumoCompensadoKwh !== undefined);
+  atualizarLeituraPreservada();
   var resetSaldo = document.getElementById('saldo-reset-automatico');
   if(resetSaldo) resetSaldo.hidden = dados.saldoUtilizadoKwh === null || dados.saldoUtilizadoKwh === undefined;
 }
-function energiaDocumentoCamposHtml(profile){
-  var temInjecao = (profile.variaveis || []).some(function(v){ return v.chave === 'injecaoTotal'; });
-  function campo(chave, rotulo, dica){
-    return '<div class="field"><label>' + rotulo + '</label>' +
-      '<input type="text" inputmode="decimal" class="energia-documento-input" data-chave="' + chave + '" placeholder="Não informado">' +
-      '<span class="hint">' + dica + '</span></div>';
-  }
-  return '<fieldset><legend>Consumo real</legend>' +
-    '<p class="hint" style="margin:0 0 12px">O consumo real é apurado automaticamente com os dados do mês, sem descontar o uso de saldo.</p>' +
-    '<div class="field"><label for="consumo-real-automatico">Consumo bruto real (automático)</label><input type="text" id="consumo-real-automatico" readonly aria-readonly="true" placeholder="Calculado ao gerar o orçamento"><span class="hint" id="consumo-real-dica">Preencha os dados do mês e clique em Calcular orçamento.</span></div>' +
-    (perfilConsumoGD1(profile) ? '<p class="hint" id="gd1-conferencia-consumo" role="status">Consumo total = consumo compensado + consumo não compensado. A cobrança do saldo não altera essa soma em kWh.</p>' : '') +
-    '<details id="consumo-manual-details" style="margin:0 0 14px"><summary style="cursor:pointer;color:var(--ink-soft);font-size:12px">Conferir as leituras da conta (opcional)</summary><div style="margin-top:10px">' +
-      (perfilConsumoGD1(profile) ? campo('consumoCompensadoKwh','Consumo compensado confirmado na conta (kWh)','Leitura de energia consumida e compensada, incluindo eventual uso de saldo. Não é a geração do mês. Vazio estima esta parcela pela injeção menos a variação de saldo.') : '') +
-      campo('consumoRealKwh','Leitura bruta confirmada na conta (kWh)','Use somente para corrigir a leitura apurada ou quando o perfil não possui dados suficientes. Vazio mantém o cálculo automático; não informe aqui o consumo compensado.') + '</div></details>' +
-    (temInjecao ? '' : campo('injecaoMesKwh','Energia gerada/injetada no mês (kWh)','Informe a energia deste mês, sem somar saldo acumulado.')) +
-    '</fieldset>';
+function perfilTemConsumoAutomatico(profile){
+  var chaves=(profile.variaveis || []).map(function(v){return v.chave;});
+  return chaves.indexOf('consumoReal')!==-1 || chaves.indexOf('consumoTotal')!==-1 ||
+    (chaves.indexOf('injecaoTotal')!==-1 && chaves.indexOf('saldoDelta')!==-1) ||
+    (profile.possuiItensMultiplos && (profile.itemVariaveis || []).some(function(v){return v.chave==='consumoKwh';})) ||
+    (profile.formulas || []).some(function(f){return /^\s*(consumoReal|consumoTotal)\s*=/.test(f);});
 }
+function energiaDocumentoCamposHtml(profile){
+  var temInjecao=(profile.variaveis || []).some(function(v){return v.chave==='injecaoTotal';});
+  var automatico=perfilTemConsumoAutomatico(profile);
+  function campo(chave,rotulo,dica){return '<div class="field"><label>'+rotulo+'</label><input type="text" inputmode="decimal" class="energia-documento-input" data-chave="'+chave+'" placeholder="Não informado"><span class="hint">'+dica+'</span></div>';}
+  return '<fieldset><legend>Consumo real</legend>'+
+    '<div class="field"><label for="consumo-real-automatico">Consumo bruto real (automático)</label><input type="text" id="consumo-real-automatico" readonly aria-readonly="true" placeholder="Calculado ao gerar o orçamento"><span class="hint" id="consumo-real-dica">Preencha os dados do mês e clique em Calcular orçamento.</span></div>'+
+    /* Metadados anteriores continuam restauráveis, sem dois lançamentos opcionais
+       permanentes nos modelos GD1/GD2. Não apagar leituras já confirmadas. */
+    '<input type="hidden" class="energia-documento-input" data-chave="consumoCompensadoKwh">'+
+    (automatico?'<input type="hidden" class="energia-documento-input" data-chave="consumoRealKwh">':campo('consumoRealKwh','Consumo bruto real (kWh)','Este perfil não fornece a leitura de consumo. Informe o total bruto da conta para completar os dados de energia.'))+
+    '<p class="hint" id="consumo-leitura-preservada" hidden></p><button type="button" class="btn" id="consumo-reset-automatico" data-action="reset-consumo-automatico" hidden>Usar consumo automático</button>'+
+    (perfilConsumoGD1(profile)?'<details class="conferencia-consumo"><summary>Como o consumo foi apurado</summary><p class="hint" id="gd1-conferencia-consumo" role="status">Consumo total = parcela compensada + parcela não compensada.</p></details>':'')+
+    (temInjecao?'':campo('injecaoMesKwh','Energia gerada/injetada no mês (kWh)','Informe somente a geração do mês, sem somar saldo acumulado.'))+'</fieldset>';
+}
+function atualizarLeituraPreservada(){
+  var bruto=document.querySelector('.energia-documento-input[data-chave="consumoRealKwh"]'),comp=document.querySelector('.energia-documento-input[data-chave="consumoCompensadoKwh"]');
+  var antiga=(bruto && bruto.type==='hidden' && bruto.value.trim()) || (comp && comp.value.trim());
+  var aviso=document.getElementById('consumo-leitura-preservada'),botao=document.getElementById('consumo-reset-automatico');
+  if(aviso){aviso.hidden=!antiga;aviso.textContent=antiga?'Leitura confirmada recuperada deste registro e preservada no consumo. Você pode voltar à apuração automática.':'';}
+  if(botao)botao.hidden=!antiga;
+}
+
+
 function saldoDocumentoCamposHtml(profile, camposPerfil){
   var temVariacao = (profile.variaveis || []).some(function(v){return v.categoria === 'mensal' && v.chave === 'saldoDelta';});
   return '<fieldset id="saldo-dados"><legend>Saldo de energia</legend>' + camposPerfil +
@@ -1661,11 +1690,11 @@ function atualizarConsumoAutomatico(profile, draft){
   campo.value = resumo.consumoRealKwh === null ? '' : energiaTexto(resumo.consumoRealKwh);
   campo.placeholder = resumo.consumoRealKwh === null ? 'Dados do perfil insuficientes' : 'Calculado automaticamente';
   if(dica) dica.textContent = resumo.consumoRealKwh === null
-    ? 'Este perfil não tem dados suficientes. Informe a leitura bruta da conta na opção abaixo.'
-    : resumo.origemConsumo === 'informado' ? 'Usando a leitura bruta informada na opção de conferência abaixo.'
-    : 'Apurado automaticamente com os dados do mês, sem descontar o saldo utilizado.';
-  var manual = document.getElementById('consumo-manual-details');
-  if(manual && (resumo.consumoRealKwh === null || resumo.origemConsumo === 'informado')) manual.open = true;
+    ? 'Este perfil não fornece consumo suficiente para apuração automática. Preencha o consumo bruto real.'
+    : resumo.origemConsumo === 'informado' ? 'Usando a leitura bruta confirmada e preservada neste registro.'
+    : resumo.conferenciaConsumoGD1 && resumo.conferenciaConsumoGD1.origem !== 'leitura da conta'
+      ? 'Consumo estimado pela injeção, variação do saldo e parcela não compensada da conta.'
+      : 'Apurado automaticamente com os dados do mês, sem descontar o saldo utilizado.';
   var conferencia = document.getElementById('gd1-conferencia-consumo');
   if(conferencia){
     var gd1 = resumo.conferenciaConsumoGD1 || conferirConsumoGD1(profile,draft);
@@ -1680,6 +1709,7 @@ function atualizarConsumoAutomatico(profile, draft){
   if(uso) uso.textContent = 'Saldo utilizado no mês: ' + energiaTexto(resumo.saldoUtilizadoKwh) +
     (resumo.origemSaldo === 'informado' ? ' (leitura preservada do registro anterior).' : ' (automático).') +
     ' Saldo final = saldo disponível antes do uso − saldo utilizado. A injeção excedente fica separada.';
+  atualizarLeituraPreservada();
   var resetSaldo = document.getElementById('saldo-reset-automatico');
   if(resetSaldo) resetSaldo.hidden = resumo.origemSaldo !== 'informado';
 }
@@ -1909,39 +1939,31 @@ function modeloDocumento(client,profile,draft,dc,interno){
 }
 function construirHtmlFatura(client,profile,draft,dc,qrDataUrl){
   var m=modeloDocumento(client,profile,draft,dc,false),cor=dc.corPrimaria || '#1B4D3E';
-  function linhasTabela(linhas){return linhas.map(function(l){return '<tr><td style="padding:6px 0;color:#5c6f63;font-size:12px">' +
-    escapeHtml(l.rotulo) + '</td><td style="padding:6px 0;text-align:right;font-size:12px;font-weight:600">' + escapeHtml(l.valor) + '</td></tr>';}).join('');}
-  var logo=dc.logoBase64 ? '<img src="' + dc.logoBase64 + '" style="max-width:220px;max-height:118px;display:block;margin-left:auto">' : '';
-  var contatos=[dc.email].concat(dc.telefones || []).filter(Boolean);
-  return '<div style="font-family:Arial,Helvetica,sans-serif;max-width:640px;color:#16241d;font-size:12px;line-height:1.45">' +
-    '<table style="width:100%;border-collapse:collapse"><tr><td style="vertical-align:top">' +
-      '<div style="font-size:21px;font-weight:700;color:' + cor + '">' + escapeHtml(dc.nomeEmpresa || 'IG Base') + '</div>' +
-      '<div style="font-size:10px;color:#5c6f63">' + escapeHtml(dc.enderecoContato || '') + '</div></td>' +
-      '<td style="text-align:right;vertical-align:middle;width:220px">' + logo + '</td></tr></table>' +
-    '<div style="margin:16px 0 10px;padding-top:12px;border-top:2px solid ' + cor + '">' +
-      '<div style="font-size:16px;font-weight:700">' + escapeHtml(client.nome || '') + '</div>' +
-      '<div style="color:#5c6f63;font-size:11px">' + escapeHtml('Referência: ' + m.referencia + (client.uc ? ' · UC ' + client.uc : '')) + '</div></div>' +
-    '<table style="width:100%;border-collapse:collapse;border-top:1px solid #dde5da;border-bottom:1px solid #dde5da"><tr>' +
-      '<td style="padding:7px 0;font-size:12px;font-weight:700">VALOR A PAGAR</td>' +
-      '<td style="padding:7px 0;text-align:right;font-size:16px;font-weight:700">' + escapeHtml(m.total) + '</td></tr></table>' +
-    resumoEnergiaHtml(profile,draft,cor) +
-    '<div style="font-size:12px;font-weight:700;color:' + cor + ';margin:16px 0 5px">COMPOSIÇÃO DA COBRANÇA</div>' +
-    '<table style="width:100%;border-collapse:collapse">' + linhasTabela(m.financeiro) + '</table>' +
-    (m.extras.length ? '<div style="font-size:12px;font-weight:700;color:' + cor + ';margin:16px 0 5px">DETALHES SELECIONADOS</div><table style="width:100%;border-collapse:collapse">' + linhasTabela(m.extras) + '</table>' : '') +
-    (m.observacoes ? '<div style="margin:14px 0;padding:10px 12px;border-left:3px solid #dde5da;color:#5c6f63;font-size:11px">' + escapeHtml(m.observacoes).split('\n').join('<br>') + '</div>' : '') +
-    '<table style="width:100%;border-collapse:collapse;margin-top:18px;border-top:1px solid #dde5da"><tr><td style="padding:12px 0;vertical-align:middle">' +
-      '<div style="font-size:11px;font-weight:700;color:' + cor + '">PAGAMENTO VIA PIX</div>' +
-      '<div style="font-size:13px;font-weight:600;overflow-wrap:anywhere">' + escapeHtml(client.chavePix || 'Chave não informada') + '</div>' +
-      '<div style="font-size:10px;color:#5c6f63">' + escapeHtml([client.banco,client.beneficiario].filter(Boolean).join(' · ')) + '</div></td>' +
-      (qrDataUrl ? '<td style="padding:10px 0 10px 14px;text-align:right;width:122px"><img src="' + qrDataUrl + '" style="width:108px;height:108px"></td>' : '') +
-    '</tr></table>' +
-    (client.condicaoPagamento ? '<div style="font-size:10px;color:#5c6f63">' + escapeHtml(client.condicaoPagamento) + '</div>' : '') +
-    (contatos.length ? '<div style="margin-top:12px;padding-top:8px;border-top:1px solid #dde5da"><div style="font-size:11px;font-weight:700;color:' + cor + '">MEIOS DE CONTATO</div>' +
-      contatos.map(function(c,i){return '<div style="font-size:10px;color:#5c6f63;margin-top:3px">' + (dc.email && i === 0 ? 'E-mail: ' : 'Telefone: ') + escapeHtml(c) + '</div>';}).join('') + '</div>' : '') +
-    (dc.textoRodape ? '<div style="margin-top:14px;font-size:9px;color:#859387">' + escapeHtml(dc.textoRodape) + '</div>' : '') +
-  '</div>';
+  function tabela(ls){return '<table class="fatura-tabela">'+ls.map(function(l){return '<tr><td>'+textoExibicao(l.rotulo)+'</td><td>'+textoExibicao(l.valor)+'</td></tr>';}).join('')+'</table>';}
+  var contatos=[];if(dc.email)contatos.push('E-mail: '+dc.email);(dc.telefones || []).filter(Boolean).forEach(function(t){contatos.push('Telefone: '+t);});
+  var estilo='<style>.fatura-cliente{font-family:Arial,Helvetica,sans-serif;max-width:698px;color:#16241d;font-size:12px;line-height:1.25;overflow-wrap:anywhere;box-sizing:border-box;background:#fff}.fatura-cliente *{box-sizing:border-box}.fatura-cliente .fatura-header{display:flex;justify-content:space-between;gap:18px;align-items:center}.fatura-cliente .fatura-header>div{flex:1;min-width:0}.fatura-cliente .fatura-logo{width:200px;max-height:120px;object-fit:contain}.fatura-cliente .fatura-empresa{font-size:22px;font-weight:700;color:'+escapeHtml(cor)+'}.fatura-cliente .fatura-muted{font-size:12px;color:#5c6f63}.fatura-cliente .fatura-cliente-id{margin:10px 0}.fatura-cliente .fatura-cliente-id strong{font-size:16px;display:block;margin-bottom:4px}.fatura-cliente .fatura-total{display:flex;justify-content:space-between;align-items:center;gap:12px;border-top:1px solid #dde5da;border-bottom:1px solid #dde5da;padding:8px 0;font-weight:700}.fatura-cliente .fatura-total strong{font-size:17px;color:'+escapeHtml(cor)+'}.fatura-cliente .fatura-metricas{display:grid;grid-template-columns:1fr 1fr;background:#f4f7f3;border-radius:5px;padding:10px;gap:9px 14px;margin:8px 0}.fatura-cliente .fatura-metricas strong{display:block;font-size:15px;color:'+escapeHtml(cor)+';margin-top:2px}.fatura-cliente .fatura-nota{font-size:12px;color:#5c6f63;margin:8px 0}.fatura-cliente h3{font-size:12px;color:'+escapeHtml(cor)+';margin:10px 0 5px;font-weight:700}.fatura-cliente .fatura-tabela{width:100%;border-collapse:collapse}.fatura-cliente .fatura-tabela td{padding:4px 0;vertical-align:top}.fatura-cliente .fatura-tabela td:first-child{width:75%;color:#5c6f63;padding-right:12px}.fatura-cliente .fatura-tabela td:last-child{text-align:right;font-weight:600}.fatura-cliente .fatura-extras{display:grid;grid-template-columns:1fr 1fr;gap:5px 12px;color:#5c6f63}.fatura-cliente .fatura-observacoes{white-space:pre-wrap;margin:0;color:#5c6f63}.fatura-cliente .fatura-pagamento{display:flex;justify-content:space-between;gap:16px;border-top:1px solid #dde5da;padding-top:8px;margin-top:10px}.fatura-cliente .fatura-pagamento>div{flex:1;min-width:0}.fatura-cliente .fatura-pagamento img{width:120px;height:120px;flex:none}.fatura-cliente .fatura-contatos p{margin:3px 0}.fatura-cliente .fatura-rodape{font-size:12px;color:#859387;margin:8px 0 0}@page{size:A4;margin:12mm}@media print{.fatura-cliente{max-width:none;width:100%;font-size:9pt;line-height:1.2;print-color-adjust:exact;-webkit-print-color-adjust:exact}.fatura-cliente .fatura-logo{width:150pt;max-height:90pt}.fatura-cliente .fatura-pagamento img{width:90pt;height:90pt}.fatura-cliente .fatura-muted,.fatura-cliente .fatura-nota,.fatura-cliente h3,.fatura-cliente .fatura-rodape{font-size:9pt}.fatura-cliente .fatura-header,.fatura-cliente .fatura-metricas,.fatura-cliente .fatura-pagamento,.fatura-cliente tr{break-inside:avoid}.fatura-cliente .fatura-tabela td{padding:3pt 0}.fatura-cliente .fatura-header img{max-width:35%}}</style>';
+  return estilo+'<article class="fatura-cliente" aria-label="Fatura do cliente">'+
+    '<header class="fatura-header"><div><div class="fatura-empresa">'+textoExibicao(dc.nomeEmpresa || 'IG Base')+'</div><div class="fatura-muted">'+textoExibicao(dc.enderecoContato || '')+'</div></div>'+
+    (dc.logoBase64?'<img class="fatura-logo" src="'+escapeHtml(dc.logoBase64)+'" alt="Logo da empresa">':'')+'</header>'+
+    '<div class="fatura-cliente-id"><strong>'+textoExibicao(client.nome || '')+'</strong><span class="fatura-muted">'+textoExibicao('Referência: '+m.referencia+(client.uc?' · UC '+client.uc:''))+'</span></div>'+
+    '<div class="fatura-total"><span>VALOR A PAGAR</span><strong>'+escapeHtml(m.total)+'</strong></div>'+
+    '<div class="fatura-metricas">'+linhasResumoEnergia(m.energia).map(function(l){return '<div><span class="fatura-muted">'+escapeHtml(l.rotulo)+'</span><strong>'+escapeHtml(l.valor)+'</strong></div>';}).join('')+'</div>'+
+    '<p class="fatura-nota">'+escapeHtml(notaResumoEnergia(m.energia))+'</p>'+
+    '<h3>COMPOSIÇÃO DA COBRANÇA</h3>'+tabela(m.financeiro)+
+    (m.extras.length?'<h3>DETALHES SELECIONADOS</h3><div class="fatura-extras">'+m.extras.map(function(l){return '<div>'+textoExibicao(l.rotulo)+': <strong>'+textoExibicao(l.valor)+'</strong></div>';}).join('')+'</div>':'')+
+    (m.observacoes?'<h3>OBSERVAÇÕES</h3><p class="fatura-observacoes">'+escapeHtml(m.observacoes)+'</p>':'')+
+    '<section class="fatura-pagamento"><div><h3>PAGAMENTO VIA PIX</h3><strong>'+textoExibicao(client.chavePix || 'Chave não informada')+'</strong><div class="fatura-muted">'+textoExibicao([client.banco,client.beneficiario].filter(Boolean).join(' · '))+'</div>'+
+    (client.condicaoPagamento?'<p class="fatura-muted">'+textoExibicao(client.condicaoPagamento)+'</p>':'')+
+    (contatos.length?'<div class="fatura-contatos"><h3>MEIOS DE CONTATO</h3>'+contatos.map(function(c){return '<p class="fatura-muted">'+textoExibicao(c)+'</p>';}).join('')+'</div>':'')+'</div>'+
+    (qrDataUrl?'<img src="'+escapeHtml(qrDataUrl)+'" alt="QR Code para pagamento via Pix">':'')+'</section>'+
+    (dc.textoRodape?'<p class="fatura-rodape">'+textoExibicao(dc.textoRodape)+'</p>':'')+'</article>';
 }
 
+
+function marcarFaturaDesatualizada(){
+  if(!state.lastDraft)return;state.faturaDesatualizada=true;
+  var status=document.getElementById('emissao-status');if(status)status.textContent='Os dados mudaram. Calcule novamente antes de emitir a fatura.';
+}
 
 /* ============================================================
    PREVIEW: DOCUMENTO DO CLIENTE (o gestor confere pelo PDF interno)
@@ -1950,6 +1972,7 @@ function renderPreview(){
   var col = document.getElementById('preview-col');
   if(!col || !state.lastDraft) return;
   var d = state.lastDraft;
+  state.faturaDesatualizada=false;
   var profile = perfilDoDocumento(d);
   atualizarConsumoAutomatico(profile,d);
 
@@ -1973,20 +1996,9 @@ function renderPreview(){
     escapeHtml(profile.rotuloTotalCliente || 'Total final') + '</span><span class="val tabular">' +
     fmtBRL(d.scope[profile.chaveTotalFinal]) + '</span></div></div>';
 
-  var botoesHtml =
-    '<div class="btn-row">' +
-      '<button class="btn btn-primary" data-action="salvar-historico">Salvar no histórico</button>' +
-    '</div>' +
-    '<h3 style="margin:16px 0 6px;font-size:13px;color:var(--ink-soft)">Documento do cliente</h3>' +
-    '<div class="btn-row">' +
-      '<button class="btn" data-action="baixar-png">Baixar PNG</button>' +
-      '<button class="btn" data-action="baixar-pdf">Baixar PDF</button>' +
-      '<button class="btn" data-action="baixar-doc">Baixar Word</button>' +
-    '</div>' +
-    '<h3 style="margin:16px 0 6px;font-size:13px;color:var(--ink-soft)">Uso interno</h3>' +
-    '<div class="btn-row">' +
-      '<button class="btn" data-action="baixar-pdf-interno">Baixar PDF interno</button>' +
-    '</div>';
+  var botoesHtml = '<div class="emissao-toolbar"><button class="btn btn-primary" data-action="baixar-pdf">Baixar fatura PDF · 1 página</button><button class="btn" data-action="salvar-historico">Salvar no histórico</button></div>'+
+    '<p class="hint" id="emissao-status" role="status">Confira a prévia abaixo. A fatura será baixada diretamente nesta tela.</p>';
+  var secundariosHtml='<details class="panel exportacoes-secundarias"><summary>Outros formatos e conferência interna</summary><p class="hint">Para envio e impressão em uma folha, use o PDF do cliente. O documento interno mantém a conferência completa.</p><div class="btn-row"><button class="btn" data-action="baixar-png">PNG</button><button class="btn" data-action="baixar-doc">Word</button><button class="btn" data-action="baixar-pdf-interno">PDF interno</button></div></details>';
 
   var r = resumoEnergiaDoDocumento(profile,d);
   var avisos = modeloDocumento(clienteDoDocumento(d),profile,d,configDoDocumento(d),false).avisos;
@@ -1998,7 +2010,7 @@ function renderPreview(){
   col.innerHTML = historicoAviso + avisoHtml + botoesHtml +
     '<details class="panel" open><summary style="font-weight:600;cursor:pointer">Prévia da fatura do cliente</summary>' +
     '<div data-fatura-previa style="padding-top:14px">' + documentoHtml + '</div></details>' +
-    '<details class="panel"><summary style="font-weight:600;cursor:pointer">Escolher detalhes extras</summary>' + checklistHtml + '</details>';
+    '<details class="panel"><summary style="font-weight:600;cursor:pointer">Escolher detalhes extras</summary>' + checklistHtml + '</details>' + secundariosHtml;
 
   document.querySelectorAll('.campo-visivel-toggle').forEach(function(cb){
     cb.addEventListener('change', function(){
@@ -2026,6 +2038,7 @@ async function salvarCamposComoPadrao(){
 var salvandoHistorico = false;
 async function onSalvarHistorico(){
   if(!state.lastDraft){ toast('Calcule um orçamento antes de salvar.'); return; }
+  if(state.faturaDesatualizada){toast('Os dados mudaram. Calcule novamente antes de salvar no histórico.');return;}
   if(salvandoHistorico) return;
   salvandoHistorico = true;
   try{
@@ -2133,38 +2146,58 @@ function historicoListaHtml(c){
   return '<p class="hint">' + items.length + ' fatura(s) encontrada(s).</p>' +
     (items.length ? items.map(historicoItemHtml).join('') : '<div class="empty-state"><p>Nenhuma fatura corresponde aos filtros selecionados.</p></div>');
 }
+function resumoFiltrosHistorico(){
+  var f=filtrosHistorico(),partes=[];
+  if(f.tipo)partes.push(f.tipo);
+  if(f.ano)partes.push('Ano '+f.ano);
+  if(f.de || f.ate)partes.push((f.de?f.de.split('-').reverse().join('/'):'Início')+' até '+(f.ate?f.ate.split('-').reverse().join('/'):'hoje em diante'));
+  if(f.baseData==='salvamento')partes.push('Por salvamento');
+  if(state.buscaHistorico)partes.push('Referência: '+state.buscaHistorico);
+  return partes;
+}
 function buscaHistoricoInputHtml(){
   var f=filtrosHistorico();
   function select(id,label,key,opcoes){return '<div class="field"><label for="'+id+'">'+label+'</label><select id="'+id+'" data-filtro-historico="'+key+'">'+opcoesFiltro(opcoes,f[key])+'</select></div>';}
-  function input(id,label,key,tipo,placeholder){return '<div class="field"><label for="'+id+'">'+label+'</label><input id="'+id+'" type="'+tipo+'" data-filtro-historico="'+key+'" value="'+escapeHtml(f[key])+'"'+(placeholder ? ' placeholder="'+placeholder+'"' : '')+'></div>';}
-  return '<div class="panel filtros-historico" aria-label="Filtros de faturas"><div class="filtros-grid">' +
-    select('hist-escopo','Consultar','escopo',[['atual','Cliente selecionado'],['todos','Todos os clientes']]) +
-    input('hist-cliente','Cliente, documento ou local','cliente','search','Nome, documento ou UC') +
-    select('hist-tipo','Tipo de usina','tipo',[['','Todos os tipos'],['GD1','GD1'],['GD2','GD2']]) +
-    select('hist-base-data','Data usada nos filtros','baseData',[['referencia','Mês da fatura'],['salvamento','Data de salvamento']]) +
-    input('hist-ano','Ano','ano','text','Ex.: 2026') + input('hist-de','De','de','date','') + input('hist-ate','Até','ate','date','') +
-    select('hist-ordem','Ordenar por','ordem',[['recentes','Mais recentes'],['cliente-az','Cliente: A–Z'],['cliente-za','Cliente: Z–A'],['local-az','Local: A–Z'],['local-za','Local: Z–A']]) +
-    '<div class="field"><label for="busca-historico">Buscar referência ou data</label><div class="busca-wrap">'+ICON_SEARCH+
-    '<input type="search" id="busca-historico" class="busca-input" placeholder="Ex.: 09/2026" value="'+escapeHtml(state.buscaHistorico || '')+'" autocomplete="off">'+
-    (state.buscaHistorico ? '<button type="button" class="busca-clear" data-action="limpar-busca-historico" aria-label="Limpar busca">'+ICON_X+'</button>' : '')+'</div></div></div>'+
-    '<div class="filtros-footer"><p class="hint" id="hist-periodo-dica">'+(f.baseData === 'referencia' ? 'Mês da fatura: o período inclui os meses que cruzam as datas escolhidas.' : 'Data de salvamento: o período usa o dia em que a fatura foi gravada, no horário do navegador.')+'</p>'+
-    '<button type="button" class="btn btn-ghost" data-action="limpar-filtros-historico">Limpar filtros</button></div></div>';
+  function input(id,label,key,tipo,placeholder){return '<div class="field"><label for="'+id+'">'+label+'</label><input id="'+id+'" type="'+tipo+'" data-filtro-historico="'+key+'" value="'+escapeHtml(f[key])+'"'+(placeholder?' placeholder="'+placeholder+'"':'')+'></div>';}
+  return '<div class="panel filtros-historico" aria-label="Filtros de faturas">'+
+    '<div class="historico-busca-principal">'+
+      input('hist-cliente','Buscar cliente','cliente','search','Nome, documento, UC ou local')+
+      select('hist-escopo','Consultar','escopo',[['atual','Cliente selecionado'],['todos','Todos os clientes']])+
+      select('hist-ordem','Ordenar','ordem',[['recentes','Mais recentes'],['cliente-az','Cliente: A–Z'],['cliente-za','Cliente: Z–A'],['local-az','Local: A–Z'],['local-za','Local: Z–A']])+'</div>'+
+    '<details class="historico-mais-filtros" id="hist-filtros-secundarios"><summary>Mais filtros <span id="hist-filtros-quantidade"></span></summary><div class="filtros-grid">'+
+      select('hist-tipo','Tipo de usina','tipo',[['','Todos os tipos'],['GD1','GD1'],['GD2','GD2']])+
+      select('hist-base-data','Filtrar datas por','baseData',[['referencia','Mês da fatura'],['salvamento','Data de salvamento']])+
+      input('hist-ano','Ano','ano','text','Ex.: 2026')+input('hist-de','De','de','date','')+input('hist-ate','Até','ate','date','')+
+      '<div class="field"><label for="busca-historico">Referência ou data</label><div class="busca-wrap">'+ICON_SEARCH+
+      '<input type="search" id="busca-historico" class="busca-input" placeholder="Ex.: 09/2026" value="'+escapeHtml(state.buscaHistorico || '')+'" autocomplete="off">'+
+      (state.buscaHistorico?'<button type="button" class="busca-clear" data-action="limpar-busca-historico" aria-label="Limpar busca">'+ICON_X+'</button>':'')+'</div></div></div>'+
+      '<p class="hint" id="hist-periodo-dica"></p></details>'+
+    '<div class="filtros-footer"><p class="hint" id="hist-filtros-ativos" aria-live="polite"></p><button type="button" class="btn btn-ghost" data-action="limpar-filtros-historico">Limpar filtros</button></div></div>';
+}
+function atualizarResumoFiltrosHistorico(){
+  var partes=resumoFiltrosHistorico(),ativo=document.getElementById('hist-filtros-ativos'),contador=document.getElementById('hist-filtros-quantidade');
+  if(ativo)ativo.textContent=partes.length?'Filtros ativos: '+partes.join(' · '):'Todos os tipos e períodos.';
+  if(contador)contador.textContent=partes.length?'('+partes.length+' ativos)':'';
+  var dica=document.getElementById('hist-periodo-dica');if(dica)dica.textContent=filtrosHistorico().baseData==='referencia'
+    ?'O período inclui os meses da fatura que cruzam as datas escolhidas.'
+    :'O período usa o dia do salvamento, no horário do navegador.';
 }
 function atualizarListaHistorico(){
-  var list=document.getElementById('historico-list');if(list) list.innerHTML=historicoListaHtml(selectedClient());
-  var dica=document.getElementById('hist-periodo-dica');if(dica) dica.textContent=filtrosHistorico().baseData === 'referencia'
-    ? 'Mês da fatura: o período inclui os meses que cruzam as datas escolhidas.'
-    : 'Data de salvamento: o período usa o dia em que a fatura foi gravada, no horário do navegador.';
-  var wrap=document.querySelector('#tab-content .busca-wrap');if(wrap){
+  var list=document.getElementById('historico-list');if(list)list.innerHTML=historicoListaHtml(selectedClient());
+  atualizarResumoFiltrosHistorico();
+  var wrap=document.querySelector('#hist-filtros-secundarios .busca-wrap');if(wrap){
     var botao=wrap.querySelector('.busca-clear');
-    if(state.buscaHistorico && !botao) wrap.insertAdjacentHTML('beforeend','<button type="button" class="busca-clear" data-action="limpar-busca-historico" aria-label="Limpar busca">'+ICON_X+'</button>');
-    if(!state.buscaHistorico && botao) botao.remove();
+    if(state.buscaHistorico && !botao)wrap.insertAdjacentHTML('beforeend','<button type="button" class="busca-clear" data-action="limpar-busca-historico" aria-label="Limpar busca">'+ICON_X+'</button>');
+    if(!state.buscaHistorico && botao)botao.remove();
   }
 }
 function limparBuscaHistorico(){state.buscaHistorico='';var input=document.getElementById('busca-historico');if(input){input.value='';input.focus();}atualizarListaHistorico();}
 function renderHistorico(){
   document.getElementById('tab-content').innerHTML=buscaHistoricoInputHtml()+'<div id="historico-list" aria-live="polite">'+historicoListaHtml(selectedClient())+'</div>';
+  atualizarResumoFiltrosHistorico();
 }
+
+
 function atualizarFiltroLista(target){
   if(target.id === 'tipo-cliente'){state.tipoCliente=target.value;atualizarListaClientes();}
   if(target.id === 'ordem-cliente'){state.ordemCliente=target.value;atualizarListaClientes();}
@@ -2375,7 +2408,7 @@ function carregarHtml2Canvas(){
 async function baixarPng(){
   var d = state.lastDraft;
   if(!d){ toast('Calcule um orçamento antes de baixar a imagem.'); return; }
-  var abaPreAberta = window.open('', '_blank');
+  var abaPreAberta = null;
   if(abaPreAberta){
     try{ abaPreAberta.document.write('<title>Gerando imagem…</title><body style="font-family:sans-serif;padding:40px;color:#667">Gerando a imagem, aguarde…</body>'); }catch(e){}
   }
@@ -2424,79 +2457,9 @@ function carregarJsPdf(){
   });
   return _jspdfLoading;
 }
-/* Baixa um arquivo (Blob) de forma direta. Em vez de sempre criar um link
-   clicável (que em alguns navegadores móveis abre o arquivo numa aba/preview
-   em vez de baixar), tenta primeiro a Web Share API com arquivos — no
-   celular isso abre a folha nativa de compartilhar/salvar, sem link nenhum
-   aparecendo. Se não for suportado, cai no download tradicional. */
+/* Todos os formatos são baixados na mesma tela. */
 async function compartilharOuBaixarBlob(blob, filename, mimeType, abaPreAberta){
-  var podeAbrirNoNavegador = mimeType === 'application/pdf' || mimeType.indexOf('image/') === 0;
-  var url = URL.createObjectURL(blob);
-
-  if(podeAbrirNoNavegador){
-    /* Em vez de abrir o blob direto (o visualizador embutido do navegador não sabe
-       o nome certo do arquivo e sai com um código aleatório), monta uma página
-       simples nossa: mostra o arquivo (PDF ou imagem) E tem um botão de baixar
-       com o nome certo garantido, sem depender de "adivinhação" do navegador. */
-    var aba = abaPreAberta || window.open('', '_blank');
-    if(aba && !aba.closed){
-      /* PDF: nada de <iframe> — o visualizador nativo do navegador já tem seu
-         próprio botão de baixar embutido no canto, e ficava duplicado com o
-         nosso. Em vez disso, uma tela simples com um único botão de baixar
-         (nome do arquivo garantido) e um link à parte pra quem quiser abrir
-         o PDF pra visualizar (aí sim, numa aba separada, com o visualizador
-         nativo — sem duplicar nada na nossa tela). */
-      var visualizacao = mimeType === 'application/pdf'
-        ? '<div class="card-arquivo">' +
-            '<svg width="52" height="52" viewBox="0 0 24 24" fill="none" stroke="#1B4D3E" stroke-width="1.6"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><path d="M14 2v6h6"/></svg>' +
-            '<span class="nome-arquivo">' + escapeHtml(filename) + '</span>' +
-            '<a class="btn-baixar-grande" href="' + url + '" download="' + escapeHtml(filename) + '">Baixar arquivo</a>' +
-            '<a class="link-visualizar" href="' + url + '" target="_blank" rel="noopener">Visualizar em outra aba</a>' +
-          '</div>'
-        : '<div class="wrap-img"><img src="' + url + '"></div>';
-      var barraSuperior = mimeType === 'application/pdf' ? '' :
-        '<div class="barra"><span class="nome">' + escapeHtml(filename) + '</span><a class="btn-baixar" href="' + url + '" download="' + escapeHtml(filename) + '">Baixar arquivo</a></div>';
-      var paginaHtml =
-        '<!DOCTYPE html><html><head><meta charset="utf-8"><title>' + escapeHtml(filename) + '</title>' +
-        '<style>' +
-          'html,body{margin:0;height:100%;font-family:-apple-system,Helvetica,Arial,sans-serif;background:#f2f3f0;}' +
-          '.barra{display:flex;align-items:center;justify-content:space-between;gap:12px;padding:10px 16px;background:#fff;border-bottom:1px solid #e2e5e0;box-sizing:border-box;}' +
-          '.barra .nome{font-size:13.5px;color:#333;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}' +
-          '.btn-baixar{background:#1B4D3E;color:#fff;text-decoration:none;padding:9px 18px;border-radius:6px;font-size:13.5px;font-weight:600;white-space:nowrap;flex-shrink:0;}' +
-          '.wrap-img{height:calc(100% - 49px);overflow:auto;display:flex;justify-content:center;padding:20px;box-sizing:border-box;}' +
-          '.wrap-img img{max-width:100%;height:auto;box-shadow:0 2px 12px rgba(0,0,0,.12);}' +
-          '.card-arquivo{height:100%;display:flex;flex-direction:column;align-items:center;justify-content:center;padding:24px;box-sizing:border-box;}' +
-          '.card-arquivo > *{margin:7px 0;}' +
-          '.nome-arquivo{font-size:14.5px;color:#333;max-width:90vw;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}' +
-          '.btn-baixar-grande{background:#1B4D3E;color:#fff;text-decoration:none;padding:13px 28px;border-radius:8px;font-size:15px;font-weight:600;}' +
-          '.link-visualizar{color:#5b665a;font-size:13px;text-decoration:none;}' +
-          '.link-visualizar:hover{text-decoration:underline;}' +
-        '</style></head><body>' +
-        barraSuperior +
-        visualizacao +
-        '</body></html>';
-      try{
-        aba.document.open(); aba.document.write(paginaHtml); aba.document.close();
-      }catch(e){
-        aba.location.href = url; /* navegador bloqueou escrever na aba — abre o arquivo puro como reserva */
-      }
-      setTimeout(function(){ URL.revokeObjectURL(url); }, 10 * 60 * 1000);
-      return;
-    }
-    var a1 = document.createElement('a');
-    a1.href = url; a1.download = filename;
-    document.body.appendChild(a1); a1.click(); document.body.removeChild(a1);
-    toast('Seu navegador bloqueou a aba nova, então baixei o arquivo direto. Pode liberar pop-ups pra esse site se quiser abrir na aba da próxima vez.');
-    setTimeout(function(){ URL.revokeObjectURL(url); }, 5 * 60 * 1000);
-    return;
-  }
-
-  /* Word (.doc) e outros formatos que o navegador não sabe exibir sozinho: baixa
-     direto, com o nome certo (uma aba nova não ajudaria em nada aqui). */
-  var a = document.createElement('a');
-  a.href = url; a.download = filename;
-  document.body.appendChild(a); a.click(); document.body.removeChild(a);
-  setTimeout(function(){ URL.revokeObjectURL(url); }, 1000);
+  baixarBlobNaMesmaTela(blob,filename);
 }
 function nomeArquivoDocumento(client, referencia, sufixo){
   var partes = (referencia || '').split('/');
@@ -2529,14 +2492,127 @@ function formatoImagemBase64(base64){
   return 'JPEG';
 }
 
+/* Composição medida em pontos: o cliente recebe uma página legível ou nenhum
+   arquivo. Nunca truncar textos nem produzir uma segunda página silenciosa. */
+function criarPdfClienteUmaPagina(m, qr, logoDim){
+  var formatos=[{fonte:10,linha:13,espaco:5},{fonte:9.5,linha:12,espaco:4},{fonte:9,linha:11,espaco:3}];
+  var cor=hexToRgb(m.dc.corPrimaria || '#1B4D3E');
+  var cinza=[92,111,99], escuro=[22,36,29];
+  function texto(v){return limparTextoExibicao(v).replace(/[\u00a0\u202f]/g,' ').replace(/[—–−]/g,'-');}
+  for(var tentativa=0;tentativa<formatos.length;tentativa++){
+    var f=formatos[tentativa],doc=new window.jspdf.jsPDF({unit:'pt',format:'a4'});
+    var pw=doc.internal.pageSize.getWidth(),ph=doc.internal.pageSize.getHeight();
+    var margem=36,largura=pw-2*margem,y=38,limite=ph-36;
+    function fonte(t,b,c){doc.setFont('helvetica',b?'bold':'normal');doc.setFontSize(t);doc.setTextColor.apply(doc,c || escuro);}
+    function cabe(h){if(y+h>limite) throw {codigo:'FATURA_NAO_CABE'};}
+    function escreve(s,x,yy,op){doc.text(texto(s),x,yy,op || {});}
+    function dividir(s,w,t,b){fonte(t,b);return doc.splitTextToSize(texto(s),w);}
+    function paragrafo(s,w,x,t,b,c){
+      var ls=dividir(s,w,t || f.fonte,b);cabe(ls.length*f.linha);
+      fonte(t || f.fonte,b,c);ls.forEach(function(l){escreve(l,x === undefined?margem:x,y);y+=f.linha;});
+    }
+    function titulo(s){
+      cabe(20);y+=f.espaco;fonte(9.5,true,cor);escreve(s,margem,y);y+=6;
+      doc.setDrawColor(221,229,218);doc.setLineWidth(.5);doc.line(margem,y,pw-margem,y);y+=f.linha;
+    }
+    function tabela(ls){
+      ls.forEach(function(l){
+        var nomes=dividir(l.rotulo,largura-126,f.fonte,false),valores=dividir(l.valor,116,f.fonte,true);
+        var h=Math.max(nomes.length,valores.length)*f.linha+f.espaco;cabe(h);
+        fonte(f.fonte,false,cinza);nomes.forEach(function(n,i){escreve(n,margem,y+i*f.linha);});
+        fonte(f.fonte,true);valores.forEach(function(v,i){escreve(v,pw-margem,y+i*f.linha,{align:'right'});});y+=h;
+      });
+    }
+    try{
+      var logoW=logoDim?150:0,logoH=logoDim?Math.min(90,150*logoDim.h/logoDim.w):0;
+      if(logoDim)logoW=logoH*logoDim.w/logoDim.h;
+      var nomeW=largura-(logoW?logoW+18:0),inicio=y;
+      paragrafo(m.dc.nomeEmpresa || 'IG Base',nomeW,margem,17,true,cor);
+      if(m.dc.enderecoContato)paragrafo(m.dc.enderecoContato,nomeW,margem,9,false,cinza);
+      if(logoDim){
+        cabe(Math.max(0,inicio+logoH-y));
+        doc.addImage(m.dc.logoBase64,formatoImagemBase64(m.dc.logoBase64),pw-margem-logoW,inicio-8,logoW,logoH);
+      }
+      y=Math.max(y,inicio+logoH)+f.espaco+2;
+      paragrafo(m.client.nome || '',largura,margem,12,true);
+      paragrafo('Referência: '+m.referencia+(m.client.uc?' · UC '+m.client.uc:''),largura,margem,9,false,cinza);
+      cabe(29);y+=f.espaco;
+      doc.setDrawColor(221,229,218);doc.line(margem,y,pw-margem,y);y+=17;
+      fonte(10,true,cor);escreve('VALOR A PAGAR',margem,y);
+      fonte(13,true,cor);escreve(m.total,pw-margem,y,{align:'right'});y+=8;
+      doc.line(margem,y,pw-margem,y);y+=f.espaco;
+      var metricas=linhasResumoEnergia(m.energia),metade=largura/2;
+      var celulas=metricas.map(function(l){return {rotulo:dividir(l.rotulo,metade-20,9,false),valor:dividir(l.valor,metade-20,11,true)};});
+      var alturas=[0,2].map(function(i){return Math.max(celulas[i].rotulo.length+celulas[i].valor.length,celulas[i+1].rotulo.length+celulas[i+1].valor.length)*f.linha+8;});
+      var altura=alturas[0]+alturas[1]+4;cabe(altura+f.espaco);
+      doc.setFillColor(244,247,243);doc.roundedRect(margem,y,largura,altura,4,4,'F');
+      var sy=y+f.linha;
+      celulas.forEach(function(l,i){
+        var x=margem+10+(i%2)*metade,cy=sy+(i>1?alturas[0]:0);
+        fonte(9,false,cinza);l.rotulo.forEach(function(t){escreve(t,x,cy);cy+=f.linha;});
+        fonte(11,true,cor);l.valor.forEach(function(t){escreve(t,x,cy);cy+=f.linha;});
+      });y+=altura+f.linha;
+      paragrafo(notaResumoEnergia(m.energia),largura,margem,9,false,cinza);
+      titulo('COMPOSIÇÃO DA COBRANÇA');tabela(m.financeiro);
+      if(m.extras.length){
+        titulo('DETALHES SELECIONADOS');
+        for(var i=0;i<m.extras.length;i+=2){
+          var pares=m.extras.slice(i,i+2).map(function(l){return dividir(l.rotulo+': '+l.valor,metade-12,9,false);});
+          var h=Math.max.apply(null,pares.map(function(ls){return ls.length;}))*f.linha+f.espaco;cabe(h);
+          fonte(9,false,cinza);pares.forEach(function(ls,j){ls.forEach(function(l,k){escreve(l,margem+j*metade,y+k*f.linha);});});y+=h;
+        }
+      }
+      if(m.observacoes){
+        titulo('OBSERVAÇÕES');
+        String(m.observacoes).split(/\r?\n/).forEach(function(l){if(l.trim())paragrafo(l,largura,margem,9,false,cinza);else{cabe(f.linha);y+=f.linha;}});
+      }
+      y+=f.espaco;cabe(20);doc.setDrawColor(221,229,218);doc.line(margem,y,pw-margem,y);y+=f.linha;
+      var pagamentoY=y,pixW=largura-(qr?104:0),qrSize=90;
+      paragrafo('PAGAMENTO VIA PIX',pixW,margem,9.5,true,cor);
+      paragrafo(m.client.chavePix || 'Chave não informada',pixW,margem,10,true);
+      var banco=[m.client.banco,m.client.beneficiario].filter(Boolean).join(' · ');
+      if(banco)paragrafo(banco,pixW,margem,9,false,cinza);
+      if(m.client.condicaoPagamento)paragrafo(m.client.condicaoPagamento,pixW,margem,9,false,cinza);
+      var contatos=[];
+      if(m.dc.email)contatos.push('E-mail: '+m.dc.email);
+      (m.dc.telefones || []).filter(Boolean).forEach(function(t){contatos.push('Telefone: '+t);});
+      if(contatos.length){y+=f.espaco;paragrafo('MEIOS DE CONTATO',pixW,margem,9.5,true,cor);contatos.forEach(function(t){paragrafo(t,pixW,margem,9,false,cinza);});}
+      if(qr){
+        cabe(Math.max(0,pagamentoY+qrSize-y));
+        doc.addImage(qr,formatoImagemBase64(qr),pw-margem-qrSize,pagamentoY-6,qrSize,qrSize);
+        y=Math.max(y,pagamentoY+qrSize);
+      }
+      if(m.dc.textoRodape){y+=f.espaco;paragrafo(m.dc.textoRodape,largura,margem,9,false,cinza);}
+      cabe(10);fonte(9,false,cinza);escreve('Página 1 de 1',pw-margem,ph-20,{align:'right'});
+      return {doc:doc,fonteMinima:9,alturaUtilizada:y,formato:tentativa};
+    }catch(e){if(!e || e.codigo!=='FATURA_NAO_CABE')throw e;}
+  }
+  var erro=new Error('O conteúdo não cabe em uma página legível. Reduza os detalhes extras selecionados ou revise as observações. O PDF interno mantém a conferência completa. Nenhum texto foi cortado.');
+  erro.codigo='FATURA_NAO_CABE';throw erro;
+}
+
+/* Download direto: sem janela intermediária e sem alterar os dados da fatura. */
+function baixarBlobNaMesmaTela(blob,filename){
+  var url=URL.createObjectURL(blob),a=document.createElement('a');
+  a.href=url;a.download=filename;document.body.appendChild(a);a.click();a.remove();
+  setTimeout(function(){URL.revokeObjectURL(url);},60000);
+}
+
+
+var baixandoPdf=false;
 async function baixarPdf(modo){
   modo=modo || 'cliente';
   var d=state.lastDraft;
   if(!d){toast('Calcule um orçamento antes de baixar o PDF.');return;}
-  var abaPreAberta=window.open('','_blank');
+  if(state.faturaDesatualizada){toast('Os dados mudaram. Calcule novamente antes de emitir.');return;}
+  if(baixandoPdf)return;baixandoPdf=true;
+  var emissaoStatus=document.getElementById('emissao-status');
+  if(emissaoStatus)emissaoStatus.textContent='Gerando a fatura nesta tela…';
+  try{
+  var abaPreAberta=null;
   if(abaPreAberta){try{abaPreAberta.document.write('<title>Gerando PDF…</title><body style="font-family:sans-serif;padding:40px">Gerando o PDF, aguarde…</body>');}catch(e){}}
   var ok=await carregarJsPdf();
-  if(!ok || !window.jspdf){if(abaPreAberta)abaPreAberta.close();toast('Não deu para carregar o gerador de PDF agora. Tente de novo em instantes.');return;}
+  if(!ok || !window.jspdf){if(emissaoStatus)emissaoStatus.textContent='Não foi possível carregar o PDF. Tente novamente nesta tela.';toast('Não deu para carregar o gerador de PDF agora. Tente de novo em instantes.');return;}
   var client=clienteDoDocumento(d),profile=perfilDoDocumento(d);
   if(!client || !profile){if(abaPreAberta)abaPreAberta.close();return;}
   var dc=configDoDocumento(d),interno=modo==='interno';
@@ -2544,12 +2620,21 @@ async function baixarPdf(modo){
   var logoDim=dc.logoBase64 ? await carregarDimensoesImagem(dc.logoBase64) : null;
   var qr=interno ? null : await gerarQrPixDataUrl(client,d.scope[profile.chaveTotalFinal]);
   try{
+    if(!interno){
+      var clientePdf=criarPdfClienteUmaPagina(m,qr,logoDim);
+      if(state.lastDraft!==d || state.faturaDesatualizada){toast('Os dados mudaram durante a geração. Calcule novamente.');return;}
+      var nomeClientePdf=nomeArquivoDocumento(client,d.referencia,'FATURA')+'.pdf';
+      clientePdf.doc.setProperties({title:nomeClientePdf});
+      await compartilharOuBaixarBlob(clientePdf.doc.output('blob'),nomeClientePdf,'application/pdf',null);
+      if(emissaoStatus)emissaoStatus.textContent='Fatura gerada em uma página. Download iniciado.';
+      return;
+    }
     var doc=new window.jspdf.jsPDF({unit:'pt',format:'a4'});
     var pageW=doc.internal.pageSize.getWidth(),pageH=doc.internal.pageSize.getHeight();
     var margin=44,width=pageW-margin*2,y=42;
     /* jsPDF Helvetica suporta acentos latinos; NBSP vindo do Intl precisa virar
        espaço normal para não quebrar a largura/kerning dos valores monetários. */
-    function texto(s){return String(s === null || s === undefined ? '' : s).replace(/[\u00a0\u202f]/g,' ').replace(/[—–]/g,'-');}
+    function texto(s){return String(s === null || s === undefined ? '' : s).replace(/[\u00a0\u202f]/g,' ').replace(/[—–−]/g,'-');}
     function fonte(size,bold,color){doc.setFont('helvetica',bold?'bold':'normal');doc.setFontSize(size);doc.setTextColor.apply(doc,color || [22,36,29]);}
     function escrever(s,x,yy,opts){doc.text(texto(s),x,yy,opts || {});}
     function novaPagina(){
@@ -2678,7 +2763,14 @@ async function baixarPdf(modo){
     var filename=nomeArquivoDocumento(client,d.referencia,interno?'RESUMO':'FATURA')+'.pdf';
     doc.setProperties({title:filename});
     await compartilharOuBaixarBlob(doc.output('blob'),filename,'application/pdf',abaPreAberta);
-  }catch(e){console.error(e);if(abaPreAberta)abaPreAberta.close();toast('Erro ao gerar o PDF. Tente novamente em instantes.');}
+  }catch(e){
+    console.error(e);var mensagem=e && e.codigo==='FATURA_NAO_CABE'?e.message:'Erro ao gerar o PDF. Tente novamente em instantes.';
+    if(emissaoStatus)emissaoStatus.textContent=mensagem;toast(mensagem);
+  }
+  }catch(e){
+    console.error(e);var erroEmissao='Não foi possível gerar o PDF. Tente novamente nesta tela.';
+    if(emissaoStatus)emissaoStatus.textContent=erroEmissao;toast(erroEmissao);
+  }finally{baixandoPdf=false;}
 }
 
 
@@ -3589,18 +3681,17 @@ async function onSignOut(){
    O aviso aparece uma vez por versão por navegador (localStorage compartilhado
    entre o site principal e os subsites, pois ficam no mesmo domínio).
    ============================================================ */
-var IG_BASE_VERSION = '1.03';
-var IG_BASE_RELEASE_ID = '1.03-2026-10-05';
+var IG_BASE_VERSION = '1.04';
+var IG_BASE_RELEASE_ID = '1.04-2026-10-06';
 var IG_BASE_CHANGELOG = [
-  "Faturas do cliente e internas com layout mais limpo, logo e Pix proporcionais e meios de contato identificados.",
-  "Consumo real, injeção do mês, saldo utilizado e saldo final apresentados separadamente.",
-  "Conferência GD1 com parcelas compensada e não compensada e identificação de leitura confirmada ou estimada.",
-  "Campos de saldo reunidos no fim do lançamento; uso e saldo final automáticos e campos padronizados.",
-  "Histórico preserva o cálculo original, inclusive no GD2 com múltiplos pontos, e mostra o saldo após cada fatura.",
-  "GD1 e GD2 bloqueiam dados que produziriam consumo negativo, preservando a última fatura válida.",
-  "Busca combinada por nome, documento, UC e local; filtros GD1/GD2, ano ou período e ordenação A–Z/Z–A.",
-  "Nomes, locais e informações do histórico em linhas separadas, com quebra de textos longos.",
-  "Carregamento com logo IG Base e círculo verde animado; falhas de conexão exibem opções de recuperação."
+  "Histórico mais limpo: busca e ordenação rápidas, com tipo de usina e datas em Mais filtros.",
+  "Filtros continuam combináveis; o resumo mostra os refinamentos ativos mesmo quando o menu está fechado.",
+  "Consumo automático em GD1 e GD2, sem repetir os campos opcionais de conferência no lançamento padrão.",
+  "Leituras confirmadas antigas continuam preservadas. Perfis sem dados de consumo mantêm a entrada necessária.",
+  "Fatura do cliente em uma página A4, com diagramação compacta, textos completos, Pix e contatos legíveis.",
+  "Conteúdo que não cabe com legibilidade é sinalizado antes da emissão, sem cortes silenciosos.",
+  "Prévia e download na mesma tela, sem página intermediária. PDF interno e outros formatos ficam em um menu.",
+  "Valores financeiros, rateio e resultados históricos preservados para os dados válidos."
 ];
 function igbMostrarChangelog(){
   var KEY = 'igbase_changelog_visto';
@@ -3759,6 +3850,7 @@ document.addEventListener('input', function(e){
   var relevante = t.id === 'f-ref-mes' || t.id === 'f-ref-ano' || t.id === 'f-ajuste' || t.id === 'f-observacoes' ||
     (t.classList && (t.classList.contains('in-mensal') || t.classList.contains('energia-documento-input') || t.classList.contains('item-nome') || t.classList.contains('item-val')));
   if(!relevante) return;
+  marcarFaturaDesatualizada();
   if(t.classList && (t.classList.contains('in-mensal') || t.classList.contains('item-val') || t.classList.contains('energia-documento-input'))){
     var consumoEl = document.getElementById('consumo-real-automatico');
     var dicaEl = document.getElementById('consumo-real-dica');
@@ -3780,6 +3872,7 @@ document.addEventListener('input', function(e){
 document.addEventListener('change', function(e){
   atualizarFiltroLista(e.target);
   var t = e.target;
+  if(t.matches && t.matches('.in-mensal,.item-val,.energia-documento-input,#f-ref-mes,#f-ref-ano'))marcarFaturaDesatualizada();
   if(t.classList && t.classList.contains('item-val-checkbox') && t.dataset.chave === 'pontoPrincipal' && t.checked){
     var wrap = document.getElementById('pontos-container');
     if(!wrap) return;
@@ -3796,6 +3889,10 @@ document.addEventListener('click', function(e){
   var el = e.target.closest('[data-action]');
   if(!el) return;
   var action = el.dataset.action;
+  if(action === 'reset-consumo-automatico'){
+    ['consumoRealKwh','consumoCompensadoKwh'].forEach(function(k){var input=document.querySelector('.energia-documento-input[data-chave="'+k+'"]');if(input)input.value='';});
+    atualizarLeituraPreservada();salvarRascunhoAtual();onCalcular();return;
+  }
   if(action === 'reset-saldo-automatico'){
     var saldoAntigo = document.querySelector('.energia-documento-input[data-chave="saldoUtilizadoKwh"]');
     if(saldoAntigo) saldoAntigo.value = '';
@@ -3826,8 +3923,8 @@ document.addEventListener('click', function(e){
     case 'save-client': saveClientFromModal(id || null); break;
     case 'set-tab': setTab(el.dataset.tab); break;
 
-    case 'add-ponto': addPontoRow(); break;
-    case 'remove-ponto': removePontoRow(id); break;
+    case 'add-ponto': addPontoRow(); marcarFaturaDesatualizada(); break;
+    case 'remove-ponto': removePontoRow(id); marcarFaturaDesatualizada(); break;
     case 'calcular': onCalcular(); break;
     case 'salvar-historico': onSalvarHistorico(); break;
     case 'baixar-doc': baixarDoc(); break;
