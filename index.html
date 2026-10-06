@@ -302,18 +302,17 @@ document.getElementById('settings-signout').addEventListener('click', sairDaCont
    O aviso aparece uma vez por versão por navegador (localStorage compartilhado
    entre o site principal e os subsites, pois ficam no mesmo domínio).
    ============================================================ */
-var IG_BASE_VERSION = '1.03';
-var IG_BASE_RELEASE_ID = '1.03-2026-10-05';
+var IG_BASE_VERSION = '1.04';
+var IG_BASE_RELEASE_ID = '1.04-2026-10-06';
 var IG_BASE_CHANGELOG = [
-  "Faturas do cliente e internas com layout mais limpo, logo e Pix proporcionais e meios de contato identificados.",
-  "Consumo real, injeção do mês, saldo utilizado e saldo final apresentados separadamente.",
-  "Conferência GD1 com parcelas compensada e não compensada e identificação de leitura confirmada ou estimada.",
-  "Campos de saldo reunidos no fim do lançamento; uso e saldo final automáticos e campos padronizados.",
-  "Histórico preserva o cálculo original, inclusive no GD2 com múltiplos pontos, e mostra o saldo após cada fatura.",
-  "GD1 e GD2 bloqueiam dados que produziriam consumo negativo, preservando a última fatura válida.",
-  "Busca combinada por nome, documento, UC e local; filtros GD1/GD2, ano ou período e ordenação A–Z/Z–A.",
-  "Nomes, locais e informações do histórico em linhas separadas, com quebra de textos longos.",
-  "Carregamento com logo IG Base e círculo verde animado; falhas de conexão exibem opções de recuperação."
+  "Histórico mais limpo: busca e ordenação rápidas, com tipo de usina e datas em Mais filtros.",
+  "Filtros continuam combináveis; o resumo mostra os refinamentos ativos mesmo quando o menu está fechado.",
+  "Consumo automático em GD1 e GD2, sem repetir os campos opcionais de conferência no lançamento padrão.",
+  "Leituras confirmadas antigas continuam preservadas. Perfis sem dados de consumo mantêm a entrada necessária.",
+  "Fatura do cliente em uma página A4, com diagramação compacta, textos completos, Pix e contatos legíveis.",
+  "Conteúdo que não cabe com legibilidade é sinalizado antes da emissão, sem cortes silenciosos.",
+  "Prévia e download na mesma tela, sem página intermediária. PDF interno e outros formatos ficam em um menu.",
+  "Valores financeiros, rateio e resultados históricos preservados para os dados válidos."
 ];
 function igbMostrarChangelog(){
   var KEY = 'igbase_changelog_visto';
