@@ -302,17 +302,16 @@ document.getElementById('settings-signout').addEventListener('click', sairDaCont
    O aviso aparece uma vez por versão por navegador (localStorage compartilhado
    entre o site principal e os subsites, pois ficam no mesmo domínio).
    ============================================================ */
-var IG_BASE_VERSION = '1.04';
-var IG_BASE_RELEASE_ID = '1.04-2026-10-06';
+var IG_BASE_VERSION = '1.05';
+var IG_BASE_RELEASE_ID = '1.05-2026-10-06';
 var IG_BASE_CHANGELOG = [
-  "Histórico mais limpo: busca e ordenação rápidas, com tipo de usina e datas em Mais filtros.",
-  "Filtros continuam combináveis; o resumo mostra os refinamentos ativos mesmo quando o menu está fechado.",
-  "Consumo automático em GD1 e GD2, sem repetir os campos opcionais de conferência no lançamento padrão.",
-  "Leituras confirmadas antigas continuam preservadas. Perfis sem dados de consumo mantêm a entrada necessária.",
-  "Fatura do cliente em uma página A4, com diagramação compacta, textos completos, Pix e contatos legíveis.",
-  "Conteúdo que não cabe com legibilidade é sinalizado antes da emissão, sem cortes silenciosos.",
-  "Prévia e download na mesma tela, sem página intermediária. PDF interno e outros formatos ficam em um menu.",
-  "Valores financeiros, rateio e resultados históricos preservados para os dados válidos."
+  "Nomes mais diretos nas faturas GD1, GD2 de ponto único, múltiplos pontos e perfis personalizados.",
+  "Unidades explícitas: R$ para valores, kWh para energia, R$/kWh para tarifas e % para descontos.",
+  "Consumo não compensado e gasto não compensado identificados separadamente, sem misturar energia e dinheiro.",
+  "Detalhes extras do cliente mais simples; valores intermediários ficam na conferência interna.",
+  "Tarifas exibidas com até seis casas decimais, preservando a precisão dos preços cadastrados.",
+  "Fio B já abatido identificado quando aplicável, evitando confusão entre os valores apresentados.",
+  "PDF do cliente em uma página; fórmulas, valores finais e históricos preservados."
 ];
 function igbMostrarChangelog(){
   var KEY = 'igbase_changelog_visto';
