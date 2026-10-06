@@ -426,6 +426,7 @@ function formatarValor(v, formato){
   if(v === undefined || v === null || isNaN(v)) return '—';
   switch(formato){
     case 'moeda': return fmtBRL(v);
+    case 'tarifa': return 'R$ '+Number(v).toLocaleString('pt-BR',{minimumFractionDigits:2,maximumFractionDigits:6})+'/kWh';
     case 'kwh': return fmtKwh(v);
     case 'percentual': return fmtPct(v);
     case 'booleano': return v ? 'Sim' : 'Não';
@@ -1234,7 +1235,7 @@ function renderNovoOrcamento(){
   var fixos = fixosEfetivos(c, profile);
   var fixosHtml = Object.keys(fixos).map(function(chave){
     var def = profile.variaveis.find(function(v){ return v.chave === chave; });
-    return '<div class="breakdown-row"><span class="lbl">' + escapeHtml(def.rotulo) + '</span><span class="val tabular">' + formatarValor(fixos[chave], def.formato) + '</span></div>';
+    return '<div class="breakdown-row"><span class="lbl">' + escapeHtml(apresentacaoCampoFatura(def,profile,null).rotulo) + '</span><span class="val tabular">' + formatarValorFatura(fixos[chave],apresentacaoCampoFatura(def,profile,null).formato) + '</span></div>';
   }).join('');
 
   var mensalVars = (profile.variaveis||[]).filter(function(v){ return v.categoria === 'mensal'; });
@@ -1256,10 +1257,10 @@ function renderNovoOrcamento(){
 
   var mensalFieldHtml = function(v){
     if(v.tipo === 'checkbox'){
-      return '<div class="field field-checkbox"><label class="checkbox-field"><input type="checkbox" class="in-mensal in-mensal-checkbox" data-chave="' + v.chave + '"' + (v.valorPadrao?' checked':'') + '> ' + escapeHtml(v.rotulo) + '</label></div>';
+      return '<div class="field field-checkbox"><label class="checkbox-field"><input type="checkbox" class="in-mensal in-mensal-checkbox" data-chave="' + v.chave + '"' + (v.valorPadrao?' checked':'') + '> ' + escapeHtml(apresentacaoCampoFatura(v,profile,null).rotulo) + '</label></div>';
     }
     var gd1Ativa = perfilConsumoGD1(profile) && v.chave === 'energiaAtiva';
-    return '<div class="field"><label>' + escapeHtml(gd1Ativa ? 'Consumo não compensado da concessionária (kWh)' : v.rotulo) + '</label><input type="text" inputmode="decimal" class="in-mensal" data-chave="' + v.chave + '" value="" placeholder="0,00">' +
+    return '<div class="field"><label>' + escapeHtml(apresentacaoCampoFatura(v,profile,null).rotulo) + '</label><input type="text" inputmode="decimal" class="in-mensal" data-chave="' + v.chave + '" value="" placeholder="0,00">' +
       (gd1Ativa ? '<span class="hint">Informe somente a parcela não compensada, sem somar o consumo solar. Ex.: 384 kWh compensados + 306 kWh não compensados = 690 kWh de consumo total; aqui entram 306.</span>' : '') + '</div>';
   };
 
@@ -1607,7 +1608,7 @@ function onCalcular(){
       !(c.locadorPagaFatura && chaveFatura && fioBTotal > 0.004)) ? excedenteKwh : 0,
     perfilSnapshot: copiarDados(profile), clienteSnapshot: copiarDados(c),
     docConfigSnapshot: copiarDados(state.docConfig || docConfigPadrao()),
-    fixosEntrada: copiarDados(fixos), versaoCalculo: '1.04',
+    fixosEntrada: copiarDados(fixos), versaoCalculo: '1.05',
     energiaDocumentoInputs: copiarDados(energiaDocumentoInputs)
   };
   novoDraft.resumoEnergia = construirResumoEnergia(profile, novoDraft);
@@ -1822,10 +1823,10 @@ function resumoEnergiaDoDocumento(profile, draft){
 function energiaTexto(v){ return v === null || v === undefined ? 'Não informado' : fmtKwh(v); }
 function linhasResumoEnergia(resumo){
   return [
-    {rotulo:'Consumo total real', valor:energiaTexto(resumo.consumoRealKwh)},
-    {rotulo:'Geração / injeção do mês', valor:energiaTexto(resumo.injecaoMesKwh)},
-    {rotulo:'Saldo utilizado', valor:energiaTexto(resumo.saldoUtilizadoKwh)},
-    {rotulo:'Saldo restante', valor:energiaTexto(resumo.saldoRestanteKwh)}
+    {rotulo:'Consumo total real (kWh)', valor:energiaTexto(resumo.consumoRealKwh)},
+    {rotulo:'Geração / injeção do mês (kWh)', valor:energiaTexto(resumo.injecaoMesKwh)},
+    {rotulo:'Saldo utilizado (kWh)', valor:energiaTexto(resumo.saldoUtilizadoKwh)},
+    {rotulo:'Saldo restante (kWh)', valor:energiaTexto(resumo.saldoRestanteKwh)}
   ];
 }
 function notaResumoEnergia(r){
@@ -1857,34 +1858,75 @@ function resumoEnergiaHtml(profile, draft, cor){
 
 /* Campos essenciais vêm do resumo físico; bases de fórmula nunca são chamadas de consumo real. */
 var CAMPOS_ENERGIA_RESUMO = ['consumoTotal','consumoReal','injecaoTotal','saldoDisponivelKwh','saldoUtilizadoKwh','saldoRestanteKwh'];
-function campoDocumento(campo, draft){
-  var sc = draft.scope || {}, r = resumoEnergiaDoDocumento(perfilDoDocumento(draft),draft);
-  var nomes = {
-    desconto:'Desconto contratado', saldoDelta:'Variação de saldo usada no perfil',
-    saldoCobreNegativo:'Saldo já cobrado anteriormente', saldoJaCobrado:'Saldo já cobrado anteriormente',
-    fioBAlocadoTotal:'Fio B total dos pontos', somaComponentes:'Componentes da concessionária',
-    consumoEfetivo:'Base de consumo ajustada do perfil', consumoAlocadoTotal:'Consumo bruto apurado no rateio',
-    injecaoEfetiva:'Base de injeção ajustada do perfil', saldoDeltaEfetivo:'Variação de saldo considerada na cobrança',
-    injecaoSemDescontoRS:'Base de energia do perfil sem desconto',
-    injecaoComDescontoRS:'Base de energia do perfil com desconto',
-    valorComSolar:'Locação antes dos ajustes finais', valorSemSolar:'Estimativa sem geração solar',
-    fioB:'Fio B da concessionária', energiaAtiva:'Energia ativa informada na conta'
+/* Nomes e unidades são de apresentação; as chaves e as fórmulas permanecem iguais. */
+var CAMPOS_INTERNOS_FATURA = ['saldoDelta','saldoDeltaEfetivo','saldoCobreNegativo','saldoJaCobrado',
+  'injecaoEfetiva','consumoEfetivo','consumoAlocadoTotal','autoConsumo','valorFioBPorKwh',
+  'somaComponentes','valorComSolar','liquidoTotal','fioBAlocadoTotal','ajusteConsumoExcedente',
+  'descontoReal','multasEAdicionais'];
+function camposOpcionaisCliente(profile){
+  return camposDisponiveisPerfil(profile).filter(function(c){
+    return CAMPOS_ENERGIA_RESUMO.indexOf(c.chave)===-1 && CAMPOS_INTERNOS_FATURA.indexOf(c.chave)===-1 && !/^lucro/i.test(c.chave);
+  });
+}
+function apresentacaoCampoFatura(campo,profile,draft){
+  var nomes={
+    precoBase:'Preço da energia sem bandeira',taxaBandeira:'Bandeira tarifária por kWh',
+    precoSemDesconto:'Preço da energia sem desconto',precoComDesconto:'Preço da energia com desconto',
+    desconto:'Desconto contratado',descontoRS:'Economia com o desconto',descontoReal:'Economia estimada',
+    injecaoTotal:'Energia gerada / injetada no mês',injecaoNaConta:'Energia compensada na conta',
+    consumoTotal:'Consumo da conta principal',consumoReal:'Consumo total real',
+    energiaAtiva:profile.possuiItensMultiplos?'Consumo registrado na conta principal':'Consumo não compensado',
+    gastoNaoCompensado:'Gasto não compensado',adicionalBandeira:'Bandeira tarifária',
+    iluminacao:'Iluminação pública',adicionais:'Outros adicionais',multas:'Multas',
+    valorFaturaImpresso:'Conta da concessionária',valorFaturaInfo:'Conta da concessionária',
+    injecaoSemDescontoRS:'Valor da energia sem desconto',injecaoComDescontoRS:'Valor da energia com desconto',
+    valorSemSolar:'Gasto estimado sem energia solar',valorComSolar:'Cobrança de energia antes dos ajustes',
+    fioB:'Fio B',fioBPonto:'Fio B do ponto',fioBAlocadoTotal:'Fio B total dos pontos',
+    saldoDelta:'Variação do saldo no mês',saldoDeltaEfetivo:'Variação do saldo usada na cobrança',
+    saldoCobreNegativo:'Saldo utilizado já cobrado anteriormente',saldoJaCobrado:'Saldo utilizado já cobrado anteriormente',
+    saldoDisponivelKwh:'Saldo disponível antes do uso',saldoUtilizadoKwh:'Saldo utilizado',saldoRestanteKwh:'Saldo restante',
+    injecaoEfetiva:'Energia considerada no cálculo da cobrança',consumoEfetivo:'Consumo considerado no cálculo da cobrança',
+    consumoAlocadoTotal:'Consumo somado dos pontos',autoConsumo:'Diferença entre consumo e compensação da conta',
+    valorFioBPorKwh:'Fio B por kWh',somaComponentes:'Total dos itens da concessionária',
+    multasEAdicionais:'Multas e outros adicionais',liquidoTotal:'Cobrança de energia somada dos pontos',
+    ajusteConsumoExcedente:'Abatimento referente ao saldo já cobrado'
   };
-  var valor = sc[campo.chave];
-  if(campo.chave === 'consumoTotal' || campo.chave === 'consumoReal') valor = r.consumoRealKwh;
-  if(campo.chave === 'injecaoTotal') valor = r.injecaoMesKwh;
-  var formato = campo.formato;
-  if(['consumoTotal','consumoReal','consumoEfetivo','consumoAlocadoTotal','injecaoEfetiva','saldoDeltaEfetivo','saldoDelta'].indexOf(campo.chave) !== -1) formato='kwh';
-  var rotulo = nomes[campo.chave] || campo.rotulo;
-  if(campo.chave === 'consumoTotal' || campo.chave === 'consumoReal') rotulo = 'Consumo total real';
-  return {chave:campo.chave, rotulo:rotulo, valor:valor === null || valor === undefined ? 'Não informado' : formatarValor(valor,formato)};
+  var formato=campo.formato || 'numero',chave=campo.chave;
+  if(['precoBase','taxaBandeira','precoSemDesconto','precoComDesconto','valorFioBPorKwh'].indexOf(chave)!==-1)formato='tarifa';
+  else if(['desconto','descontoReal'].indexOf(chave)!==-1)formato='percentual';
+  else if(['consumoTotal','consumoReal','energiaAtiva','consumoKwh','injecaoTotal','injecaoNaConta','injecaoEfetiva','consumoEfetivo','consumoAlocadoTotal','autoConsumo','saldoDelta','saldoDeltaEfetivo','saldoDisponivelKwh','saldoUtilizadoKwh','saldoRestanteKwh'].indexOf(chave)!==-1)formato='kwh';
+  else if(['saldoCobreNegativo','saldoJaCobrado','pontoPrincipal'].indexOf(chave)!==-1)formato='booleano';
+  var rotulo=nomes[chave] || campo.rotulo || chave;
+  if(chave==='injecaoComDescontoRS' && draft && !profile.possuiItensMultiplos){
+    var cliente=clienteDoDocumento(draft) || {};
+    var abateFioB=(profile.formulas || []).some(function(f){return /\binjecaoComDescontoRS\s*=.*-\s*fioB\b/.test(f);});
+    if(abateFioB && !cliente.locadorPagaFatura)rotulo+=' — Fio B já abatido';
+  }
+  var unidades={moeda:'R$',kwh:'kWh',tarifa:'R$/kWh',percentual:'%',booleano:'Sim/Não',numero:'número'};
+  var unidade=unidades[formato] || 'número';
+  rotulo=rotulo.replace(/\s*\((?:R\$\/kWh|R\$|kWh|%|Sim\/Não|número)\)\s*$/i,'');
+  return {rotulo:rotulo+' ('+unidade+')',formato:formato};
+}
+function formatarValorFatura(valor,formato){
+  if(valor===null || valor===undefined || !isFinite(Number(valor)))return 'Não informado';
+  if(formato==='tarifa')return 'R$ '+Number(valor).toLocaleString('pt-BR',{minimumFractionDigits:2,maximumFractionDigits:6})+'/kWh';
+  if(formato==='numero')return fmtNum(Number(valor));
+  return formatarValor(valor,formato);
+}
+function campoDocumento(campo,draft){
+  var profile=perfilDoDocumento(draft),sc=draft.scope || {},r=resumoEnergiaDoDocumento(profile,draft);
+  var def=apresentacaoCampoFatura(campo,profile,draft),valor=sc[campo.chave];
+  if(campo.chave==='consumoTotal' || campo.chave==='consumoReal'){
+    valor=r.consumoRealKwh;def.rotulo='Consumo total real (kWh)';
+  }
+  if(campo.chave==='injecaoTotal')valor=r.injecaoMesKwh;
+  return {chave:campo.chave,rotulo:def.rotulo,valor:formatarValorFatura(valor,def.formato)};
 }
 function camposExtrasDocumento(profile,draft){
-  var vistos = {};
-  return camposDisponiveisPerfil(profile).filter(function(c){
-    if(vistos[c.chave] || CAMPOS_ENERGIA_RESUMO.indexOf(c.chave) !== -1 || /^lucro/i.test(c.chave)) return false;
-    vistos[c.chave]=true;
-    return (draft.camposVisiveisEscolhidos || []).indexOf(c.chave) !== -1;
+  var vistos={};
+  return camposOpcionaisCliente(profile).filter(function(c){
+    if(vistos[c.chave])return false;vistos[c.chave]=true;
+    return (draft.camposVisiveisEscolhidos || []).indexOf(c.chave)!==-1;
   }).map(function(c){return campoDocumento(c,draft);});
 }
 function linhasFinanceirasDocumento(profile,draft){
@@ -1918,7 +1960,7 @@ function modeloDocumento(client,profile,draft,dc,interno){
       if(vistos[v.chave]) return; vistos[v.chave]=true;
       var c=campoDocumento({chave:v.chave,rotulo:v.rotulo,formato:v.formato},draft);
       /* A entrada original deve continuar disponível na auditoria, com rótulo próprio. */
-      if(v.chave === 'consumoTotal') c={chave:v.chave,rotulo:'Leitura de consumo fornecida ao perfil',valor:formatarValor(draft.scope[v.chave],v.formato)};
+      if(v.chave === 'consumoTotal') c={chave:v.chave,rotulo:'Consumo da conta principal informado ao cálculo (kWh)',valor:formatarValor(draft.scope[v.chave],v.formato)};
       entradas.push(c);
     });
     camposDisponiveisPerfil(profile).forEach(function(c){
@@ -1926,8 +1968,8 @@ function modeloDocumento(client,profile,draft,dc,interno){
     });
     if(r.conferenciaConsumoGD1){
       var gd1 = r.conferenciaConsumoGD1;
-      entradas.push({chave:'consumoCompensadoKwh',rotulo:'Consumo compensado (' + gd1.origem + ')',valor:energiaTexto(gd1.compensadoKwh)});
-      calculados.push({chave:'totalConferenciaGD1',rotulo:'Soma de consumo compensado e não compensado',valor:energiaTexto(gd1.totalKwh)});
+      entradas.push({chave:'consumoCompensadoKwh',rotulo:'Consumo compensado (kWh; ' + gd1.origem + ')',valor:energiaTexto(gd1.compensadoKwh)});
+      calculados.push({chave:'totalConferenciaGD1',rotulo:'Consumo compensado + não compensado (kWh)',valor:energiaTexto(gd1.totalKwh)});
     }
   }
   var avisos=[];
@@ -1987,10 +2029,8 @@ function renderPreview(){
 
   /* O gestor confere os números pelo "Baixar PDF interno" — a tela fica só com o
      essencial: o que vai aparecer pro cliente, e os botões pra gerar os arquivos. */
-  var camposDisp = camposDisponiveisPerfil(profile).filter(function(c){
-    return CAMPOS_ENERGIA_RESUMO.indexOf(c.chave) === -1 && !/^lucro/i.test(c.chave);
-  });
-  var checklistHtml = '<div class="panel"><h2>Detalhes extras para o cliente</h2><p class="hint">Consumo real, injeção e saldo aparecem no resumo. Marque abaixo apenas os detalhes extras desejados.</p><div class="checklist">' +
+  var camposDisp = camposOpcionaisCliente(profile);
+  var checklistHtml = '<div class="panel"><h2>Detalhes extras para o cliente</h2><p class="hint">Energia em kWh; valores em R$; preços por kWh em R$/kWh; descontos em %. O resumo já traz consumo, injeção e saldo. Escolha somente os detalhes adicionais desejados.</p><div class="checklist">' +
     camposDisp.map(function(campo){
       var checked = d.camposVisiveisEscolhidos.indexOf(campo.chave) > -1;
       return '<label><input type="checkbox" class="campo-visivel-toggle" data-chave="' + campo.chave + '"' + (checked?' checked':'') + '> ' + escapeHtml(campoDocumento(campo,d).rotulo) + '</label>';
@@ -2722,12 +2762,12 @@ async function baixarPdf(modo){
     if(interno){
       paragrafo('Perfil: '+profile.nome+' · Consumo: '+m.energia.origemConsumo+'. O total financeiro foi preservado.',9);
       if(m.avisos.length){titulo('CONFERÊNCIA');m.avisos.forEach(function(a){paragrafo(a,9,[139,76,30]);});}
-      titulo('DADOS INFORMADOS AO PERFIL');linhas(m.entradas);
-      if(m.calculados.length){titulo('RESULTADOS E BASES DO PERFIL');linhas(m.calculados);}
+      titulo('DADOS LANÇADOS DA CONTA');linhas(m.entradas);
+      if(m.calculados.length){titulo('CONFERÊNCIA DO CÁLCULO');paragrafo('Valores intermediários para conferência. As quantidades usadas nas fórmulas não substituem o consumo total real. R$ = valor; kWh = energia; R$/kWh = tarifa; % = percentual.',8.5);linhas(m.calculados);}
       if(profile.possuiItensMultiplos && d.itensResultado){
         checkBreak(90);titulo('RATEIO POR PONTO');
-        var colunas=[{x:margin,w:width-265,rotulo:'Ponto'},{x:margin+width-255,w:85,rotulo:'Consumo bruto'},
-          {x:margin+width-165,w:65,rotulo:'Fio B'},{x:margin+width-95,w:95,rotulo:'Valor no perfil'}];
+        var colunas=[{x:margin,w:width-265,rotulo:'Ponto'},{x:margin+width-255,w:85,rotulo:'Consumo (kWh)'},
+          {x:margin+width-165,w:65,rotulo:'Fio B (R$)'},{x:margin+width-95,w:95,rotulo:'Valor (R$)'}];
         function cabecalhoRateio(){
           fonte(8,true,[92,111,99]);
           colunas.forEach(function(c,i){escrever(c.rotulo,i ? c.x+c.w : c.x,y,i?{align:'right'}:{});});y+=20;
@@ -2807,6 +2847,7 @@ function handleConfirmClick(el, cb){
 function varRowHtml(v, withCategoria){
   v = v || {};
   var rid = uid();
+  var formatoVisivel=apresentacaoCampoFatura(v,{possuiItensMultiplos:false},null).formato;
   var categoriaHtml = withCategoria ? (
     '<select class="v-categoria">' +
       '<option value="mensal"'+(v.categoria==='mensal'?' selected':'')+'>Mensal</option>' +
@@ -2829,11 +2870,12 @@ function varRowHtml(v, withCategoria){
     categoriaHtml + tipoHtml +
     '<input type="text" inputmode="decimal" class="v-padrao" placeholder="valor padrão" value="' + (v.valorPadrao!==undefined?fmtNum(v.valorPadrao):'0') + '">' +
     '<select class="v-formato">' +
-      '<option value="moeda"'+(v.formato==='moeda'?' selected':'')+'>R$</option>' +
-      '<option value="kwh"'+(v.formato==='kwh'?' selected':'')+'>kWh</option>' +
-      '<option value="percentual"'+(v.formato==='percentual'?' selected':'')+'>%</option>' +
-      '<option value="numero"'+(v.formato==='numero'?' selected':'')+'>número</option>' +
-      '<option value="booleano"'+(v.formato==='booleano'?' selected':'')+'>Sim/Não</option>' +
+      '<option value="moeda"'+(formatoVisivel==='moeda'?' selected':'')+'>R$</option>' +
+      '<option value="tarifa"'+(formatoVisivel==='tarifa'?' selected':'')+'>R$/kWh</option>' +
+      '<option value="kwh"'+(formatoVisivel==='kwh'?' selected':'')+'>kWh</option>' +
+      '<option value="percentual"'+(formatoVisivel==='percentual'?' selected':'')+'>%</option>' +
+      '<option value="numero"'+(formatoVisivel==='numero'?' selected':'')+'>número</option>' +
+      '<option value="booleano"'+(formatoVisivel==='booleano'?' selected':'')+'>Sim/Não</option>' +
     '</select>' +
     calcHtml +
     '<button type="button" class="rm-btn" data-action="'+(withCategoria?'remove-var-row':'remove-itemvar-row')+'" data-id="' + rid + '">✕</button>' +
@@ -3044,7 +3086,7 @@ function lerProfileDoFormulario(){
   var totalSel = document.getElementById('pe-total-final');
   p.chaveTotalFinal = totalSel ? totalSel.value : '';
   p.camposVisiveisCliente = Array.prototype.slice.call(document.querySelectorAll('.campo-visivel-editor:checked')).map(function(cb){ return cb.dataset.chave; });
-  var rotulosCampos = {}, formatosCampos = {};
+  var rotulosCampos = Object.assign({},p.rotulosCampos || {}), formatosCampos = Object.assign({},p.formatosCampos || {});
   document.querySelectorAll('.campo-rotulo-editor').forEach(function(inp){ rotulosCampos[inp.dataset.chave] = inp.value.trim() || inp.dataset.chave; });
   document.querySelectorAll('.campo-formato-editor').forEach(function(sel){ formatosCampos[sel.dataset.chave] = sel.value; });
   p.rotulosCampos = rotulosCampos;
@@ -3078,22 +3120,24 @@ function popularSelectItemFioB(p){
 function popularChecklistCampos(p, selecionados){
   var el = document.getElementById('pe-campos-visiveis');
   if(!el) return;
-  var campos = camposDisponiveisPerfil(p);
+  var campos = camposOpcionaisCliente(p);
   if(campos.length === 0){ el.innerHTML = '<span class="hint">Nenhum campo disponível ainda — escreva as fórmulas e clique em "Testar fórmulas".</span>'; return; }
   el.innerHTML = campos.map(function(c){
     var checked = selecionados.indexOf(c.chave) > -1;
+    var formatoVisivel=apresentacaoCampoFatura(c,p,null).formato;
     if(!c.editavel){
-      return '<label><input type="checkbox" class="campo-visivel-editor" data-chave="'+c.chave+'"'+(checked?' checked':'')+'> ' + escapeHtml(c.rotulo) + ' <span class="mono" style="color:var(--ink-soft);font-size:11px">(' + c.chave + ')</span></label>';
+      return '<label><input type="checkbox" class="campo-visivel-editor" data-chave="'+c.chave+'"'+(checked?' checked':'')+'> ' + escapeHtml(apresentacaoCampoFatura(c,p,null).rotulo) + ' <span class="mono" style="color:var(--ink-soft);font-size:11px">(' + c.chave + ')</span></label>';
     }
     /* campo calculado por fórmula: rótulo e formato de exibição são editáveis */
     return '<div style="display:flex;align-items:center;gap:6px;">' +
       '<input type="checkbox" class="campo-visivel-editor" data-chave="'+c.chave+'"'+(checked?' checked':'')+'>' +
-      '<input type="text" class="campo-rotulo-editor" data-chave="'+c.chave+'" value="'+escapeHtml(c.rotulo)+'" placeholder="Rótulo para o cliente" style="flex:1;padding:5px 7px;border:1px solid var(--line);border-radius:3px;font-size:12.5px">' +
+      '<input type="text" class="campo-rotulo-editor" data-chave="'+c.chave+'" value="'+escapeHtml(apresentacaoCampoFatura(c,p,null).rotulo)+'" placeholder="Rótulo para o cliente" style="flex:1;padding:5px 7px;border:1px solid var(--line);border-radius:3px;font-size:12.5px">' +
       '<select class="campo-formato-editor" data-chave="'+c.chave+'" style="padding:5px 6px;border:1px solid var(--line);border-radius:3px;font-size:12px">' +
-        '<option value="moeda"'+(c.formato==='moeda'?' selected':'')+'>R$</option>' +
-        '<option value="kwh"'+(c.formato==='kwh'?' selected':'')+'>kWh</option>' +
-        '<option value="percentual"'+(c.formato==='percentual'?' selected':'')+'>%</option>' +
-        '<option value="numero"'+(c.formato==='numero'?' selected':'')+'>número</option>' +
+        '<option value="moeda"'+(formatoVisivel==='moeda'?' selected':'')+'>R$</option>' +
+        '<option value="tarifa"'+(formatoVisivel==='tarifa'?' selected':'')+'>R$/kWh</option>' +
+        '<option value="kwh"'+(formatoVisivel==='kwh'?' selected':'')+'>kWh</option>' +
+        '<option value="percentual"'+(formatoVisivel==='percentual'?' selected':'')+'>%</option>' +
+        '<option value="numero"'+(formatoVisivel==='numero'?' selected':'')+'>número</option>' +
       '</select>' +
       '<span class="mono" style="color:var(--ink-soft);font-size:11px;white-space:nowrap">(' + c.chave + ')</span>' +
     '</div>';
@@ -3699,17 +3743,16 @@ async function onSignOut(){
    O aviso aparece uma vez por versão por navegador (localStorage compartilhado
    entre o site principal e os subsites, pois ficam no mesmo domínio).
    ============================================================ */
-var IG_BASE_VERSION = '1.04';
-var IG_BASE_RELEASE_ID = '1.04-2026-10-06';
+var IG_BASE_VERSION = '1.05';
+var IG_BASE_RELEASE_ID = '1.05-2026-10-06';
 var IG_BASE_CHANGELOG = [
-  "Histórico mais limpo: busca e ordenação rápidas, com tipo de usina e datas em Mais filtros.",
-  "Filtros continuam combináveis; o resumo mostra os refinamentos ativos mesmo quando o menu está fechado.",
-  "Consumo automático em GD1 e GD2, sem repetir os campos opcionais de conferência no lançamento padrão.",
-  "Leituras confirmadas antigas continuam preservadas. Perfis sem dados de consumo mantêm a entrada necessária.",
-  "Fatura do cliente em uma página A4, com diagramação compacta, textos completos, Pix e contatos legíveis.",
-  "Conteúdo que não cabe com legibilidade é sinalizado antes da emissão, sem cortes silenciosos.",
-  "Prévia e download na mesma tela, sem página intermediária. PDF interno e outros formatos ficam em um menu.",
-  "Valores financeiros, rateio e resultados históricos preservados para os dados válidos."
+  "Nomes mais diretos nas faturas GD1, GD2 de ponto único, múltiplos pontos e perfis personalizados.",
+  "Unidades explícitas: R$ para valores, kWh para energia, R$/kWh para tarifas e % para descontos.",
+  "Consumo não compensado e gasto não compensado identificados separadamente, sem misturar energia e dinheiro.",
+  "Detalhes extras do cliente mais simples; valores intermediários ficam na conferência interna.",
+  "Tarifas exibidas com até seis casas decimais, preservando a precisão dos preços cadastrados.",
+  "Fio B já abatido identificado quando aplicável, evitando confusão entre os valores apresentados.",
+  "PDF do cliente em uma página; fórmulas, valores finais e históricos preservados."
 ];
 function igbMostrarChangelog(){
   var KEY = 'igbase_changelog_visto';
