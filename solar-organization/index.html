@@ -1937,16 +1937,24 @@ function modeloDocumento(client,profile,draft,dc,interno){
     energia:r,financeiro:linhasFinanceirasDocumento(profile,draft),extras:camposExtrasDocumento(profile,draft),
     entradas:entradas,calculados:calculados,avisos:avisos,observacoes:draft.observacoes || '',dc:dc};
 }
+function linhasContatoEmpresa(dc){
+  var linhas=[];
+  function adicionar(rotulo,valor){var t=limparTextoExibicao(valor);if(t)linhas.push(rotulo+': '+t);}
+  adicionar('Endereço',dc.enderecoContato);
+  adicionar('E-mail',dc.email);
+  (dc.telefones || []).forEach(function(t){adicionar('Telefone',t);});
+  return linhas;
+}
 function construirHtmlFatura(client,profile,draft,dc,qrDataUrl){
   var m=modeloDocumento(client,profile,draft,dc,false),cor=dc.corPrimaria || '#1B4D3E';
   function tabela(ls){return '<table class="fatura-tabela">'+ls.map(function(l){return '<tr><td>'+textoExibicao(l.rotulo)+'</td><td>'+textoExibicao(l.valor)+'</td></tr>';}).join('')+'</table>';}
-  var contatos=[];if(dc.email)contatos.push('E-mail: '+dc.email);(dc.telefones || []).filter(Boolean).forEach(function(t){contatos.push('Telefone: '+t);});
-  var estilo='<style>.fatura-cliente{font-family:Arial,Helvetica,sans-serif;max-width:698px;color:#16241d;font-size:12px;line-height:1.25;overflow-wrap:anywhere;box-sizing:border-box;background:#fff}.fatura-cliente *{box-sizing:border-box}.fatura-cliente .fatura-header{display:flex;justify-content:space-between;gap:18px;align-items:center}.fatura-cliente .fatura-header>div{flex:1;min-width:0}.fatura-cliente .fatura-logo{width:200px;max-height:120px;object-fit:contain}.fatura-cliente .fatura-empresa{font-size:22px;font-weight:700;color:'+escapeHtml(cor)+'}.fatura-cliente .fatura-muted{font-size:12px;color:#5c6f63}.fatura-cliente .fatura-cliente-id{margin:10px 0}.fatura-cliente .fatura-cliente-id strong{font-size:16px;display:block;margin-bottom:4px}.fatura-cliente .fatura-total{display:flex;justify-content:space-between;align-items:center;gap:12px;border-top:1px solid #dde5da;border-bottom:1px solid #dde5da;padding:8px 0;font-weight:700}.fatura-cliente .fatura-total strong{font-size:17px;color:'+escapeHtml(cor)+'}.fatura-cliente .fatura-metricas{display:grid;grid-template-columns:1fr 1fr;background:#f4f7f3;border-radius:5px;padding:10px;gap:9px 14px;margin:8px 0}.fatura-cliente .fatura-metricas strong{display:block;font-size:15px;color:'+escapeHtml(cor)+';margin-top:2px}.fatura-cliente .fatura-nota{font-size:12px;color:#5c6f63;margin:8px 0}.fatura-cliente h3{font-size:12px;color:'+escapeHtml(cor)+';margin:10px 0 5px;font-weight:700}.fatura-cliente .fatura-tabela{width:100%;border-collapse:collapse}.fatura-cliente .fatura-tabela td{padding:4px 0;vertical-align:top}.fatura-cliente .fatura-tabela td:first-child{width:75%;color:#5c6f63;padding-right:12px}.fatura-cliente .fatura-tabela td:last-child{text-align:right;font-weight:600}.fatura-cliente .fatura-extras{display:grid;grid-template-columns:1fr 1fr;gap:5px 12px;color:#5c6f63}.fatura-cliente .fatura-observacoes{white-space:pre-wrap;margin:0;color:#5c6f63}.fatura-cliente .fatura-pagamento{display:flex;justify-content:space-between;gap:16px;border-top:1px solid #dde5da;padding-top:8px;margin-top:10px}.fatura-cliente .fatura-pagamento>div{flex:1;min-width:0}.fatura-cliente .fatura-pagamento img{width:120px;height:120px;flex:none}.fatura-cliente .fatura-contatos p{margin:3px 0}.fatura-cliente .fatura-rodape{font-size:12px;color:#859387;margin:8px 0 0}@page{size:A4;margin:12mm}@media print{.fatura-cliente{max-width:none;width:100%;font-size:9pt;line-height:1.2;print-color-adjust:exact;-webkit-print-color-adjust:exact}.fatura-cliente .fatura-logo{width:150pt;max-height:90pt}.fatura-cliente .fatura-pagamento img{width:90pt;height:90pt}.fatura-cliente .fatura-muted,.fatura-cliente .fatura-nota,.fatura-cliente h3,.fatura-cliente .fatura-rodape{font-size:9pt}.fatura-cliente .fatura-header,.fatura-cliente .fatura-metricas,.fatura-cliente .fatura-pagamento,.fatura-cliente tr{break-inside:avoid}.fatura-cliente .fatura-tabela td{padding:3pt 0}.fatura-cliente .fatura-header img{max-width:35%}}</style>';
+  var contatos=linhasContatoEmpresa(dc);
+  var estilo='<style>.fatura-cliente{font-family:Arial,Helvetica,sans-serif;max-width:698px;color:#16241d;font-size:12px;line-height:1.25;overflow-wrap:anywhere;box-sizing:border-box;background:#fff}.fatura-cliente *{box-sizing:border-box}.fatura-cliente .fatura-header{display:flex;justify-content:space-between;gap:18px;align-items:center;margin-bottom:8px}.fatura-cliente .fatura-header>div{flex:1;min-width:0}.fatura-cliente .fatura-logo{width:300px;max-width:44%;max-height:187px;object-fit:contain;flex-shrink:0}.fatura-cliente .fatura-tipo{font-size:12px;font-weight:700;color:'+escapeHtml(cor)+';letter-spacing:.6px}.fatura-cliente .fatura-muted{font-size:12px;color:#5c6f63}.fatura-cliente .fatura-cliente-id{margin:10px 0}.fatura-cliente .fatura-cliente-id strong{font-size:16px;display:block;margin-bottom:4px}.fatura-cliente .fatura-total{display:flex;flex-wrap:wrap;justify-content:space-between;align-items:center;gap:12px;border-top:1px solid #dde5da;border-bottom:1px solid #dde5da;padding:8px 0;font-weight:700}.fatura-cliente .fatura-total strong{margin-left:auto;font-size:17px;color:'+escapeHtml(cor)+'}.fatura-cliente .fatura-metricas{display:grid;grid-template-columns:1fr 1fr;background:#f4f7f3;border-radius:5px;padding:10px;gap:9px 14px;margin:8px 0}.fatura-cliente .fatura-metricas strong{display:block;font-size:15px;color:'+escapeHtml(cor)+';margin-top:2px}.fatura-cliente .fatura-nota{font-size:12px;color:#5c6f63;margin:8px 0}.fatura-cliente h3{font-size:12px;color:'+escapeHtml(cor)+';margin:10px 0 5px;font-weight:700}.fatura-cliente .fatura-tabela{width:100%;border-collapse:collapse}.fatura-cliente .fatura-tabela td{padding:4px 0;vertical-align:top}.fatura-cliente .fatura-tabela td:first-child{width:75%;color:#5c6f63;padding-right:12px}.fatura-cliente .fatura-tabela td:last-child{text-align:right;font-weight:600}.fatura-cliente .fatura-extras{display:grid;grid-template-columns:1fr 1fr;gap:5px 12px;color:#5c6f63}.fatura-cliente .fatura-observacoes{white-space:pre-wrap;margin:0;color:#5c6f63}.fatura-cliente .fatura-pagamento{display:flex;justify-content:space-between;gap:16px;border-top:1px solid #dde5da;padding-top:8px;margin-top:10px}.fatura-cliente .fatura-pagamento>div{flex:1;min-width:0}.fatura-cliente .fatura-pagamento img{width:120px;height:120px;flex:none}.fatura-cliente .fatura-contatos{border-top:1px solid #dde5da;margin-top:10px;padding-top:6px;break-inside:avoid}.fatura-cliente .fatura-contatos p{margin:3px 0}.fatura-cliente .fatura-rodape{font-size:12px;color:#859387;margin:8px 0 0}@page{size:A4;margin:12mm}@media print{.fatura-cliente{max-width:none;width:100%;font-size:9pt;line-height:1.2;print-color-adjust:exact;-webkit-print-color-adjust:exact}.fatura-cliente .fatura-logo{width:225pt;max-height:140pt}.fatura-cliente .fatura-pagamento img{width:90pt;height:90pt}.fatura-cliente .fatura-muted,.fatura-cliente .fatura-nota,.fatura-cliente h3,.fatura-cliente .fatura-rodape{font-size:9pt}.fatura-cliente .fatura-header,.fatura-cliente .fatura-metricas,.fatura-cliente .fatura-pagamento,.fatura-cliente tr{break-inside:avoid}.fatura-cliente .fatura-tabela td{padding:3pt 0}.fatura-cliente .fatura-header img{max-width:44%}}</style>';
   return estilo+'<article class="fatura-cliente" aria-label="Fatura do cliente">'+
-    '<header class="fatura-header"><div><div class="fatura-empresa">'+textoExibicao(dc.nomeEmpresa || 'IG Base')+'</div><div class="fatura-muted">'+textoExibicao(dc.enderecoContato || '')+'</div></div>'+
+    '<header class="fatura-header"><div><div class="fatura-tipo">FATURA</div>'+
+    '<div class="fatura-cliente-id"><strong>'+textoExibicao(client.nome || '')+'</strong><span class="fatura-muted">'+textoExibicao('Referência: '+m.referencia)+'</span>'+(client.uc?'<div class="fatura-muted">UC: '+textoExibicao(client.uc)+'</div>':'')+'</div>'+
+    '<div class="fatura-total"><span>VALOR A PAGAR</span><strong>'+escapeHtml(m.total)+'</strong></div></div>'+
     (dc.logoBase64?'<img class="fatura-logo" src="'+escapeHtml(dc.logoBase64)+'" alt="Logo da empresa">':'')+'</header>'+
-    '<div class="fatura-cliente-id"><strong>'+textoExibicao(client.nome || '')+'</strong><span class="fatura-muted">'+textoExibicao('Referência: '+m.referencia+(client.uc?' · UC '+client.uc:''))+'</span></div>'+
-    '<div class="fatura-total"><span>VALOR A PAGAR</span><strong>'+escapeHtml(m.total)+'</strong></div>'+
     '<div class="fatura-metricas">'+linhasResumoEnergia(m.energia).map(function(l){return '<div><span class="fatura-muted">'+escapeHtml(l.rotulo)+'</span><strong>'+escapeHtml(l.valor)+'</strong></div>';}).join('')+'</div>'+
     '<p class="fatura-nota">'+escapeHtml(notaResumoEnergia(m.energia))+'</p>'+
     '<h3>COMPOSIÇÃO DA COBRANÇA</h3>'+tabela(m.financeiro)+
@@ -1954,8 +1962,9 @@ function construirHtmlFatura(client,profile,draft,dc,qrDataUrl){
     (m.observacoes?'<h3>OBSERVAÇÕES</h3><p class="fatura-observacoes">'+escapeHtml(m.observacoes)+'</p>':'')+
     '<section class="fatura-pagamento"><div><h3>PAGAMENTO VIA PIX</h3><strong>'+textoExibicao(client.chavePix || 'Chave não informada')+'</strong><div class="fatura-muted">'+textoExibicao([client.banco,client.beneficiario].filter(Boolean).join(' · '))+'</div>'+
     (client.condicaoPagamento?'<p class="fatura-muted">'+textoExibicao(client.condicaoPagamento)+'</p>':'')+
-    (contatos.length?'<div class="fatura-contatos"><h3>MEIOS DE CONTATO</h3>'+contatos.map(function(c){return '<p class="fatura-muted">'+textoExibicao(c)+'</p>';}).join('')+'</div>':'')+'</div>'+
+    '</div>'+
     (qrDataUrl?'<img src="'+escapeHtml(qrDataUrl)+'" alt="QR Code para pagamento via Pix">':'')+'</section>'+
+    (contatos.length?'<section class="fatura-contatos" aria-label="Endereço e contato da empresa"><h3>ENDEREÇO E CONTATO DA EMPRESA</h3>'+contatos.map(function(c){return '<p class="fatura-muted">'+textoExibicao(c)+'</p>';}).join('')+'</section>':'')+
     (dc.textoRodape?'<p class="fatura-rodape">'+textoExibicao(dc.textoRodape)+'</p>':'')+'</article>';
 }
 
@@ -2524,23 +2533,38 @@ function criarPdfClienteUmaPagina(m, qr, logoDim){
       });
     }
     try{
-      var logoW=logoDim?150:0,logoH=logoDim?Math.min(90,150*logoDim.h/logoDim.w):0;
+      var logoW=logoDim?225:0,logoH=logoDim?Math.min(140,225*logoDim.h/logoDim.w):0;
       if(logoDim)logoW=logoH*logoDim.w/logoDim.h;
       var nomeW=largura-(logoW?logoW+18:0),inicio=y;
-      paragrafo(m.dc.nomeEmpresa || 'IG Base',nomeW,margem,17,true,cor);
-      if(m.dc.enderecoContato)paragrafo(m.dc.enderecoContato,nomeW,margem,9,false,cinza);
+      /* Centraliza os dados da fatura ao lado da marca; o endereço fica
+         exclusivamente no bloco de contato. A marca é identificada pela logo. */
+      var nomeAltura=dividir(m.client.nome || '',nomeW,14,true).length*f.linha;
+      var referenciaAltura=dividir('Referência: '+m.referencia,nomeW,9,false).length*f.linha;
+      var ucAltura=m.client.uc?dividir('UC: '+m.client.uc,nomeW,9,false).length*f.linha:0;
+      var totalLinhas=dividir(m.total,nomeW,13,true),totalLargura=doc.getTextWidth(texto(m.total));
+      fonte(10,true);
+      var totalCabe=totalLinhas.length===1 && doc.getTextWidth('VALOR A PAGAR')+totalLargura+14<=nomeW;
+      var alturaCabecalho=f.linha+6+nomeAltura+referenciaAltura+ucAltura+f.espaco+(totalCabe?25:17+totalLinhas.length*17+8);
+      y+=Math.max(0,(logoH-alturaCabecalho)/2);
+      paragrafo('FATURA',nomeW,margem,9,true,cor);y+=6;
+      paragrafo(m.client.nome || '',nomeW,margem,14,true);
+      paragrafo('Referência: '+m.referencia,nomeW,margem,9,false,cinza);
+      if(m.client.uc)paragrafo('UC: '+m.client.uc,nomeW,margem,9,false,cinza);
+      y+=f.espaco;cabe(29);
+      var valorLs=dividir(m.total,nomeW,13,true);
+      var valorW=doc.getTextWidth(texto(m.total));fonte(10,true,cor);
+      var totalNaMesmaLinha=valorLs.length===1 && doc.getTextWidth('VALOR A PAGAR')+valorW+14<=nomeW;
+      var totalAltura=totalNaMesmaLinha?25:17+valorLs.length*17+8;cabe(totalAltura);
+      doc.setDrawColor(221,229,218);doc.line(margem,y,margem+nomeW,y);y+=17;
+      escreve('VALOR A PAGAR',margem,y);fonte(13,true,cor);
+      if(totalNaMesmaLinha){escreve(m.total,margem+nomeW,y,{align:'right'});y+=8;}
+      else{valorLs.forEach(function(l){y+=17;escreve(l,margem+nomeW,y,{align:'right'});});y+=8;}
+      doc.line(margem,y,margem+nomeW,y);
       if(logoDim){
-        cabe(Math.max(0,inicio+logoH-y));
+        cabe(Math.max(0,inicio-8+logoH-y));
         doc.addImage(m.dc.logoBase64,formatoImagemBase64(m.dc.logoBase64),pw-margem-logoW,inicio-8,logoW,logoH);
       }
-      y=Math.max(y,inicio+logoH)+f.espaco+2;
-      paragrafo(m.client.nome || '',largura,margem,12,true);
-      paragrafo('Referência: '+m.referencia+(m.client.uc?' · UC '+m.client.uc:''),largura,margem,9,false,cinza);
-      cabe(29);y+=f.espaco;
-      doc.setDrawColor(221,229,218);doc.line(margem,y,pw-margem,y);y+=17;
-      fonte(10,true,cor);escreve('VALOR A PAGAR',margem,y);
-      fonte(13,true,cor);escreve(m.total,pw-margem,y,{align:'right'});y+=8;
-      doc.line(margem,y,pw-margem,y);y+=f.espaco;
+      y=Math.max(y,inicio-8+logoH)+f.espaco+2;
       var metricas=linhasResumoEnergia(m.energia),metade=largura/2;
       var celulas=metricas.map(function(l){return {rotulo:dividir(l.rotulo,metade-20,9,false),valor:dividir(l.valor,metade-20,11,true)};});
       var alturas=[0,2].map(function(i){return Math.max(celulas[i].rotulo.length+celulas[i].valor.length,celulas[i+1].rotulo.length+celulas[i+1].valor.length)*f.linha+8;});
@@ -2573,15 +2597,13 @@ function criarPdfClienteUmaPagina(m, qr, logoDim){
       var banco=[m.client.banco,m.client.beneficiario].filter(Boolean).join(' · ');
       if(banco)paragrafo(banco,pixW,margem,9,false,cinza);
       if(m.client.condicaoPagamento)paragrafo(m.client.condicaoPagamento,pixW,margem,9,false,cinza);
-      var contatos=[];
-      if(m.dc.email)contatos.push('E-mail: '+m.dc.email);
-      (m.dc.telefones || []).filter(Boolean).forEach(function(t){contatos.push('Telefone: '+t);});
-      if(contatos.length){y+=f.espaco;paragrafo('MEIOS DE CONTATO',pixW,margem,9.5,true,cor);contatos.forEach(function(t){paragrafo(t,pixW,margem,9,false,cinza);});}
       if(qr){
         cabe(Math.max(0,pagamentoY+qrSize-y));
         doc.addImage(qr,formatoImagemBase64(qr),pw-margem-qrSize,pagamentoY-6,qrSize,qrSize);
         y=Math.max(y,pagamentoY+qrSize);
       }
+      var contatos=linhasContatoEmpresa(m.dc);
+      if(contatos.length){titulo('ENDEREÇO E CONTATO DA EMPRESA');contatos.forEach(function(t){paragrafo(t,largura,margem,9,false,cinza);});}
       if(m.dc.textoRodape){y+=f.espaco;paragrafo(m.dc.textoRodape,largura,margem,9,false,cinza);}
       cabe(10);fonte(9,false,cinza);escreve('Página 1 de 1',pw-margem,ph-20,{align:'right'});
       return {doc:doc,fonteMinima:9,alturaUtilizada:y,formato:tentativa};
@@ -2639,7 +2661,7 @@ async function baixarPdf(modo){
     function escrever(s,x,yy,opts){doc.text(texto(s),x,yy,opts || {});}
     function novaPagina(){
       doc.addPage();y=38;
-      fonte(9,true,rgb);escrever(dc.nomeEmpresa || 'IG Base',margin,y);
+      fonte(9,true,rgb);escrever('FATURA · USO INTERNO',margin,y);
       fonte(8,false,[92,111,99]);escrever(m.referencia + ' · ' + client.nome,pageW-margin,y,{align:'right',maxWidth:width-130});
       y+=12;doc.setDrawColor(221,229,218);doc.line(margin,y,pageW-margin,y);y+=24;
     }
@@ -2665,30 +2687,26 @@ async function baixarPdf(modo){
       });y+=8;
     }
     /* Cabeçalho compacto, para não empurrar o valor da cobrança para outra folha. */
-    var logoW=0,logoH=0;
+    var logoW=0,logoH=0,cabecalhoY=y;
     if(logoDim){
-      logoH=92;logoW=logoH*logoDim.w/logoDim.h;
-      if(logoW>170){logoW=170;logoH=logoW*logoDim.h/logoDim.w;}
+      logoH=140;logoW=logoH*logoDim.w/logoDim.h;
+      if(logoW>225){logoW=225;logoH=logoW*logoDim.h/logoDim.w;}
       try{doc.addImage(dc.logoBase64,formatoImagemBase64(dc.logoBase64),pageW-margin-logoW,y-8,logoW,logoH);}catch(e){}
     }
-    fonte(19,true,rgb);
-    var empresaLinhas=doc.splitTextToSize(texto(dc.nomeEmpresa || 'IG Base'),width-(logoW ? logoW+20 : 0));
-    empresaLinhas.forEach(function(l,i){escrever(l,margin,y+i*22);});
-    y+=empresaLinhas.length*22;
-    if(dc.enderecoContato){
-      fonte(8.5,false,[92,111,99]);
-      doc.splitTextToSize(texto(dc.enderecoContato),width-(logoW ? logoW+20 : 0)).forEach(function(l){escrever(l,margin,y);y+=11;});
-    }
-    y=Math.max(y,42+logoH)+15;
-    fonte(12,true);doc.splitTextToSize(texto(client.nome || ''),width).forEach(function(l){escrever(l,margin,y);y+=15;});
+    var cabecalhoW=width-(logoW ? logoW+20 : 0);
+    fonte(9,true,rgb);escrever('FATURA · USO INTERNO',margin,y);y+=22;
+    fonte(12,true);doc.splitTextToSize(texto(client.nome || ''),cabecalhoW).forEach(function(l){escrever(l,margin,y);y+=15;});
     fonte(9,false,[92,111,99]);
-    doc.splitTextToSize(texto('Referência: '+m.referencia+(client.uc?' · UC '+client.uc:'')+(interno?' · Documento interno':'')),width).forEach(function(l){escrever(l,margin,y);y+=12;});
+    doc.splitTextToSize(texto('Referência: '+m.referencia+(client.uc?' · UC '+client.uc:'')+(interno?' · Documento interno':'')),cabecalhoW).forEach(function(l){escrever(l,margin,y);y+=12;});
     y+=10;
     checkBreak(34);
-    doc.setDrawColor(221,229,218);doc.setLineWidth(0.5);doc.line(margin,y,pageW-margin,y);
+    doc.setDrawColor(221,229,218);doc.setLineWidth(0.5);doc.line(margin,y,margin+cabecalhoW,y);
+    /* O total interno usa duas linhas para caber ao lado da marca. */
     fonte(10,true,rgb);escrever(interno?'TOTAL DA FATURA · USO INTERNO':'VALOR A PAGAR',margin,y+18);
-    fonte(13,true,rgb);escrever(m.total,pageW-margin,y+18,{align:'right'});
-    y+=26;doc.line(margin,y,pageW-margin,y);y+=9;
+    y+=18;fonte(13,true,rgb);
+    doc.splitTextToSize(texto(m.total),cabecalhoW).forEach(function(l){y+=17;escrever(l,margin+cabecalhoW,y,{align:'right'});});
+    y+=8;doc.line(margin,y,margin+cabecalhoW,y);
+    y=Math.max(y,cabecalhoY-8+logoH)+9;
     /* Quadro 2 × 2: consumo bruto, injeção atual, uso e restante de saldo. */
     checkBreak(66);
     doc.setFillColor(244,247,243);doc.roundedRect(margin,y,width,58,5,5,'F');
@@ -2747,11 +2765,11 @@ async function baixarPdf(modo){
       if(qr){try{doc.addImage(qr,'PNG',pageW-margin-100,y-8,100,100);}catch(e){}}
       y=Math.max(pixY+10,y+(qr?106:45));
       if(client.condicaoPagamento)paragrafo(client.condicaoPagamento,8.5);
-      var contatos=[dc.email].concat(dc.telefones || []).filter(Boolean);
-      if(contatos.length){
-        titulo('MEIOS DE CONTATO');
-        contatos.forEach(function(c,i){paragrafo((dc.email && i === 0 ? 'E-mail: ' : 'Telefone: ') + c,8.5,null,2);});
-      }
+    }
+    var contatosEmpresa=linhasContatoEmpresa(dc);
+    if(contatosEmpresa.length){
+      titulo('ENDEREÇO E CONTATO DA EMPRESA');
+      contatosEmpresa.forEach(function(c){paragrafo(c,8.5,null,2);});
     }
     if(dc.textoRodape)paragrafo(dc.textoRodape,8,[133,147,135]);
     var paginas=doc.internal.getNumberOfPages();
