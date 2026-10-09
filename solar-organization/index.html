@@ -132,7 +132,7 @@
       <span>IG Base</span>
     </div>
     <div class="topbar-right" id="topbar-right">
-      <a class="enter-link" href="/solar-organization/">Entrar</a>
+      <a class="enter-link" href="/">Entrar</a>
     </div>
   </nav>
 
@@ -146,7 +146,7 @@
     </div>
 
     <div class="modules">
-      <a class="card active" href="/solar-organization/">
+      <a class="card active" href="/">
         <span class="dot"></span>
         <span class="icon-wrap"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="16.5" cy="6" r="1.9"/><path d="M16.5 1.4v1.2"/><path d="m20 3.1-.85.85"/><path d="M22.2 6h-1.2"/><path d="m20 8.9-.85-.85"/><path d="M2 21h20"/><path d="M4.5 21V11L12 5l7.5 6v10"/><path d="M9.5 21v-6h5v6"/></svg></span>
         <h2>Solar Organization</h2>
@@ -252,7 +252,7 @@ function renderLoggedIn(){
   document.getElementById('settings-btn').addEventListener('click', openSettings);
 }
 function renderLoggedOut(){
-  document.getElementById('topbar-right').innerHTML = '<a class="enter-link" href="/solar-organization/">Entrar</a>';
+  document.getElementById('topbar-right').innerHTML = '<a class="enter-link" href="/">Entrar</a>';
 }
 
 function openSettings(){
@@ -302,16 +302,15 @@ document.getElementById('settings-signout').addEventListener('click', sairDaCont
    O aviso aparece uma vez por versão por navegador (localStorage compartilhado
    entre o site principal e os subsites, pois ficam no mesmo domínio).
    ============================================================ */
-var IG_BASE_VERSION = '1.06';
-var IG_BASE_RELEASE_ID = '1.06-2026-10-06';
+var IG_BASE_VERSION = '1.06.1';
+var IG_BASE_RELEASE_ID = '1.06.1-2026-10-09';
 var IG_BASE_CHANGELOG = [
-  "Nomes mais diretos nas faturas GD1, GD2 de ponto único, múltiplos pontos e perfis personalizados.",
-  "Unidades explícitas: R$ para valores, kWh para energia, R$/kWh para tarifas e % para descontos.",
-  "Consumo não compensado e gasto não compensado identificados separadamente, sem misturar energia e dinheiro.",
-  "Detalhes extras do cliente mais simples em todos os modelos, sem repetir o total final; valores intermediários ficam na conferência interna.",
-  "Fatura do cliente com duas casas decimais; tarifas e números internos mantêm até seis casas, sem alterar os cálculos.",
-  "Fio B já abatido identificado quando aplicável, evitando confusão entre os valores apresentados.",
-  "PDF do cliente em uma página; fórmulas, valores finais e históricos preservados."
+  "Correção de funcionamento: opções para abrir, salvar e compartilhar faturas no iPad e iPhone.",
+  "Downloads PDF, PNG e Word com proteção contra cliques repetidos e dados alterados durante a geração.",
+  "Geradores de arquivos com nova tentativa após falha de conexão e alternativa de carregamento.",
+  "Links entre IG Base, Solar Organization e suporte corrigidos, mantendo os endereços publicados.",
+  "Falhas de gravação identificadas sem anunciar salvamento ou exclusão que não foram confirmados.",
+  "Fórmulas, valores de cobrança e faturas já salvas preservados."
 ];
 function igbMostrarChangelog(){
   var KEY = 'igbase_changelog_visto';
