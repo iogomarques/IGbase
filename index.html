@@ -1329,7 +1329,10 @@ function renderNovoOrcamento(){
       '</div>' +
     '</div>';
 
+  saldoContextoFormulario=null;
   restaurarRascunhoSeExistir(c, profile);
+  if(!saldoContextoFormulario)atualizarSaldoAnterior(true);
+  renderOrigemSaldo();
 }
 
 function readMensaisFromForm(){
@@ -1369,6 +1372,7 @@ function lerFormularioBruto(){
     ajusteRaw: ajusteEl ? ajusteEl.value : '',
     observacoes: txt('f-observacoes'),
     energiaDocumento: lerEnergiaDocumento(),
+    saldoTransferencia: saldoContextoFormulario ? copiarDados(saldoContextoFormulario) : null,
     mensais: {}, itens: null
   };
   document.querySelectorAll('.in-mensal').forEach(function(inp){
@@ -1428,6 +1432,9 @@ function restaurarRascunhoSeExistir(client, profile){
       }).join('');
     }
   }
+  saldoContextoFormulario=rascunho.saldoTransferencia ? copiarDados(rascunho.saldoTransferencia) : {modo:'manual',identidade:identidadeSaldoFormulario(),referencia:getReferenciaAtual(),motivo:'Rascunho anterior recuperado',aviso:'Saldo do rascunho preservado. Confira a origem antes de emitir.'};
+  setIf('saldo-correcao-motivo',saldoContextoFormulario.motivo || '');
+  renderOrigemSaldo();
   toast('Recuperamos os dados do seu último lançamento não salvo para este cliente.');
   onCalcular();
 }
@@ -1539,6 +1546,7 @@ function onCalcular(){
   var c = selectedClient(); if(!c) return;
   var profile = getProfile(c.profileId); if(!profile) return;
 
+  if(!validarTransferenciaSaldo())return;
   var referencia = getReferenciaAtual();
   var ajuste = num('f-ajuste');
   var observacoes = txt('f-observacoes');
@@ -1639,6 +1647,7 @@ function onCalcular(){
     fixosEntrada: copiarDados(fixos), versaoCalculo: '1.06',
     energiaDocumentoInputs: copiarDados(energiaDocumentoInputs)
   };
+  if(saldoContextoFormulario)novoDraft.saldoTransferencia=copiarDados(saldoContextoFormulario);
   novoDraft.resumoEnergia = construirResumoEnergia(profile, novoDraft);
   if(novoDraft.resumoEnergia.erroSaldo){ toast(novoDraft.resumoEnergia.erroSaldo); return; }
   state.lastDraft = novoDraft;
@@ -1700,6 +1709,142 @@ function atualizarLeituraPreservada(){
 }
 
 
+/* Controle de origem de saldo. Não altera fórmulas nem regrava snapshots. */
+var saldoContextoFormulario = null;
+function chaveUcSaldo(valor){ return String(valor || '').toUpperCase().replace(/[^A-Z0-9]/g,''); }
+function identidadeSaldo(client, profile, itens){
+  if(!client || !client.id || !chaveUcSaldo(client.uc)) return null;
+  var ponto = '';
+  if(profile && profile.possuiItensMultiplos){
+    var principais = (itens || []).filter(function(it){return !!it.pontoPrincipal;});
+    if(!principais.length && profile.distribuicaoAutomaticaPontos && itens && itens.length)principais=[itens[0]];
+    if(principais.length !== 1 || !chaveUcSaldo(principais[0].uc)) return null;
+    ponto = chaveUcSaldo(principais[0].uc);
+  }
+  return client.id + '|' + chaveUcSaldo(client.uc) + '|' + ponto;
+}
+function identidadeSaldoQuote(q){
+  /* Registros sem snapshot não comprovam qual UC existia na emissão. */
+  if(!q.clienteSnapshot || !q.perfilSnapshot || q.clienteSnapshot.id !== q.clientId) return null;
+  return identidadeSaldo(q.clienteSnapshot,q.perfilSnapshot,q.itens || q.itensResultado);
+}
+function identidadeSaldoFormulario(){
+  var c=selectedClient();
+  return c ? identidadeSaldo(c,getProfile(c.profileId),readItemRows()) : null;
+}
+function assinaturaOrigemSaldo(q){
+  return JSON.stringify([q.id,identidadeSaldoQuote(q),q.referencia,
+    q.resumoEnergia ? q.resumoEnergia.saldoRestanteKwh : null,
+    q.saldoTransferencia ? [q.saldoTransferencia.modo,q.saldoTransferencia.origemId,q.saldoTransferencia.saldoOrigem,q.saldoTransferencia.motivo] : null]);
+}
+function procurarSaldoAnterior(identidade, referencia, quotes){
+  var periodo=referenciaPeriodo(referencia);
+  if(!periodo) return {erro:'Informe um mês e ano válidos para localizar o saldo anterior.'};
+  if(!identidade) return {erro:'Preencha a UC do cliente e, nos modelos com vários pontos, a UC do ponto principal. O saldo é individual por conta.'};
+  var candidatos=(quotes || []).filter(function(q){
+    var p=referenciaPeriodo(q.referencia);
+    return identidadeSaldoQuote(q) === identidade && p && p.inicio < periodo.inicio;
+  }).sort(function(a,b){return referenciaPeriodo(b.referencia).inicio.localeCompare(referenciaPeriodo(a.referencia).inicio);});
+  if(!candidatos.length) return {erro:'Nenhuma fatura anterior com UC e saldo comprovados. Informe o saldo inicial manualmente; vazio permanece desconhecido.'};
+  var anterior=candidatos[0], p=referenciaPeriodo(anterior.referencia);
+  if(candidatos.filter(function(q){return referenciaPeriodo(q.referencia).inicio === p.inicio;}).length !== 1)
+    return {erro:'Há mais de uma fatura em '+anterior.referencia+'. Confira o histórico e informe o saldo correto manualmente.'};
+  var saldo=anterior.resumoEnergia ? valorEnergiaInformado(anterior.resumoEnergia.saldoRestanteKwh) : null;
+  if(saldo === null) return {erro:'A fatura de '+anterior.referencia+' não tem saldo final conhecido. Informe o saldo inicial manualmente.'};
+  var aviso=verificarOrigemSaldo(anterior,quotes,{});
+  if(aviso) return {erro:'O saldo de '+anterior.referencia+' precisa de revisão: '+aviso};
+  var meses=(periodo.ano-p.ano)*12+periodo.mes-p.mes;
+  return {quote:anterior,saldo:saldo,identidade:identidade,referencia:referencia,
+    aviso:meses>1?'Existem meses sem fatura entre a origem e o período atual. Confira os movimentos não registrados.':''};
+}
+function verificarOrigemSaldo(q, quotes, visitados){
+  var meta=q.saldoTransferencia;
+  if(!meta || meta.modo !== 'automatico') return '';
+  visitados=visitados || {};
+  if(visitados[q.id]) return 'Cadeia de saldos inválida.';
+  visitados[q.id]=true;
+  if(meta.identidade !== identidadeSaldoQuote(q)) return 'A unidade consumidora da origem não corresponde à fatura.';
+  var periodo=referenciaPeriodo(q.referencia), origem=(quotes || []).find(function(x){return x.id === meta.origemId;});
+  if(!origem) return 'A fatura de origem foi excluída.';
+  var po=referenciaPeriodo(origem.referencia);
+  if(!periodo || !po || po.inicio >= periodo.inicio) return 'A referência da origem foi alterada.';
+  if(assinaturaOrigemSaldo(origem) !== meta.assinatura) return 'A fatura de origem foi alterada.';
+  var anteriores=(quotes || []).filter(function(x){var p=referenciaPeriodo(x.referencia);return identidadeSaldoQuote(x) === meta.identidade && p && p.inicio < periodo.inicio;});
+  var recente=anteriores.reduce(function(max,x){return referenciaPeriodo(x.referencia).inicio>max?referenciaPeriodo(x.referencia).inicio:max;},'');
+  if(recente !== po.inicio) return 'Uma fatura anterior mais próxima foi cadastrada fora de ordem.';
+  if(anteriores.filter(function(x){return referenciaPeriodo(x.referencia).inicio === recente;}).length !== 1) return 'Há faturas duplicadas no período de origem.';
+  return verificarOrigemSaldo(origem,quotes,visitados);
+}
+function atualizarSaldoAnterior(forcar){
+  var campo=document.getElementById('saldo-disponivel-entrada');
+  if(!campo) return;
+  var id=identidadeSaldoFormulario(), ref=getReferenciaAtual();
+  var mudou=!saldoContextoFormulario || saldoContextoFormulario.identidade !== id || saldoContextoFormulario.referencia !== ref;
+  if(!mudou && !forcar) {renderOrigemSaldo();return;}
+  var anterior=procurarSaldoAnterior(id,ref,state.quotes);
+  saldoContextoFormulario={identidade:id,referencia:ref,modo:anterior.quote?'automatico':'manual',
+    origemId:anterior.quote ? anterior.quote.id : null,origemReferencia:anterior.quote ? anterior.quote.referencia : '',
+    saldoOrigem:anterior.quote ? anterior.saldo : null,assinatura:anterior.quote ? assinaturaOrigemSaldo(anterior.quote) : '',
+    aviso:anterior.erro || anterior.aviso || '',motivo:''};
+  campo.value=anterior.quote ? numeroParaFormulario(anterior.saldo) : '';
+  var motivo=document.getElementById('saldo-correcao-motivo');if(motivo)motivo.value='';
+  /* Trocar mês/UC não reutiliza a leitura de uso de outro período. */
+  var uso=document.querySelector('[data-chave="saldoUtilizadoKwh"]');if(uso)uso.value='';
+  renderOrigemSaldo();
+}
+function renderOrigemSaldo(){
+  var meta=saldoContextoFormulario, status=document.getElementById('saldo-origem-status');
+  if(!meta || !status) return;
+  status.textContent=(meta.origemId ? 'Origem: '+meta.origemReferencia+' · '+energiaTexto(meta.saldoOrigem)+'. '+
+    (meta.modo === 'automatico'?'Saldo recuperado automaticamente.':'Saldo corrigido manualmente; valor original preservado no registro.') : '')+
+    (meta.aviso ? ' '+meta.aviso : '');
+  var motivo=document.getElementById('saldo-correcao-campo');
+  if(motivo)motivo.hidden=meta.modo !== 'manual';
+}
+function registrarEdicaoSaldo(target){
+  if(target.id === 'f-ref-mes' || target.id === 'f-ref-ano' || target.classList.contains('item-uc') ||
+    (target.dataset.chave === 'pontoPrincipal')){ atualizarSaldoAnterior(false); }
+  if(target.id === 'saldo-disponivel-entrada' && saldoContextoFormulario){
+    saldoContextoFormulario.modo='manual';renderOrigemSaldo();
+  }
+  if(target.id === 'saldo-correcao-motivo' && saldoContextoFormulario)saldoContextoFormulario.motivo=target.value.trim();
+}
+function validarTransferenciaSaldo(){
+  /* Chamadas programáticas e rascunhos legados continuam aceitando dados manuais. */
+  var meta=saldoContextoFormulario;
+  if(!meta) return true;
+  var id=identidadeSaldoFormulario(),ref=getReferenciaAtual();
+  if(!referenciaPeriodo(ref)){toast('Informe mês e ano válidos para a fatura.');return false;}
+  if(meta.identidade && meta.identidade !== id){atualizarSaldoAnterior(true);toast('A UC mudou. Confira o saldo da conta atual e calcule novamente.');return false;}
+  if(meta.identidade !== id || meta.referencia !== ref){
+    /* Não sobrescrever uma entrada feita por integração ou recuperação de rascunho. */
+    meta=saldoContextoFormulario={modo:'manual',identidade:id,referencia:ref,motivo:'Entrada manual recuperada',aviso:''};
+    renderOrigemSaldo();
+  }
+  var campo=document.getElementById('saldo-disponivel-entrada');
+  if(meta.modo === 'automatico'){
+    var origem=state.quotes.find(function(q){return q.id === meta.origemId;});
+    var atual=procurarSaldoAnterior(id,ref,state.quotes);
+    if(!atual.quote || atual.quote.id !== meta.origemId){toast('O histórico anterior mudou. Recupere e confira novamente o saldo.');return false;}
+    if(!origem || assinaturaOrigemSaldo(origem) !== meta.assinatura || verificarOrigemSaldo(origem,state.quotes,{})){
+      toast('A origem do saldo mudou. Recupere novamente o saldo ou registre uma correção manual.');return false;
+    }
+    if(valorEnergiaInformado(lerEnergiaDocumento().saldoDisponivelKwh) !== meta.saldoOrigem){meta.modo='manual';renderOrigemSaldo();}
+  }
+  meta.motivo=txt('saldo-correcao-motivo') || meta.motivo || '';
+  if(meta.modo === 'manual' && meta.origemId && !meta.motivo){toast('Informe o motivo da correção manual do saldo.');return false;}
+  if(meta.modo === 'automatico' && (!campo || !campo.value.trim()))return false;
+  return true;
+}
+function saldoRegistroHtml(d){
+  var m=d.saldoTransferencia;if(!m)return '';
+  return '<p class="hint">Saldo inicial: '+escapeHtml(energiaTexto(d.energiaDocumentoInputs ? d.energiaDocumentoInputs.saldoDisponivelKwh : null))+'. '+(m.origemId ? 'Origem: '+escapeHtml(m.origemReferencia)+' ('+escapeHtml(energiaTexto(m.saldoOrigem))+'). ' : 'Informado manualmente. ')+(m.modo === 'manual' && m.motivo ? 'Motivo: '+escapeHtml(m.motivo)+'.' : '')+'</p>';
+}
+function avisoSaldoHistorico(q){
+  var aviso=verificarOrigemSaldo(q,state.quotes,{});
+  return aviso ? '<p class="hint" role="status"><strong>Saldo requer revisão:</strong> '+escapeHtml(aviso)+' Os valores salvos foram preservados; confira antes de criar a próxima fatura.</p>' : '';
+}
+
 function saldoDocumentoCamposHtml(profile, camposPerfil){
   var temVariacao = (profile.variaveis || []).some(function(v){return v.categoria === 'mensal' && v.chave === 'saldoDelta';});
   return '<fieldset id="saldo-dados"><legend>Saldo de energia</legend>' + camposPerfil +
@@ -1707,7 +1852,10 @@ function saldoDocumentoCamposHtml(profile, camposPerfil){
     '<div class="field"><label for="saldo-disponivel-entrada">Saldo disponível antes do uso (kWh)</label><input type="text" inputmode="decimal" id="saldo-disponivel-entrada" class="energia-documento-input" data-chave="saldoDisponivelKwh" placeholder="Não informado"><span class="hint">Informe o crédito disponível no início do ciclo. Vazio significa desconhecido; zero significa nenhum crédito.</span></div>' +
     /* Compatibilidade: preserva leituras explícitas em rascunhos/histórico anteriores,
        sem criar um segundo lançamento editável do mesmo uso de saldo. */
-    '<input type="hidden" class="energia-documento-input" data-chave="saldoUtilizadoKwh" value="">' +
+    '<p class="hint" id="saldo-origem-status" role="status"></p>' +
+    '<button type="button" class="btn" data-action="recuperar-saldo-anterior">Recuperar saldo do histórico</button>' +
+    '<div class="field" id="saldo-correcao-campo"><label for="saldo-correcao-motivo">Motivo da informação ou correção manual</label><input type="text" id="saldo-correcao-motivo" placeholder="Ex.: saldo conferido na distribuidora"></div>' +
+    '<div class="field"><label for="saldo-utilizado-entrada">Saldo acumulado utilizado neste período (kWh)</label><input type="text" inputmode="decimal" id="saldo-utilizado-entrada" class="energia-documento-input" data-chave="saldoUtilizadoKwh" placeholder="Vazio: apurar pelos dados do mês"><span class="hint">Informe somente o uso de créditos anteriores. Zero preserva o saldo inicial; vazio mantém a apuração existente. A variação de saldo da conta continua sendo usada nas fórmulas.</span></div>' +
     '<div class="field"><label for="saldo-final-automatico">Saldo disponível após a fatura (automático)</label><input type="text" id="saldo-final-automatico" readonly aria-readonly="true" placeholder="Calculado ao gerar o orçamento"><span class="hint" id="saldo-resumo-uso" role="status">O uso de saldo e o saldo final serão apurados ao calcular o orçamento.</span></div>' +
     '<button type="button" class="btn" id="saldo-reset-automatico" data-action="reset-saldo-automatico" hidden>Usar apuração automática de saldo</button>' +
     '</fieldset>';
@@ -1736,7 +1884,7 @@ function atualizarConsumoAutomatico(profile, draft){
   if(saldoFinal) saldoFinal.value = energiaTexto(resumo.saldoRestanteKwh);
   var uso = document.getElementById('saldo-resumo-uso');
   if(uso) uso.textContent = 'Saldo utilizado no mês: ' + energiaTexto(resumo.saldoUtilizadoKwh) +
-    (resumo.origemSaldo === 'informado' ? ' (leitura preservada do registro anterior).' : ' (automático).') +
+    (resumo.origemSaldo === 'informado' ? ' (informado).' : ' (automático).') +
     ' Saldo final = saldo disponível antes do uso − saldo utilizado. A injeção excedente fica separada.';
   atualizarLeituraPreservada();
   var resetSaldo = document.getElementById('saldo-reset-automatico');
@@ -2086,7 +2234,7 @@ function renderPreview(){
   var avisos = modeloDocumento(clienteDoDocumento(d),profile,d,configDoDocumento(d),false).avisos;
   var avisoHtml = avisos.length ? '<div class="panel" style="border-color:#d5ad72"><b>Conferir dados de energia</b>' +
     avisos.map(function(a){return '<p class="hint">' + escapeHtml(a) + '</p>';}).join('') + '</div>' : '';
-  var historicoAviso = d.id ? '<div class="panel"><b>Fatura do histórico</b><p class="hint">Valores originais salvos. Calcular novamente gera um novo orçamento com as configurações atuais.</p></div>' : '';
+  var historicoAviso = d.id ? '<div class="panel"><b>Fatura do histórico</b><p class="hint">Valores originais salvos. Calcular novamente gera um novo orçamento com as configurações atuais.</p>'+saldoRegistroHtml(d)+'</div>' : '';
   var client = clienteDoDocumento(d);
   var documentoHtml = construirHtmlFatura(client,profile,d,configDoDocumento(d),null);
   col.innerHTML = historicoAviso + avisoHtml + botoesHtml +
@@ -2129,6 +2277,7 @@ async function onSalvarHistorico(){
        O histórico armazena o resultado final; não roda o motor novamente. */
     var q = copiarDados(state.lastDraft);
     q.id = uid(); q.createdAt = new Date().toISOString();
+    if(q.saldoTransferencia && q.saldoTransferencia.modo === 'automatico' && verificarOrigemSaldo(q,[q].concat(state.quotes),{})){toast('A origem do saldo mudou. Calcule novamente com o saldo conferido antes de salvar.');return;}
     var quotes = [q].concat(state.quotes);
     if(!await saveQuotes(quotes)){
       toast('Não foi possível salvar no histórico. Confira sua conexão e tente novamente.');
@@ -2149,7 +2298,7 @@ function abrirQuote(id){
     '<div class="btn-row" style="margin-bottom:16px">' +
       '<button class="btn" data-action="duplicar-quote" data-id="' + q.id + '">Usar como base para novo orçamento</button>' +
       '<button class="btn" data-action="set-tab" data-tab="historico">Voltar ao histórico</button>' +
-    '</div><div id="preview-col" style="max-width:720px"></div>';
+    '</div>'+avisoSaldoHistorico(q)+'<div id="preview-col" style="max-width:720px"></div>';
   state.lastDraft = copiarDados(q);
   renderPreview();
   var preview = document.getElementById('preview-col');
@@ -2218,7 +2367,7 @@ function historicoItemHtml(q){
   return '<div class="history-item"><div class="info"><b>' + textoExibicao(cliente.nome) + ' — ' + textoExibicao(q.referencia) + ' — ' + totalStr + '</b> ' +
     '<span>' + (tipoGDDoPerfil(p) || 'Perfil personalizado') + (cliente.uc ? ' · UC: '+textoExibicao(cliente.uc) : '') + (local ? ' · Local: '+textoExibicao(local) : '') + '</span> ' +
     '<span>Salvo em ' + dataStr + '</span> ' +
-    '<span><strong>Saldo disponível após a fatura:</strong> ' + escapeHtml(energiaTexto(saldo)) + '</span></div>' +
+    '<span><strong>Saldo disponível após a fatura:</strong> ' + escapeHtml(energiaTexto(saldo)) + '</span></div>' + avisoSaldoHistorico(q) +
     '<div class="btn-row"><button class="btn" data-action="abrir-quote" data-id="' + escapeHtml(q.id) + '">Abrir fatura</button>' +
     '<button class="btn" data-action="duplicar-quote" data-id="' + escapeHtml(q.id) + '">Usar como base</button>' +
     '<button class="btn btn-danger" data-action="delete-quote-confirm" data-id="' + escapeHtml(q.id) + '">Excluir</button></div></div>';
@@ -2314,6 +2463,8 @@ function duplicarQuote(id){
     var wrap = document.getElementById('pontos-container');
     if(wrap && profile){ wrap.innerHTML = q.itens.map(function(it){ return itemInputRowHtml(profile, it.nome, it.uc, it); }).join(''); }
   }
+  saldoContextoFormulario=q.saldoTransferencia ? copiarDados(q.saldoTransferencia) : {modo:'manual',identidade:identidadeSaldoFormulario(),referencia:getReferenciaAtual(),motivo:'Fatura anterior usada como base',aviso:'Saldo inicial da base preservado. Troque o mês para recuperar o saldo cronologicamente anterior.'};
+  setIf('saldo-correcao-motivo',saldoContextoFormulario.motivo || '');renderOrigemSaldo();
   toast('Dados carregados como base. O novo cálculo usará o perfil e as configurações atuais.');
 }
 async function deleteQuote(id){
@@ -3893,15 +4044,14 @@ async function onSignOut(){
    O aviso aparece uma vez por versão por navegador (localStorage compartilhado
    entre o site principal e os subsites, pois ficam no mesmo domínio).
    ============================================================ */
-var IG_BASE_VERSION = '1.06.1';
-var IG_BASE_RELEASE_ID = '1.06.1-2026-10-09';
+var IG_BASE_VERSION = '1.07';
+var IG_BASE_RELEASE_ID = '1.07-2026-10-09';
 var IG_BASE_CHANGELOG = [
-  "Correção de funcionamento: opções para abrir, salvar e compartilhar faturas no iPad e iPhone.",
-  "Downloads PDF, PNG e Word com proteção contra cliques repetidos e dados alterados durante a geração.",
-  "Geradores de arquivos com nova tentativa após falha de conexão e alternativa de carregamento.",
-  "Links entre IG Base, Solar Organization e suporte corrigidos, mantendo os endereços publicados.",
-  "Falhas de gravação identificadas sem anunciar salvamento ou exclusão que não foram confirmados.",
-  "Fórmulas, valores de cobrança e faturas já salvas preservados."
+  "Saldo inicial recuperado da fatura cronologicamente anterior da mesma UC, com origem visível.",
+  "Uso do saldo acumulado pode ser informado, inclusive zero, mantendo as regras financeiras existentes.",
+  "Correções manuais registram motivo e valor de origem para conferência.",
+  "Mudanças, exclusões, duplicidades e lançamentos fora de ordem no histórico sinalizam saldos que precisam de revisão.",
+  "Faturas já salvas mantêm seus valores; melhorias de exportação para Safari preservadas."
 ];
 function igbMostrarChangelog(){
   var KEY = 'igbase_changelog_visto';
@@ -4057,8 +4207,9 @@ document.addEventListener('input', function(e){
 var _rascunhoTimer = null;
 document.addEventListener('input', function(e){
   var t = e.target;
-  var relevante = t.id === 'f-ref-mes' || t.id === 'f-ref-ano' || t.id === 'f-ajuste' || t.id === 'f-observacoes' ||
-    (t.classList && (t.classList.contains('in-mensal') || t.classList.contains('energia-documento-input') || t.classList.contains('item-nome') || t.classList.contains('item-val')));
+  registrarEdicaoSaldo(t);
+  var relevante = t.id === 'f-ref-mes' || t.id === 'f-ref-ano' || t.id === 'f-ajuste' || t.id === 'f-observacoes' || t.id === 'saldo-correcao-motivo' ||
+    (t.classList && (t.classList.contains('in-mensal') || t.classList.contains('energia-documento-input') || t.classList.contains('item-nome') || t.classList.contains('item-uc') || t.classList.contains('item-val')));
   if(!relevante) return;
   marcarFaturaDesatualizada();
   if(t.classList && (t.classList.contains('in-mensal') || t.classList.contains('item-val') || t.classList.contains('energia-documento-input'))){
@@ -4090,6 +4241,8 @@ document.addEventListener('change', function(e){
       if(cb !== t) cb.checked = false;
     });
   }
+  registrarEdicaoSaldo(t);
+  if(t.matches && t.matches('#f-ref-mes,#f-ref-ano,.item-uc,[data-chave="pontoPrincipal"]'))salvarRascunhoAtual();
 });
 
 document.addEventListener('click', function(e){
@@ -4135,6 +4288,7 @@ document.addEventListener('click', function(e){
 
     case 'add-ponto': addPontoRow(); marcarFaturaDesatualizada(); break;
     case 'remove-ponto': removePontoRow(id); marcarFaturaDesatualizada(); break;
+    case 'recuperar-saldo-anterior': atualizarSaldoAnterior(true);marcarFaturaDesatualizada();salvarRascunhoAtual();break;
     case 'calcular': onCalcular(); break;
     case 'salvar-historico': onSalvarHistorico(); break;
     case 'baixar-doc': baixarDoc(); break;
