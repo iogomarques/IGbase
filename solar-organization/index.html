@@ -302,15 +302,14 @@ document.getElementById('settings-signout').addEventListener('click', sairDaCont
    O aviso aparece uma vez por versão por navegador (localStorage compartilhado
    entre o site principal e os subsites, pois ficam no mesmo domínio).
    ============================================================ */
-var IG_BASE_VERSION = '1.06.1';
-var IG_BASE_RELEASE_ID = '1.06.1-2026-10-09';
+var IG_BASE_VERSION = '1.07';
+var IG_BASE_RELEASE_ID = '1.07-2026-10-09';
 var IG_BASE_CHANGELOG = [
-  "Correção de funcionamento: opções para abrir, salvar e compartilhar faturas no iPad e iPhone.",
-  "Downloads PDF, PNG e Word com proteção contra cliques repetidos e dados alterados durante a geração.",
-  "Geradores de arquivos com nova tentativa após falha de conexão e alternativa de carregamento.",
-  "Links entre IG Base, Solar Organization e suporte corrigidos, mantendo os endereços publicados.",
-  "Falhas de gravação identificadas sem anunciar salvamento ou exclusão que não foram confirmados.",
-  "Fórmulas, valores de cobrança e faturas já salvas preservados."
+  "Saldo inicial recuperado da fatura cronologicamente anterior da mesma UC, com origem visível.",
+  "Uso do saldo acumulado pode ser informado, inclusive zero, mantendo as regras financeiras existentes.",
+  "Correções manuais registram motivo e valor de origem para conferência.",
+  "Mudanças, exclusões, duplicidades e lançamentos fora de ordem no histórico sinalizam saldos que precisam de revisão.",
+  "Faturas já salvas mantêm seus valores; melhorias de exportação para Safari preservadas."
 ];
 function igbMostrarChangelog(){
   var KEY = 'igbase_changelog_visto';
