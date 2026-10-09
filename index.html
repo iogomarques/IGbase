@@ -343,6 +343,8 @@
   @media(max-width:700px){.historico-busca-principal{grid-template-columns:1fr}.emissao-toolbar .btn-primary{width:100%;justify-content:center}}
   @media print{body > *{display:none!important}#app-root{display:block!important}.app,.main,.content,.quote-grid,.quote-preview-col{display:block!important;margin:0!important;padding:0!important;width:100%!important}.sidebar,.topbar,.tabs,.quote-form-col,#app-footer,#modal-root,.emissao-toolbar,#emissao-status,.exportacoes-secundarias{display:none!important}#preview-col>*,#preview-col summary{display:none!important}#preview-col>details:has([data-fatura-previa]){display:block!important;border:0!important;padding:0!important;margin:0!important}#preview-col [data-fatura-previa]{display:block!important;padding:0!important}}
   /* FIM REVISÃO 1.04 */
+  .arquivo-pronto .btn{white-space:normal;text-align:center;min-height:44px}
+  @media print{.arquivo-pronto{display:none!important}}
 </style>
 </head>
 <body>
@@ -771,10 +773,36 @@ async function storageSet(key, value){
     return true;
   }catch(e){ console.error(e); return false; }
 }
-async function saveProfiles(){ await storageSet('usinas:v2:profiles', JSON.stringify(state.profiles)); }
-async function saveClients(){ await storageSet('usinas:v2:clients', JSON.stringify(state.clients)); }
+async function saveProfiles(profiles){ return await storageSet('usinas:v2:profiles', JSON.stringify(profiles || state.profiles)); }
+async function saveClients(clients){ return await storageSet('usinas:v2:clients', JSON.stringify(clients || state.clients)); }
 async function saveQuotes(quotes){ return await storageSet('usinas:v2:quotes', JSON.stringify(quotes || state.quotes)); }
-async function saveDocConfig(){ await storageSet('usinas:v2:docconfig', JSON.stringify(state.docConfig)); }
+async function saveDocConfig(config){ return await storageSet('usinas:v2:docconfig', JSON.stringify(config || state.docConfig)); }
+var salvandoColecoes = false;
+async function salvarColecoesEstado(alteracoes){
+  if(salvandoColecoes){toast('Aguarde a gravação em andamento.');return false;}
+  salvandoColecoes=true;
+  var gravadas=[],anteriores={};
+  try{
+    for(var i=0;i<alteracoes.length;i++){
+      var item=alteracoes[i];anteriores[item.campo]=copiarDados(state[item.campo]);
+      if(!await storageSet(item.chave,JSON.stringify(item.valor))){
+        var restaurado=true;
+        /* Uma resposta perdida pode esconder uma gravação concluída no servidor.
+           Restaurar também a coleção cuja resposta falhou, além das anteriores. */
+        var restaurar=gravadas.concat([item]);
+        for(var j=restaurar.length-1;j>=0;j--){
+          var anterior=restaurar[j];
+          if(!await storageSet(anterior.chave,JSON.stringify(anteriores[anterior.campo])))restaurado=false;
+        }
+        if(!restaurado)renderInicio('A operação não foi concluída e a restauração não pôde ser confirmada. Recarregue o sistema para conferir os dados antes de continuar.',true);
+        toast(restaurado?'Não foi possível concluir a gravação. Os dados anteriores foram mantidos. Confira a conexão e tente novamente.':'Falha de conexão. Confira os dados ao recarregar o sistema.');
+        return false;
+      }
+      gravadas.push(item);
+    }
+    alteracoes.forEach(function(item){state[item.campo]=item.valor;});return true;
+  }finally{salvandoColecoes=false;}
+}
 function docConfigPadrao(){
   return { nomeEmpresa: '', logoBase64: null, corPrimaria: '#1B4D3E', textoRodape: '', enderecoContato: '', email: '', telefones: [] };
 }
@@ -957,7 +985,7 @@ async function loadAll(){
   }catch(e){ console.error(e); state.username = ''; }
   if(state.profiles.length === 0){
     state.profiles = presetsPadrao();
-    await saveProfiles();
+    if(!await saveProfiles())throw new Error('Não foi possível salvar os modelos iniciais. Tente novamente.');
   } else {
     /* Corrige automaticamente os modelos padrão (GD1/GD2) desatualizados a cada login,
        sem depender do usuário clicar em "Atualizar modelos padrão". Só mostra aviso se
@@ -966,7 +994,7 @@ async function loadAll(){
   }
   if(state.clients.length === 0){
     state.clients = seedClients(state.profiles);
-    await saveClients();
+    if(!await saveClients())throw new Error('Não foi possível salvar os clientes iniciais. Tente novamente.');
   }
   if(state.clients.length){ state.selectedClientId = state.clients[0].id; }
 }
@@ -1125,7 +1153,7 @@ function renderSidebar(){
   var el = document.getElementById('sidebar');
   el.innerHTML =
     '<div class="brand" style="justify-content:space-between;align-items:center;margin-bottom:8px">' +
-      '<a href="/" title="Voltar para o IG Base" aria-label="Voltar para o IG Base" style="display:block;line-height:0">' + sunIconSvg('clamp(44px,8vw,64px)') + '</a>' +
+      '<a href="/solar-organization/" title="Voltar para o IG Base" aria-label="Voltar para o IG Base" style="display:block;line-height:0">' + sunIconSvg('clamp(44px,8vw,64px)') + '</a>' +
       '<button class="settings-btn" data-action="abrir-config" title="Configurações" aria-label="Configurações">' +
         '<svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M12 15a3 3 0 1 0 0-6 3 3 0 0 0 0 6Z"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 1 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 1 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 1 1-2.83-2.83l.06-.06A1.65 1.65 0 0 0 4.68 15a1.65 1.65 0 0 0-1.51-1H3a2 2 0 1 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 1 1 2.83-2.83l.06.06A1.65 1.65 0 0 0 9 4.6a1.65 1.65 0 0 0 1-1.51V3a2 2 0 1 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 1 1 2.83 2.83l-.06.06A1.65 1.65 0 0 0 19.4 9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 1 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1Z"/></svg>' +
       '</button>' +
@@ -2014,6 +2042,8 @@ function construirHtmlFatura(client,profile,draft,dc,qrDataUrl){
 
 function marcarFaturaDesatualizada(){
   if(!state.lastDraft)return;state.faturaDesatualizada=true;
+  versaoDocumento++;
+  limparArquivoPronto();
   var status=document.getElementById('emissao-status');if(status)status.textContent='Os dados mudaram. Calcule novamente antes de emitir a fatura.';
 }
 
@@ -2023,6 +2053,8 @@ function marcarFaturaDesatualizada(){
 function renderPreview(){
   var col = document.getElementById('preview-col');
   if(!col || !state.lastDraft) return;
+  versaoDocumento++;
+  limparArquivoPronto();
   var d = state.lastDraft;
   state.faturaDesatualizada=false;
   var profile = perfilDoDocumento(d);
@@ -2047,7 +2079,7 @@ function renderPreview(){
     fmtBRL(d.scope[profile.chaveTotalFinal]) + '</span></div></div>';
 
   var botoesHtml = '<div class="emissao-toolbar"><button class="btn btn-primary" data-action="baixar-pdf">Baixar fatura PDF · 1 página</button><button class="btn" data-action="salvar-historico">Salvar no histórico</button></div>'+
-    '<p class="hint" id="emissao-status" role="status">Confira a prévia abaixo. A fatura será baixada diretamente nesta tela.</p>';
+    '<p class="hint" id="emissao-status" role="status">Confira a prévia abaixo. No iPad ou iPhone, o arquivo pronto terá opções para abrir, salvar ou compartilhar.</p>';
   var secundariosHtml='<details class="panel exportacoes-secundarias"><summary>Outros formatos e conferência interna</summary><p class="hint">Para envio e impressão em uma folha, use o PDF do cliente. O documento interno mantém a conferência completa.</p><div class="btn-row"><button class="btn" data-action="baixar-png">PNG</button><button class="btn" data-action="baixar-doc">Word</button><button class="btn" data-action="baixar-pdf-interno">PDF interno</button></div></details>';
 
   var r = resumoEnergiaDoDocumento(profile,d);
@@ -2077,8 +2109,9 @@ async function salvarCamposComoPadrao(){
   var d = state.lastDraft; if(!d) return;
   var client = state.clients.find(function(c){ return c.id === d.clientId; });
   if(!client) return;
-  client.camposVisiveisPadrao = d.camposVisiveisEscolhidos.slice();
-  await saveClients();
+  var clients=state.clients.map(function(c){return c.id === client.id ? Object.assign({},c,{camposVisiveisPadrao:d.camposVisiveisEscolhidos.slice()}) : c;});
+  if(!await saveClients(clients)){toast('Não foi possível salvar os campos padrão. Confira a conexão e tente novamente.');return;}
+  state.clients=clients;
   toast('Pronto — os próximos orçamentos deste cliente já vão começar com esses campos marcados.');
 }
 
@@ -2284,8 +2317,9 @@ function duplicarQuote(id){
   toast('Dados carregados como base. O novo cálculo usará o perfil e as configurações atuais.');
 }
 async function deleteQuote(id){
-  state.quotes = state.quotes.filter(function(q){ return q.id !== id; });
-  await saveQuotes();
+  var quotes = state.quotes.filter(function(q){ return q.id !== id; });
+  if(!await saveQuotes(quotes)){toast('Não foi possível excluir a fatura. Confira a conexão e tente novamente.');return;}
+  state.quotes = quotes;
   renderHistorico();
   toast('Orçamento excluído.');
 }
@@ -2295,10 +2329,11 @@ async function deleteQuote(id){
    ============================================================ */
 async function baixarDoc(){
   var d = state.lastDraft;
-  if(!d){ toast('Calcule um orçamento antes de baixar o Word.'); return; }
+  if(!iniciarExportacao(d,'Word')) return;
+  try{
   var client = clienteDoDocumento(d);
   var profile = perfilDoDocumento(d);
-  if(!client || !profile) return;
+  if(!client || !profile) throw new Error('Os dados desta fatura não estão disponíveis. Abra a fatura novamente.');
   var dc = configDoDocumento(d);
   var qrDataUrl = await gerarQrPixDataUrl(client, d.scope[profile.chaveTotalFinal]);
   var corpo = construirHtmlFatura(client, profile, d, dc, qrDataUrl);
@@ -2306,7 +2341,10 @@ async function baixarDoc(){
     "<head><meta charset='utf-8'><title>Fatura</title></head><body>" + corpo + "</body></html>";
   var blob = new Blob(['\ufeff', html], { type:'application/msword' });
   var nomeArquivo = nomeArquivoDocumento(client, d.referencia, 'FATURA') + '.doc';
+  if(!conferirDraftExportacao(d)) return;
   await compartilharOuBaixarBlob(blob, nomeArquivo, 'application/msword');
+  }catch(e){erroExportacao(e,'Não foi possível gerar o Word. Tente novamente.');}
+  finally{finalizarExportacao();}
 }
 /* ============================================================
    PIX — payload BR Code (padrão EMV/Banco Central) + QR Code visual
@@ -2409,26 +2447,46 @@ function gerarPayloadPix(chave, nomeBeneficiario, cidade, valor){
     '6304';
   return payload + crc16Pix(payload);
 }
-var _qrLibLoading = null;
-function carregarQrCodeLib(){
-  if(window.qrcode) return Promise.resolve(true);
-  if(_qrLibLoading) return _qrLibLoading;
-  _qrLibLoading = new Promise(function(resolve){
-    var s = document.createElement('script');
-    s.src = 'https://cdnjs.cloudflare.com/ajax/libs/qrcode-generator/1.4.4/qrcode.min.js';
-    s.onload = function(){ resolve(!!window.qrcode); };
-    s.onerror = function(){ resolve(false); };
-    document.head.appendChild(s);
-    setTimeout(function(){ resolve(!!window.qrcode); }, 4000);
+var bibliotecasExportacao = {};
+function carregarBibliotecaExportacao(chave, fontes, disponivel){
+  if(disponivel()) return Promise.resolve(true);
+  if(bibliotecasExportacao[chave]) return bibliotecasExportacao[chave];
+  var tarefa = new Promise(function(resolve){
+    var indice = 0;
+    function tentar(){
+      if(disponivel()){resolve(true);return;}
+      if(indice >= fontes.length){resolve(false);return;}
+      var script = document.createElement('script'), concluido = false, timer;
+      script.src = fontes[indice++]; script.async = true;
+      function terminar(ok){
+        if(concluido) return; concluido = true; clearTimeout(timer);
+        script.onload = null; script.onerror = null;
+        if(ok){resolve(true);return;}
+        script.remove(); tentar();
+      }
+      script.onload = function(){terminar(disponivel());};
+      script.onerror = function(){terminar(false);};
+      timer = setTimeout(function(){terminar(disponivel());},12000);
+      document.head.appendChild(script);
+    }
+    tentar();
   });
-  return _qrLibLoading;
+  bibliotecasExportacao[chave] = tarefa;
+  tarefa.then(function(){if(bibliotecasExportacao[chave] === tarefa)delete bibliotecasExportacao[chave];});
+  return tarefa;
+}
+function carregarQrCodeLib(){
+  return carregarBibliotecaExportacao('qrcode',[
+    'https://cdnjs.cloudflare.com/ajax/libs/qrcode-generator/1.4.4/qrcode.min.js',
+    'https://cdn.jsdelivr.net/npm/qrcode-generator@1.4.4/qrcode.js'
+  ],function(){return typeof window.qrcode === 'function';});
 }
 /* Devolve uma data URL (PNG) do QR Code do Pix pra este cliente/mês, ou null se
    o cliente não tiver ligado a opção ou faltar dado essencial (chave/beneficiário). */
 async function gerarQrPixDataUrl(client, valorTotal){
   if(!client || !client.gerarQrCodePix || !client.chavePix) return null;
   var ok = await carregarQrCodeLib();
-  if(!ok || !window.qrcode) return null;
+  if(!ok || !window.qrcode)throw new Error('Não foi possível carregar o QR Code Pix. Confira a conexão e tente novamente.');
   try{
     var payload = gerarPayloadPix(client.chavePix, client.beneficiario, client.cidadePix, valorTotal);
     var qr = window.qrcode(0, 'M');
@@ -2437,79 +2495,156 @@ async function gerarQrPixDataUrl(client, valorTotal){
     return qr.createDataURL(10, 10);
   }catch(e){
     console.error(e);
-    return null;
+    throw new Error('Não foi possível gerar o QR Code Pix. Confira os dados de pagamento e tente novamente.');
   }
 }
 
-var _html2canvasLoading = null;
 function carregarHtml2Canvas(){
-  if(window.html2canvas) return Promise.resolve(true);
-  if(_html2canvasLoading) return _html2canvasLoading;
-  _html2canvasLoading = new Promise(function(resolve){
-    var s = document.createElement('script');
-    s.src = 'https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js';
-    s.onload = function(){ resolve(!!window.html2canvas); };
-    s.onerror = function(){ resolve(false); };
-    document.head.appendChild(s);
-    setTimeout(function(){ resolve(!!window.html2canvas); }, 4000);
-  });
-  return _html2canvasLoading;
+  return carregarBibliotecaExportacao('html2canvas',[
+    'https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js',
+    'https://cdn.jsdelivr.net/npm/html2canvas@1.4.1/dist/html2canvas.min.js'
+  ],function(){return typeof window.html2canvas === 'function';});
+}
+function escalaPngSegura(largura,altura){
+  return Math.min(2,Math.sqrt(3000000 / Math.max(1,largura * altura)),4096 / Math.max(1,largura,altura));
+}
+async function aguardarImagensDocumento(container){
+  if(document.fonts && document.fonts.ready)await esperarComLimite(document.fonts.ready,6000);
+  await Promise.all(Array.from(container.querySelectorAll('img')).map(function(img){
+    if(img.complete){if(!img.naturalWidth)throw new Error('Não foi possível carregar uma imagem da fatura.');return;}
+    return new Promise(function(resolve,reject){
+      var timer = setTimeout(function(){limpar();reject(new Error('A imagem da fatura demorou para carregar. Tente novamente.'));},12000);
+      function limpar(){clearTimeout(timer);img.onload=null;img.onerror=null;}
+      img.onload=function(){limpar();resolve();};
+      img.onerror=function(){limpar();reject(new Error('Não foi possível carregar uma imagem da fatura.'));};
+    });
+  }));
 }
 async function baixarPng(){
   var d = state.lastDraft;
-  if(!d){ toast('Calcule um orçamento antes de baixar a imagem.'); return; }
-  var abaPreAberta = null;
-  if(abaPreAberta){
-    try{ abaPreAberta.document.write('<title>Gerando imagem…</title><body style="font-family:sans-serif;padding:40px;color:#667">Gerando a imagem, aguarde…</body>'); }catch(e){}
-  }
+  if(!iniciarExportacao(d,'imagem')) return;
+  var container = null, canvas = null;
+  try{
   var ok = await carregarHtml2Canvas();
-  if(!ok || !window.html2canvas){
-    if(abaPreAberta) abaPreAberta.close();
-    toast('Não deu para carregar o gerador de imagem agora. Tente de novo em instantes.');
-    return;
-  }
+  if(!ok || !window.html2canvas)throw new Error('Não foi possível carregar o gerador de imagem. Confira a conexão e tente novamente.');
   var client = clienteDoDocumento(d);
   var profile = perfilDoDocumento(d);
-  if(!client || !profile){ if(abaPreAberta) abaPreAberta.close(); return; }
+  if(!client || !profile)throw new Error('Os dados desta fatura não estão disponíveis. Abra a fatura novamente.');
   var dc = configDoDocumento(d);
   var qrDataUrl = await gerarQrPixDataUrl(client, d.scope[profile.chaveTotalFinal]);
 
-  var container = document.createElement('div');
-  container.style.position = 'fixed'; container.style.left = '-99999px'; container.style.top = '0';
+  container = document.createElement('div');
+  container.setAttribute('aria-hidden','true');
+  container.style.position = 'absolute'; container.style.left = '-10000px'; container.style.top = '0';
   container.style.width = '640px'; container.style.background = '#ffffff'; container.style.padding = '32px';
   container.innerHTML = construirHtmlFatura(client, profile, d, dc, qrDataUrl);
   document.body.appendChild(container);
-  try{
-    var canvas = await window.html2canvas(container, { backgroundColor:'#ffffff', scale:2 });
+    await aguardarImagensDocumento(container);
+    var largura = container.scrollWidth || 704, altura = container.scrollHeight || 1000;
+    canvas = await window.html2canvas(container, { backgroundColor:'#ffffff', scale:escalaPngSegura(largura,altura),
+      windowWidth:Math.max(800,largura),windowHeight:altura,scrollX:0,scrollY:0,logging:false });
     var blob = await new Promise(function(resolve){ canvas.toBlob(resolve, 'image/png'); });
-    if(!blob){ if(abaPreAberta) abaPreAberta.close(); toast('Não deu para gerar a imagem.'); return; }
+    if(!blob)throw new Error('Não foi possível gerar a imagem. Use o PDF ou tente novamente.');
     var nomeArquivo = nomeArquivoDocumento(client, d.referencia, 'FATURA') + '.png';
-    await compartilharOuBaixarBlob(blob, nomeArquivo, 'image/png', abaPreAberta);
+    if(!conferirDraftExportacao(d)) return;
+    await compartilharOuBaixarBlob(blob, nomeArquivo, 'image/png');
   }catch(e){
-    console.error(e);
-    if(abaPreAberta) abaPreAberta.close();
-    toast('Erro ao gerar a imagem.');
+    erroExportacao(e,'Não foi possível gerar a imagem. Tente novamente.');
   }finally{
-    document.body.removeChild(container);
+    if(container)container.remove();
+    if(canvas){canvas.width=0;canvas.height=0;}
+    finalizarExportacao();
   }
 }
-var _jspdfLoading = null;
 function carregarJsPdf(){
-  if(window.jspdf) return Promise.resolve(true);
-  if(_jspdfLoading) return _jspdfLoading;
-  _jspdfLoading = new Promise(function(resolve){
-    var s = document.createElement('script');
-    s.src = 'https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js';
-    s.onload = function(){ resolve(!!window.jspdf); };
-    s.onerror = function(){ resolve(false); };
-    document.head.appendChild(s);
-    setTimeout(function(){ resolve(!!window.jspdf); }, 4000);
-  });
-  return _jspdfLoading;
+  return carregarBibliotecaExportacao('jspdf',[
+    'https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js',
+    'https://cdn.jsdelivr.net/npm/jspdf@2.5.1/dist/jspdf.umd.min.js'
+  ],function(){return !!(window.jspdf && window.jspdf.jsPDF);});
 }
-/* Todos os formatos são baixados na mesma tela. */
-async function compartilharOuBaixarBlob(blob, filename, mimeType, abaPreAberta){
-  baixarBlobNaMesmaTela(blob,filename);
+var exportandoDocumento = false, arquivoPronto = null, versaoDocumento = 0, versaoExportacao = 0;
+function statusExportacao(mensagem){
+  var el=document.getElementById('emissao-status');if(el)el.textContent=mensagem;
+}
+function iniciarExportacao(d,tipo){
+  if(!d){toast('Calcule um orçamento antes de baixar o arquivo.');return false;}
+  if(state.faturaDesatualizada){toast('Os dados mudaram. Calcule novamente antes de emitir.');return false;}
+  if(exportandoDocumento)return false;
+  exportandoDocumento=true;limparArquivoPronto();
+  versaoExportacao=versaoDocumento;
+  statusExportacao('Gerando '+tipo+'… Aguarde nesta tela.');
+  document.querySelectorAll('[data-action^="baixar-"]').forEach(function(el){el.disabled=true;});
+  return true;
+}
+function finalizarExportacao(){
+  exportandoDocumento=false;
+  document.querySelectorAll('[data-action^="baixar-"]').forEach(function(el){el.disabled=false;});
+}
+function conferirDraftExportacao(d,versao){
+  var esperada=versao === undefined ? versaoExportacao : versao;
+  if(state.lastDraft === d && !state.faturaDesatualizada && esperada === versaoDocumento)return true;
+  statusExportacao('Os dados mudaram durante a geração. Calcule novamente antes de emitir.');
+  toast('Os dados mudaram durante a geração. Calcule novamente.');return false;
+}
+function erroExportacao(e,padrao){
+  console.error(e);var mensagem=(e && e.message) || padrao;
+  statusExportacao(mensagem);toast(mensagem);
+}
+function dispositivoAppleMovel(){
+  return /iPad|iPhone|iPod/.test(navigator.userAgent) || (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1);
+}
+function limparArquivoPronto(){
+  var panel=document.getElementById('arquivo-pronto');if(panel)panel.remove();
+  if(arquivoPronto){
+    var url=arquivoPronto.url;setTimeout(function(){URL.revokeObjectURL(url);},300000);
+    arquivoPronto=null;
+  }
+}
+/* O Safari recebe um link real e um novo toque para salvar/compartilhar,
+   sem abrir janelas depois de aguardar a geração do documento. */
+async function compartilharOuBaixarBlob(blob, filename, mimeType){
+  if(!blob || !blob.size)throw new Error('O arquivo gerado está vazio. Tente novamente.');
+  limparArquivoPronto();
+  var apple=dispositivoAppleMovel(),arquivo={url:URL.createObjectURL(blob),draft:state.lastDraft,versao:versaoDocumento,file:null};
+  arquivoPronto=arquivo;
+  try{arquivo.file=new File([blob],filename,{type:mimeType || blob.type});}catch(e){}
+  var panel=document.createElement('section');panel.id='arquivo-pronto';panel.className='panel arquivo-pronto';
+  panel.setAttribute('aria-label','Arquivo pronto');
+  var titulo=document.createElement('h2');titulo.textContent='Arquivo pronto';panel.appendChild(titulo);
+  var nome=document.createElement('p');nome.className='hint';nome.style.overflowWrap='anywhere';nome.textContent=filename;panel.appendChild(nome);
+  var a=document.createElement('a');a.className='btn btn-primary';a.href=arquivo.url;a.download=filename;
+  a.target='_blank';a.rel='noopener';a.textContent=apple?'Abrir / salvar arquivo':'Baixar novamente';
+  a.addEventListener('click',function(e){if(arquivoPronto!==arquivo || !conferirDraftExportacao(arquivo.draft,arquivo.versao)){e.preventDefault();return;}});
+  var linha=document.createElement('div');linha.className='btn-row';linha.appendChild(a);panel.appendChild(linha);
+  var podeCompartilhar=false;
+  try{podeCompartilhar=!!(arquivo.file && navigator.share && navigator.canShare && navigator.canShare({files:[arquivo.file]}));}catch(e){}
+  if(podeCompartilhar){
+    var compartilhar=document.createElement('button');compartilhar.type='button';compartilhar.className='btn';compartilhar.textContent='Compartilhar / Salvar em Arquivos';
+    compartilhar.addEventListener('click',async function(){
+      if(arquivoPronto!==arquivo || !conferirDraftExportacao(arquivo.draft,arquivo.versao))return;
+      compartilhar.disabled=true;
+      try{
+        await navigator.share({files:[arquivo.file],title:filename});
+        statusExportacao('Arquivo entregue ao compartilhamento do dispositivo.');
+      }catch(e){
+        if(e && e.name==='AbortError')statusExportacao('Compartilhamento cancelado. O arquivo continua disponível para salvar.');
+        else statusExportacao('O compartilhamento não está disponível agora. Use Abrir / salvar arquivo.');
+      }finally{compartilhar.disabled=false;}
+    });linha.appendChild(compartilhar);
+  }
+  var dica=document.createElement('p');dica.className='hint';
+  dica.textContent=apple?'Toque em Abrir / salvar arquivo. Se o Safari mostrar a prévia, use Compartilhar e Salvar em Arquivos.':'Se o download não aparecer, use Baixar novamente.';
+  panel.appendChild(dica);
+  var host=document.getElementById('preview-col') || document.getElementById('tab-content');
+  if(!host)throw new Error('Abra a prévia da fatura novamente antes de baixar.');
+  var status=document.getElementById('emissao-status');
+  if(status && status.parentNode === host)status.insertAdjacentElement('afterend',panel);else host.prepend(panel);
+  statusExportacao(apple?'Arquivo pronto. Toque abaixo para abrir, salvar ou compartilhar.':'Arquivo pronto. Download solicitado; se necessário, use Baixar novamente.');
+  if(!apple){
+    try{baixarBlobNaMesmaTela(blob,filename,arquivo.url);}
+    catch(e){statusExportacao('O download automático não iniciou. Use Baixar novamente.');}
+  }
+  return apple?'pronto':'iniciado';
 }
 function nomeArquivoDocumento(client, referencia, sufixo){
   var partes = (referencia || '').split('/');
@@ -2655,10 +2790,11 @@ function criarPdfClienteUmaPagina(m, qr, logoDim){
 }
 
 /* Download direto: sem janela intermediária e sem alterar os dados da fatura. */
-function baixarBlobNaMesmaTela(blob,filename){
-  var url=URL.createObjectURL(blob),a=document.createElement('a');
-  a.href=url;a.download=filename;document.body.appendChild(a);a.click();a.remove();
-  setTimeout(function(){URL.revokeObjectURL(url);},60000);
+function baixarBlobNaMesmaTela(blob,filename,urlExistente){
+  var url=urlExistente || URL.createObjectURL(blob),a=document.createElement('a');
+  a.href=url;a.download=filename;a.target='_blank';a.rel='noopener';document.body.appendChild(a);a.click();
+  setTimeout(function(){a.remove();},1000);
+  if(!urlExistente)setTimeout(function(){URL.revokeObjectURL(url);},300000);
 }
 
 
@@ -2666,9 +2802,8 @@ var baixandoPdf=false;
 async function baixarPdf(modo){
   modo=modo || 'cliente';
   var d=state.lastDraft;
-  if(!d){toast('Calcule um orçamento antes de baixar o PDF.');return;}
-  if(state.faturaDesatualizada){toast('Os dados mudaram. Calcule novamente antes de emitir.');return;}
-  if(baixandoPdf)return;baixandoPdf=true;
+  if(!iniciarExportacao(d,modo==='interno'?'PDF interno':'fatura PDF'))return;
+  baixandoPdf=true;
   var emissaoStatus=document.getElementById('emissao-status');
   if(emissaoStatus)emissaoStatus.textContent='Gerando a fatura nesta tela…';
   try{
@@ -2685,11 +2820,10 @@ async function baixarPdf(modo){
   try{
     if(!interno){
       var clientePdf=criarPdfClienteUmaPagina(m,qr,logoDim);
-      if(state.lastDraft!==d || state.faturaDesatualizada){toast('Os dados mudaram durante a geração. Calcule novamente.');return;}
+      if(!conferirDraftExportacao(d))return;
       var nomeClientePdf=nomeArquivoDocumento(client,d.referencia,'FATURA')+'.pdf';
       clientePdf.doc.setProperties({title:nomeClientePdf});
-      await compartilharOuBaixarBlob(clientePdf.doc.output('blob'),nomeClientePdf,'application/pdf',null);
-      if(emissaoStatus)emissaoStatus.textContent='Fatura gerada em uma página. Download iniciado.';
+      await compartilharOuBaixarBlob(clientePdf.doc.output('blob'),nomeClientePdf,'application/pdf');
       return;
     }
     var doc=new window.jspdf.jsPDF({unit:'pt',format:'a4'});
@@ -2821,7 +2955,8 @@ async function baixarPdf(modo){
     }
     var filename=nomeArquivoDocumento(client,d.referencia,interno?'RESUMO':'FATURA')+'.pdf';
     doc.setProperties({title:filename});
-    await compartilharOuBaixarBlob(doc.output('blob'),filename,'application/pdf',abaPreAberta);
+    if(!conferirDraftExportacao(d))return;
+    await compartilharOuBaixarBlob(doc.output('blob'),filename,'application/pdf');
   }catch(e){
     console.error(e);var mensagem=e && e.codigo==='FATURA_NAO_CABE'?e.message:'Erro ao gerar o PDF. Tente novamente em instantes.';
     if(emissaoStatus)emissaoStatus.textContent=mensagem;toast(mensagem);
@@ -2829,7 +2964,7 @@ async function baixarPdf(modo){
   }catch(e){
     console.error(e);var erroEmissao='Não foi possível gerar o PDF. Tente novamente nesta tela.';
     if(emissaoStatus)emissaoStatus.textContent=erroEmissao;toast(erroEmissao);
-  }finally{baixandoPdf=false;}
+  }finally{baixandoPdf=false;finalizarExportacao();}
 }
 
 
@@ -3183,13 +3318,15 @@ async function onSaveProfile(isNew){
   if(!p.nome){ toast('Dê um nome ao modelo.'); return; }
   if(!p.chaveTotalFinal){ toast('Escolha qual variável representa o valor final a pagar.'); return; }
   p.isPreset = false;
-  if(isNew){ p.id = uid(); state.profiles.push(p); }
+  var profiles = state.profiles.slice();
+  if(isNew){ p.id = uid(); profiles.push(p); }
   else {
     var idx = state.profiles.findIndex(function(x){ return x.id === state.editingProfileId; });
     p.id = state.editingProfileId;
-    if(idx > -1) state.profiles[idx] = p;
+    if(idx > -1) profiles[idx] = p;
   }
-  await saveProfiles();
+  if(!await saveProfiles(profiles)){toast('Não foi possível salvar o modelo. Confira a conexão e tente novamente.');return;}
+  state.profiles = profiles;
   state.editingProfileId = null;
   renderPerfis();
   toast('Modelo salvo.');
@@ -3201,15 +3338,18 @@ async function onDuplicateProfile(id){
   var orig = getProfile(id); if(!orig) return;
   var copia = JSON.parse(JSON.stringify(orig));
   copia.id = uid(); copia.isPreset = false; copia.nome = orig.nome + ' (cópia)';
-  state.profiles.push(copia);
-  await saveProfiles();
+  var profiles = state.profiles.concat([copia]);
+  if(!await saveProfiles(profiles)){toast('Não foi possível duplicar o modelo. Confira a conexão e tente novamente.');return;}
+  state.profiles = profiles;
   state.editingProfileId = copia.id;
   renderPerfis();
   toast('Modelo duplicado — edite e salve como seu.');
 }
 async function onDeleteProfile(id){
-  state.profiles = state.profiles.filter(function(p){ return p.id !== id; });
-  await saveProfiles();
+  if(state.clients.some(function(c){return c.profileId === id;})){toast('Este modelo está vinculado a um cliente. Troque o modelo do cliente antes de excluir.');return;}
+  var profiles = state.profiles.filter(function(p){ return p.id !== id; });
+  if(!await saveProfiles(profiles)){toast('Não foi possível excluir o modelo. Confira a conexão e tente novamente.');return;}
+  state.profiles = profiles;
   renderPerfis();
   toast('Modelo excluído.');
 }
@@ -3351,13 +3491,15 @@ function removeDcTelefoneRow(el){
   if(row) row.remove();
 }
 async function salvarDocConfig(){
-  state.docConfig.nomeEmpresa = txt('dc-nome');
-  state.docConfig.corPrimaria = document.getElementById('dc-cor').value || '#1B4D3E';
-  state.docConfig.enderecoContato = txt('dc-endereco');
-  state.docConfig.textoRodape = txt('dc-rodape');
-  state.docConfig.email = txt('dc-email');
-  state.docConfig.telefones = Array.prototype.map.call(document.querySelectorAll('.dc-telefone-input'), function(inp){ return inp.value.trim(); }).filter(function(v){ return v; });
-  await saveDocConfig();
+  var config = copiarDados(state.docConfig);
+  config.nomeEmpresa = txt('dc-nome');
+  config.corPrimaria = document.getElementById('dc-cor').value || '#1B4D3E';
+  config.enderecoContato = txt('dc-endereco');
+  config.textoRodape = txt('dc-rodape');
+  config.email = txt('dc-email');
+  config.telefones = Array.prototype.map.call(document.querySelectorAll('.dc-telefone-input'), function(inp){ return inp.value.trim(); }).filter(function(v){ return v; });
+  if(!await saveDocConfig(config)){toast('Não foi possível salvar a personalização. Confira a conexão e tente novamente.');return;}
+  state.docConfig = config;
   toast('Personalização do documento salva.');
 }
 
@@ -3369,6 +3511,7 @@ async function salvarDocConfig(){
    mostrarToast=false: só avisa se algo realmente mudou (usado no login automático),
    para não incomodar o usuário toda vez que abrir o app sem necessidade. */
 async function sincronizarModelosPadrao(mostrarToast){
+  var anteriores = copiarDados(state.profiles);
   var novos = presetsPadrao();
   var nomesAtuais = novos.map(function(np){ return np.nome; });
   var atualizados = 0, adicionados = 0, removidos = 0, presosEmUso = [];
@@ -3399,7 +3542,7 @@ async function sincronizarModelosPadrao(mostrarToast){
     return false;
   });
   if(atualizados > 0 || adicionados > 0 || removidos > 0){
-    await saveProfiles();
+    if(!await saveProfiles()){state.profiles=anteriores;throw new Error('Não foi possível salvar os modelos padrão. Confira a conexão e tente novamente.');}
     if(mostrarToast){
       var partes = [];
       if(atualizados) partes.push(atualizados + ' corrigido(s)');
@@ -3415,15 +3558,18 @@ async function sincronizarModelosPadrao(mostrarToast){
   }
   return { atualizados: atualizados, adicionados: adicionados, removidos: removidos };
 }
+async function atualizarModelosPadrao(){
+  try{await sincronizarModelosPadrao(true);renderPerfis();}
+  catch(e){console.error(e);toast(e.message || 'Não foi possível atualizar os modelos. Tente novamente.');}
+}
 async function resetAllData(){
-  state.profiles = presetsPadrao();
-  await saveProfiles();
-  state.clients = seedClients(state.profiles);
-  await saveClients();
-  state.quotes = [];
-  await saveQuotes();
-  state.docConfig = docConfigPadrao();
-  await saveDocConfig();
+  var profiles=presetsPadrao(),clients=seedClients(profiles);
+  if(!await salvarColecoesEstado([
+    {campo:'profiles',chave:'usinas:v2:profiles',valor:profiles},
+    {campo:'clients',chave:'usinas:v2:clients',valor:clients},
+    {campo:'quotes',chave:'usinas:v2:quotes',valor:[]},
+    {campo:'docConfig',chave:'usinas:v2:docconfig',valor:docConfigPadrao()}
+  ]))return;
   state.selectedClientId = state.clients[0].id;
   state.activeTab = 'novo'; state.editingProfileId = null;
   renderAll();
@@ -3520,19 +3666,22 @@ async function saveClientFromModal(existingId){
     gerarQrCodePix: !!(document.getElementById('m-gerar-qr-pix') && document.getElementById('m-gerar-qr-pix').checked),
     camposVisiveisPadrao: existente ? existente.camposVisiveisPadrao : undefined
   });
+  var clients = state.clients.slice();
   if(existingId){
     var idx = state.clients.findIndex(function(c){ return c.id === existingId; });
-    if(idx > -1) state.clients[idx] = data;
-  } else { state.clients.push(data); }
-  await saveClients();
+    if(idx > -1) clients[idx] = data;
+  } else { clients.push(data); }
+  if(!await saveClients(clients)){toast('Não foi possível salvar o cliente. Confira a conexão e tente novamente.');return;}
+  state.clients = clients;
   state.selectedClientId = data.id;
   closeModal(); renderAll();
   toast('Cliente salvo.');
 }
 async function deleteClient(id){
-  state.clients = state.clients.filter(function(c){ return c.id !== id; });
-  state.quotes = state.quotes.filter(function(q){ return q.clientId !== id; });
-  await saveClients(); await saveQuotes();
+  if(!await salvarColecoesEstado([
+    {campo:'clients',chave:'usinas:v2:clients',valor:state.clients.filter(function(c){return c.id !== id;})},
+    {campo:'quotes',chave:'usinas:v2:quotes',valor:state.quotes.filter(function(q){return q.clientId !== id;})}
+  ]))return;
   if(state.selectedClientId === id){ state.selectedClientId = state.clients.length ? state.clients[0].id : null; }
   closeModal(); renderAll();
   toast('Cliente excluído.');
@@ -3744,16 +3893,15 @@ async function onSignOut(){
    O aviso aparece uma vez por versão por navegador (localStorage compartilhado
    entre o site principal e os subsites, pois ficam no mesmo domínio).
    ============================================================ */
-var IG_BASE_VERSION = '1.06';
-var IG_BASE_RELEASE_ID = '1.06-2026-10-06';
+var IG_BASE_VERSION = '1.06.1';
+var IG_BASE_RELEASE_ID = '1.06.1-2026-10-09';
 var IG_BASE_CHANGELOG = [
-  "Nomes mais diretos nas faturas GD1, GD2 de ponto único, múltiplos pontos e perfis personalizados.",
-  "Unidades explícitas: R$ para valores, kWh para energia, R$/kWh para tarifas e % para descontos.",
-  "Consumo não compensado e gasto não compensado identificados separadamente, sem misturar energia e dinheiro.",
-  "Detalhes extras do cliente mais simples em todos os modelos, sem repetir o total final; valores intermediários ficam na conferência interna.",
-  "Fatura do cliente com duas casas decimais; tarifas e números internos mantêm até seis casas, sem alterar os cálculos.",
-  "Fio B já abatido identificado quando aplicável, evitando confusão entre os valores apresentados.",
-  "PDF do cliente em uma página; fórmulas, valores finais e históricos preservados."
+  "Correção de funcionamento: opções para abrir, salvar e compartilhar faturas no iPad e iPhone.",
+  "Downloads PDF, PNG e Word com proteção contra cliques repetidos e dados alterados durante a geração.",
+  "Geradores de arquivos com nova tentativa após falha de conexão e alternativa de carregamento.",
+  "Links entre IG Base, Solar Organization e suporte corrigidos, mantendo os endereços publicados.",
+  "Falhas de gravação identificadas sem anunciar salvamento ou exclusão que não foram confirmados.",
+  "Fórmulas, valores de cobrança e faturas já salvas preservados."
 ];
 function igbMostrarChangelog(){
   var KEY = 'igbase_changelog_visto';
