@@ -1401,7 +1401,7 @@ function vigenciaTarifariaLinhaHtml(profile, r){
   return '<fieldset class="vigencia-linha" data-id="'+escapeHtml(r.id || uid())+'" data-perfil="'+escapeHtml(r.perfilId)+'"><legend>Tarifas por período</legend><p class="hint">Perfil: '+escapeHtml(p.nome)+'</p><div class="field"><label>Aplicar a partir de</label><input type="month" class="vigencia-inicio" aria-label="Mês de início da tarifa" value="'+escapeHtml(r.inicio)+'"></div>'+campos+'<div class="field"><label>Origem / comprovante / observação</label><input type="text" class="vigencia-origem" value="'+escapeHtml(r.observacao || '')+'" placeholder="Ex.: resolução tarifária ou fatura conferida"></div><label class="checkbox-field"><input type="checkbox" class="vigencia-confirmada"'+(r.confirmada?' checked':'')+'> Valores conferidos: aplicar a partir deste mês</label><button type="button" class="btn btn-sm vigencia-remover">Remover programação</button></fieldset>';
 }
 function vigenciasTarifariasHtml(profile,client){
-  return '<details class="panel" id="m-vigencias"><summary>Tarifas por período (opcional)</summary><p class="hint">Programe alterações para 2027 ou qualquer outro mês. Somente valores conferidos entram no cálculo; campos vazios mantêm o valor anterior. Desconto em decimal: 0,20 = 20%. Fio B e tributos da conta não são multiplicados novamente.</p><div id="m-vigencias-lista">'+((client && client.vigenciasTarifarias) || []).map(function(r){return vigenciaTarifariaLinhaHtml(profile,r);}).join('')+'</div><button type="button" class="btn" id="m-vigencia-adicionar">Programar alteração de tarifas</button></details>';
+  return '<details class="panel" id="m-vigencias"><summary>Tarifas por período (opcional)</summary><p class="hint">A preparação para 2027 não cria tarifas, impostos ou dados de geração. Nenhuma previsão é aplicada por conta própria. Programe somente alterações necessárias e comprovadas: os valores entram no cálculo apenas após sua confirmação e no mês de referência indicado. Campos vazios mantêm o valor anterior. Desconto em decimal: 0,20 = 20%. Fio B e tributos da conta não são multiplicados novamente.</p><div id="m-vigencias-lista">'+((client && client.vigenciasTarifarias) || []).map(function(r){return vigenciaTarifariaLinhaHtml(profile,r);}).join('')+'</div><button type="button" class="btn" id="m-vigencia-adicionar">Programar alteração de tarifas</button></details>';
 }
 function configurarVigenciasModal(){
   var host=document.getElementById('m-vigencias');if(!host)return;
@@ -1443,7 +1443,7 @@ function conferirTributosConta(texto){
 }
 function tributosConferenciaHtml(linhas){
   if(!linhas || !linhas.length)return '';
-  return '<details class="panel"><summary>Tributos da conta — conferência</summary><p class="hint">Trechos identificados no PDF. Podem já estar incluídos nos preços ou no total da conta; não são adicionados automaticamente. Confira a base e o repasse antes de lançar novos encargos.</p>'+linhas.map(function(l){return '<p class="hint">'+escapeHtml(l)+'</p>';}).join('')+'</details>';
+  return '<details class="panel"><summary>Tributos da conta — conferência</summary><p class="hint">Trechos identificados no PDF para conferência. Não criam cobranças nem ativam impostos de 2027. Podem já estar incluídos nos preços ou no total da conta; não são adicionados automaticamente. Confira a base e o repasse antes de lançar novos encargos.</p>'+linhas.map(function(l){return '<p class="hint">'+escapeHtml(l)+'</p>';}).join('')+'</details>';
 }
 
 function fixosEfetivos(client, profile, referencia){
@@ -1468,7 +1468,7 @@ function organizarLancamento(){
     if(name==='Observações / Adendo (entra no documento do cliente)')recolher(f,'lancamento-observacoes','Observações para o cliente');
   });
   if(!document.getElementById('lancamento-cobranca')){
-    var cobranca=document.createElement('fieldset');cobranca.id='lancamento-cobranca';cobranca.innerHTML='<legend>Conferência da cobrança</legend><p class="hint" id="lancamento-tarifas"></p><div id="lancamento-condicao-saldo"></div><p class="hint" id="lancamento-saldo-explicacao" role="status"></p>';
+    var cobranca=document.createElement('fieldset');cobranca.id='lancamento-cobranca';cobranca.innerHTML='<legend>Conferência da cobrança</legend><p class="hint" id="lancamento-tarifas"></p><p class="hint" id="lancamento-seguranca-tarifas"><strong>Você controla os valores.</strong> O site usa as tarifas do cadastro e os dados lançados ou conferidos. Não cria valores de 2027: uma tarifa programada só é usada quando confirmada e válida para o mês escolhido. Na importação, confira os dados antes de aplicar; o PDF não fornece a geração total GD2 do APsystems.</p><div id="lancamento-condicao-saldo"></div><p class="hint" id="lancamento-saldo-explicacao" role="status"></p>';
     var anchor=document.getElementById('lancamento-dados');if(anchor)anchor.before(cobranca);else col.append(cobranca);
     var check=col.querySelector('.in-mensal[data-chave="saldoCobreNegativo"],.in-mensal[data-chave="saldoJaCobrado"]');
     if(check){var field=check.closest('.field');document.getElementById('lancamento-condicao-saldo').append(field);}
@@ -1495,6 +1495,7 @@ function atualizarResumoLancamento(){
   var fixos=tarifasPeriodo.valores,preco=(fixos.precoBase || 0)*(1-(fixos.desconto || 0))+(fixos.taxaBandeira || 0);
   host.textContent='Tarifas do cadastro: energia R$ '+Number(fixos.precoBase || 0).toLocaleString('pt-BR',{minimumFractionDigits:6,maximumFractionDigits:6})+'/kWh; bandeira R$ '+Number(fixos.taxaBandeira || 0).toLocaleString('pt-BR',{minimumFractionDigits:6,maximumFractionDigits:6})+'/kWh; desconto '+fmtNum((fixos.desconto || 0)*100,2)+'%. Valor com desconto R$ '+Number(preco).toLocaleString('pt-BR',{minimumFractionDigits:6,maximumFractionDigits:6})+'/kWh. Confira em Valores fixos ou Editar cliente.';
   if(tarifasPeriodo.aplicadas.length)host.textContent+=' Programação conferida aplicada desde '+tarifasPeriodo.aplicadas[tarifasPeriodo.aplicadas.length-1].inicio+'.';
+  if(!tarifasPeriodo.aplicadas.length && !tarifasPeriodo.erro)host.textContent+=' Nenhuma alteração de tarifa por período aplicada a este mês.';
   if(tarifasPeriodo.erro)host.textContent='Confira a programação de tarifas: '+tarifasPeriodo.erro;
   var lista=document.getElementById('fixos-lancamento');if(lista)lista.innerHTML=Object.keys(fixos).map(function(k){var def=p.variaveis.find(function(v){return v.chave===k;});return '<div class="breakdown-row"><span class="lbl">'+escapeHtml(apresentacaoCampoFatura(def,p,null).rotulo)+'</span><span class="val tabular">'+formatarValorFatura(fixos[k],apresentacaoCampoFatura(def,p,null).formato,true)+'</span></div>';}).join('');
   var el=document.getElementById('lancamento-saldo-explicacao');if(!el)return;
@@ -4664,12 +4665,12 @@ async function onSignOut(){
    O aviso aparece uma vez por versão por navegador (localStorage compartilhado
    entre o site principal e os subsites, pois ficam no mesmo domínio).
    ============================================================ */
-var IG_BASE_VERSION = '1.09';
-var IG_BASE_RELEASE_ID = '1.09-2026-10-10';
+var IG_BASE_VERSION = '1.09.1';
+var IG_BASE_RELEASE_ID = '1.09.1-2026-10-10';
 var IG_BASE_CHANGELOG = [
-  "Tarifas podem ser programadas por mês no cadastro do cliente, com confirmação antes de aplicar.",
-  "Histórico registra as tarifas usadas; mudanças futuras não recalculam faturas salvas.",
-  "Preparação para 2027: conferência de novos tributos sem duplicar cobranças e fórmulas atuais preservadas."
+  "Você controla os valores: o site não cria tarifas, impostos ou geração previstos para 2027.",
+  "Tarifas programadas só entram no cálculo após confirmação e na referência indicada; faturas antigas preservadas.",
+  "Entrega concluída: cálculos atuais preservados, revisão da importação e testes de saldo, GD2 e PDFs."
 ];
 function igbMostrarChangelog(){
   var KEY = 'igbase_changelog_visto';
