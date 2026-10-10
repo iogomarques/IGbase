@@ -124,6 +124,17 @@
   .igb-cl-list li svg{ flex:none; margin-right:10px; margin-top:2px; color:#3f8f4a; }
   .igb-cl-btn{ width:100%; border:none; border-radius:12px; background:#2f663f; color:#fff; font-weight:600; font-size:15px; padding:12px; cursor:pointer; }
   .igb-cl-btn:hover{ background:#254f31; }
+
+/* 1.08.7 — identidade visual alinhada ao aplicativo. */
+@media screen{
+body{background:#f6f8f7}body::before,.glow{display:none}
+.topbar{background:#fff}.heading h1{letter-spacing:-.03em}
+.card{border-radius:16px;padding:28px;background:#fff}
+.card.active{border-color:#c7dacd}.card.active:hover{transform:translateY(-2px);border-color:var(--green-deep);box-shadow:0 8px 20px rgba(31,42,34,.07)}
+.card.soon{border-style:solid;opacity:1}.card.soon h2{color:var(--ink-soft)}
+.enter-link,.icon-btn{min-height:44px}.modules{gap:20px}
+@media(max-width:560px){.card{width:100%;max-width:380px}main{padding-top:32px}.modules{margin-top:28px}}
+}
 </style>
 </head>
 <body>
@@ -302,12 +313,12 @@ document.getElementById('settings-signout').addEventListener('click', sairDaCont
    O aviso aparece uma vez por versão por navegador (localStorage compartilhado
    entre o site principal e os subsites, pois ficam no mesmo domínio).
    ============================================================ */
-var IG_BASE_VERSION = '1.08.6';
-var IG_BASE_RELEASE_ID = '1.08.6-2026-10-10';
+var IG_BASE_VERSION = '1.08.7';
+var IG_BASE_RELEASE_ID = '1.08.7-2026-10-10';
 var IG_BASE_CHANGELOG = [
-  "Validação com 24 meses em sequência nos modelos GD1 e GD2, usando lançamento manual e importação por fatura.",
-  "GD2 manual exige geração explícita, aceita zero e rejeita valores inválidos antes de calcular.",
-  "Leitura de excedente recebido corrigida quando UCs aparecem juntas após a vírgula, sem alterar as fórmulas de cobrança."
+  "Tela de lançamento mais limpa, com blocos claros e campos organizados para preenchimento.",
+  "Geração GD2, saldo e avisos mantidos em destaque; conferências e emissão mais fáceis de localizar.",
+  "Atualização visual: cálculos, importação de faturas e histórico preservados."
 ];
 function igbMostrarChangelog(){
   var KEY = 'igbase_changelog_visto';
