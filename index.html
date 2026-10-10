@@ -359,6 +359,104 @@
 #saldo-movimentos dd{margin:2px 0 8px;overflow-wrap:anywhere}
 #lancamento-cobranca .checkbox-field{font-weight:600}
 #lancamento-escolha select{width:100%}
+
+/* 1.08.7 — organização visual; campos, fórmulas e eventos preservados. */
+@media screen {
+  :root{--bg:#f6f8f7;--surface-2:#f0f4f2;--line:#dce5df;--ink-soft:#52655a;--radius-s:10px;--shadow-lift:0 2px 8px rgba(22,36,29,.04)}
+  .sidebar{background:#fff;padding:24px 16px;width:240px}
+  .client-row{padding:12px 10px;margin:2px 0}
+  .client-row.active{background:var(--accent-soft);border-color:transparent;box-shadow:none}
+  .client-row .edit-btn{opacity:1;min-width:32px;min-height:32px}
+  .brand-email{font-size:12px}
+  .topbar{padding:28px 32px 0}
+  .topbar h1,.panel h2,.modal h2,.profile-card .head h3{font-family:var(--sans);letter-spacing:-.02em}
+  .topbar h1{font-size:24px}
+  .tabs{gap:16px;padding-top:18px;background:transparent}
+  .tab-btn{min-height:44px;margin-right:10px}
+  .content{max-width:1600px;width:100%;margin:0 auto;padding-top:24px}
+  .quote-grid{gap:24px}
+  .quote-form-col{flex:1 1 56%;min-width:0}
+  .quote-preview-col{flex:1 1 44%;min-width:0}
+  .launch-heading{display:flex;align-items:flex-start;justify-content:space-between;gap:16px;flex-wrap:wrap;margin:0 0 24px}
+  .launch-heading h2{font-size:21px;letter-spacing:-.025em;margin:0 0 5px}
+  .launch-heading p{margin:0;color:var(--ink-soft);font-size:13px}
+  .launch-steps{display:flex;gap:16px;flex-wrap:wrap;list-style:none;margin:3px 0 0;padding:0;color:var(--ink-soft);font-size:12px}
+  .launch-steps li{display:flex;align-items:center;gap:7px}
+  .launch-steps span{display:grid;place-items:center;width:25px;height:25px;border-radius:50%;background:var(--accent-soft);color:var(--accent);font-weight:700}
+  fieldset{padding:20px;border-radius:12px;margin-bottom:20px}
+  legend{font-size:14px;font-weight:650;color:var(--ink);padding:0 8px}
+  .panel{border-radius:12px;padding:18px 20px;box-shadow:none;margin-bottom:16px}
+  details.panel>summary{cursor:pointer;color:var(--ink);font-size:13px;font-weight:600;line-height:1.5;min-height:24px}
+  details.panel[open]>summary{margin-bottom:14px}
+  details.panel>fieldset{border:0;background:transparent;padding:0;margin:14px 0 0}
+  details.panel>fieldset>legend{padding:0;margin-bottom:12px}
+  .quote-form-col .panel .panel,.quote-preview-col .panel .panel{border:0;border-top:1px solid var(--line);border-radius:0;padding:14px 0 0;margin:14px 0 0}
+  .quote-form-col .field input[type=text],.quote-form-col .field input[type=number],.quote-form-col .field select{height:44px;padding:10px 12px;font-size:14px}
+  .field label{font-size:13px;line-height:1.45;margin-bottom:7px}
+  .field .hint,.hint{color:var(--ink-soft);font-size:12px;line-height:1.55}
+  .field{min-width:0;margin-bottom:16px}
+  .field-row{gap:14px}
+  .quote-form-col fieldset>p.hint:first-of-type{margin-top:0}
+  #lancamento-dados>fieldset{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:16px}
+  #lancamento-dados>fieldset>.field{margin:0}
+  #lancamento-dados>fieldset>p,#lancamento-dados>fieldset>.field-checkbox{grid-column:1/-1}
+  #lancamento-dados:not([open])>fieldset{display:none}
+  #lancamento-dados:has(>summary[hidden]){border:0;padding:0;background:transparent}
+  #lancamento-dados:has(>summary[hidden])>fieldset{border:1px solid var(--line);background:#fff;padding:20px;border-radius:12px;margin-top:0}
+  #lancamento-pendencias{background:#f0f6f2;border:1px solid #c7dacd;border-left:4px solid var(--accent)}
+  #lancamento-avisos{font-size:13px}
+  #saldo-alerta-topo{border-radius:6px;margin-bottom:0;font-size:13px}
+  #gd2-geracao-dados{border-color:#b7d0bf;background:#fafffb}
+  #gd2-geracao-dados a{display:inline-block;color:var(--accent);font-weight:600;font-size:12px;margin:0 0 14px;text-underline-offset:3px}
+  #gd2-geracao-dados>.checkbox-field{margin-bottom:14px}
+  #saldo-dados input[readonly]{font-weight:650;background:var(--accent-soft)}
+  .checkbox-field{line-height:1.5;gap:10px;min-height:32px;margin:10px 0}
+  input[type=checkbox]{accent-color:var(--accent);width:17px;height:17px;flex:none}
+  .btn{min-height:44px;justify-content:center;font-size:13px;padding:10px 16px}
+  .quote-form-col>.btn-row{padding-top:4px}
+  .quote-form-col>.btn-row>.btn-primary{width:100%;min-height:48px}
+  .emissao-toolbar{padding:16px;background:#fff;border:1px solid var(--line);border-radius:12px;gap:10px}
+  .preview-empty{padding:32px 24px;text-align:left;background:#fff}
+  .preview-empty .preview-symbol{display:grid;place-items:center;width:42px;height:42px;border-radius:12px;color:var(--accent);background:var(--accent-soft);margin-bottom:18px}
+  .preview-empty h2{margin:0 0 8px;font-size:17px}
+  .preview-empty p{margin:0;color:var(--ink-soft);font-size:13px;line-height:1.6}
+  .breakdown-row .lbl{min-width:0;overflow-wrap:anywhere}
+  .pill.single{color:var(--accent)}
+  .btn-new-client:hover{color:var(--accent)}
+  #eq-revisao .eq-revisao-campo{padding:14px 0;border-bottom:1px solid var(--line)}
+  #eq-revisao .eq-revisao-campo input[type=text],#eq-revisao .eq-revisao-campo input[type=date]{height:44px;padding:10px 12px;border:1px solid var(--line);border-radius:8px;background:#fff;font:inherit}
+  #eq-revisao .checkbox-field{margin:0}
+  .history-item{padding:18px 20px;border-radius:12px}
+  .history-item .info b{font-size:15px}
+  .modal{border-radius:16px;padding:26px}
+  .auth-card{border-radius:16px}
+  @media(min-width:881px) and (max-width:1180px){.quote-grid{flex-direction:column}.quote-form-col,.quote-preview-col{width:100%;flex:auto}.quote-preview-col{position:static}}
+  @media(max-width:880px){
+    .sidebar{width:100%;padding:18px;border-bottom:1px solid var(--line)}
+    .brand{margin-bottom:12px}.brand-email{margin-bottom:12px}
+    .filtros-clientes{display:flex;flex-direction:column;gap:8px}
+    
+    .client-list{max-height:180px}
+    .topbar{padding:22px 20px 0}.tabs{padding-left:20px;padding-right:20px}
+    .content{padding:20px 20px 40px}
+    .quote-form-col,.quote-preview-col{width:100%;min-width:0;flex:auto}
+    .quote-grid{flex-direction:column}
+    .quote-form-col .field input[type=text],.quote-form-col .field input[type=number],.quote-form-col .field select{font-size:16px}
+    .launch-heading{margin-bottom:20px}
+  }
+  @media(max-width:560px){
+    #lancamento-dados>fieldset{grid-template-columns:1fr}
+    .field-row .field{min-width:0;flex:1 1 120px}
+    .field-row .field:last-child{flex-basis:100%}
+    .content{padding:20px 14px 36px}
+    fieldset,.panel{padding:16px}
+    #lancamento-dados:has(>summary[hidden])>fieldset{padding:16px}
+    .emissao-toolbar .btn{width:100%}
+    .btn-row>.btn{flex:1 1 auto}
+  }
+}
+/* Fim da organização visual 1.08.7 */
+
 </style>
 </head>
 <body>
@@ -1390,12 +1488,13 @@ function renderNovoOrcamento(){
   }
 
   container.innerHTML =
+    '<header class="launch-heading"><div><h2>Lançamento do mês</h2><p>Preencha os dados, confira a cobrança e emita a fatura.</p></div><ol class="launch-steps" aria-label="Etapas do lançamento"><li><span>1</span> Dados</li><li><span>2</span> Conferência</li><li><span>3</span> Emissão</li></ol></header>' +
     '<div class="quote-grid">' +
       '<div class="quote-form-col">' + modoLancamentoHtml() + importacaoContaHtml() + geracaoHtml + formHtml +
         '<div class="btn-row"><button class="btn btn-primary" data-action="calcular">Calcular orçamento</button></div>' +
       '</div>' +
       '<div class="quote-preview-col" id="preview-col">' +
-        '<div class="panel" style="text-align:center;color:var(--ink-soft)">Preencha os dados e clique em <b>Calcular orçamento</b> para ver o resumo e o texto para o cliente.</div>' +
+        '<div class="panel preview-empty"><span class="preview-symbol" aria-hidden="true"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M6 3h9l3 3v15H6z"/><path d="M9 10h6M9 14h6M9 18h4"/></svg></span><h2>Sua fatura aparece aqui</h2><p>Preencha os dados e clique em <b>Calcular orçamento</b>. Depois, confira a prévia, salve no histórico e baixe o PDF.</p></div>' +
       '</div>' +
     '</div>';
 
@@ -4461,12 +4560,12 @@ async function onSignOut(){
    O aviso aparece uma vez por versão por navegador (localStorage compartilhado
    entre o site principal e os subsites, pois ficam no mesmo domínio).
    ============================================================ */
-var IG_BASE_VERSION = '1.08.6';
-var IG_BASE_RELEASE_ID = '1.08.6-2026-10-10';
+var IG_BASE_VERSION = '1.08.7';
+var IG_BASE_RELEASE_ID = '1.08.7-2026-10-10';
 var IG_BASE_CHANGELOG = [
-  "Validação com 24 meses em sequência nos modelos GD1 e GD2, usando lançamento manual e importação por fatura.",
-  "GD2 manual exige geração explícita, aceita zero e rejeita valores inválidos antes de calcular.",
-  "Leitura de excedente recebido corrigida quando UCs aparecem juntas após a vírgula, sem alterar as fórmulas de cobrança."
+  "Tela de lançamento mais limpa, com blocos claros e campos organizados para preenchimento.",
+  "Geração GD2, saldo e avisos mantidos em destaque; conferências e emissão mais fáceis de localizar.",
+  "Atualização visual: cálculos, importação de faturas e histórico preservados."
 ];
 function igbMostrarChangelog(){
   var KEY = 'igbase_changelog_visto';
