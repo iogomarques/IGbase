@@ -457,6 +457,7 @@
 }
 /* Fim da organização visual 1.08.7 */
 
+@media screen{.vigencia-linha input[type=month]{width:100%;min-height:44px;padding:9px;border:1px solid var(--line);border-radius:8px;background:#fff;font:inherit}.vigencia-linha .vigencia-remover{margin-top:10px}#m-vigencias{margin-top:16px}}
 </style>
 </head>
 <body>
@@ -1350,15 +1351,104 @@ function pontosPadraoDoCliente(client){
   }
   return [{ nome: 'Ponto 1', uc: '' }];
 }
-function fixosEfetivos(client, profile){
-  var out = {};
-  (profile.variaveis||[]).filter(function(v){ return v.categoria === 'fixo'; }).forEach(function(v){
-    var override = client.overridesFixos ? client.overridesFixos[v.chave] : undefined;
-    out[v.chave] = (override !== undefined && override !== null) ? override : v.valorPadrao;
+/* Tarifas por competência: extensão de configuração, fórmulas financeiras 1.06 preservadas. */
+function validarVigenciasTarifarias(rows, profile){
+  if(!Array.isArray(rows))return 'A programação de tarifas é inválida.';
+  var datas={},fixos=(profile.variaveis || []).filter(function(v){return v.categoria==='fixo';});
+  for(var i=0;i<rows.length;i++){
+    var r=rows[i];
+    if(!r || typeof r!=='object')return 'Há uma tarifa programada inválida.';
+    if(r.perfilId!==profile.id)continue;
+    if(!/^\d{4}-(0[1-9]|1[0-2])$/.test(r.inicio || '') || !referenciaPeriodo(r.inicio))return 'Informe o mês de início de cada tarifa programada.';
+    if(datas[r.inicio])return 'Use somente uma programação por mês para o mesmo perfil.';
+    datas[r.inicio]=true;
+    if(typeof r.confirmada!=='boolean')return 'Confira a confirmação da tarifa programada.';
+    if(!r.valores || typeof r.valores!=='object' || Array.isArray(r.valores))return 'Confira os valores da tarifa programada.';
+    var keys=Object.keys(r.valores);
+    if(!keys.length)return 'Informe pelo menos um valor na tarifa programada.';
+    for(var j=0;j<keys.length;j++){
+      var k=keys[j],n=r.valores[k];
+      if(!fixos.some(function(v){return v.chave===k;}) || typeof n!=='number' || !Number.isFinite(n))return 'Há um valor inválido ou incompatível com o perfil na programação.';
+      if((k==='precoBase' || k==='taxaBandeira') && n<0)return 'Tarifas de energia e bandeira não podem ser negativas.';
+      if(k==='desconto' && (n<0 || n>1))return 'Use desconto entre 0 e 1 (ex.: 0,20 para 20%).';
+    }
+  }
+  return '';
+}
+function resolverTarifasPeriodo(client, profile, referencia){
+  var valores={};
+  (profile.variaveis || []).filter(function(v){return v.categoria==='fixo';}).forEach(function(v){
+    var override=client.overridesFixos ? client.overridesFixos[v.chave] : undefined;
+    valores[v.chave]=(override!==undefined && override!==null)?override:v.valorPadrao;
+  });
+  var rows=client.vigenciasTarifarias===undefined?[]:client.vigenciasTarifarias;
+  var erro=validarVigenciasTarifarias(rows,profile),ref=referenciaPeriodo(referencia),aplicadas=[];
+  if(erro)return {valores:valores,erro:erro,aplicadas:aplicadas};
+  if(!ref && rows.some(function(r){return r.perfilId===profile.id;}))return {valores:valores,erro:'Confira o mês e ano antes de aplicar as tarifas programadas.',aplicadas:aplicadas};
+  var periodo=ref ? ref.inicio.slice(0,7) : '';
+  rows.filter(function(r){return r.perfilId===profile.id && r.confirmada && r.inicio<=periodo;}).slice().sort(function(a,b){return a.inicio.localeCompare(b.inicio);}).forEach(function(r){
+    Object.keys(r.valores).forEach(function(k){valores[k]=r.valores[k];});
+    aplicadas.push(copiarDados(r));
+  });
+  return {valores:valores,erro:'',aplicadas:aplicadas,referencia:referencia};
+}
+function vigenciaTarifariaLinhaHtml(profile, r){
+  r=r || {id:uid(),perfilId:profile.id,inicio:'',valores:{},confirmada:false,observacao:''};
+  var p=getProfile(r.perfilId) || profile;
+  var campos=(p.variaveis || []).filter(function(v){return v.categoria==='fixo';}).map(function(v){
+    return '<div class="field"><label>'+escapeHtml(v.rotulo)+'</label><input type="text" inputmode="decimal" class="vigencia-valor" data-chave="'+escapeHtml(v.chave)+'" value="'+escapeHtml(numeroParaFormulario(r.valores[v.chave]))+'" placeholder="Manter valor anterior"></div>';
+  }).join('');
+  return '<fieldset class="vigencia-linha" data-id="'+escapeHtml(r.id || uid())+'" data-perfil="'+escapeHtml(r.perfilId)+'"><legend>Tarifas por período</legend><p class="hint">Perfil: '+escapeHtml(p.nome)+'</p><div class="field"><label>Aplicar a partir de</label><input type="month" class="vigencia-inicio" aria-label="Mês de início da tarifa" value="'+escapeHtml(r.inicio)+'"></div>'+campos+'<div class="field"><label>Origem / comprovante / observação</label><input type="text" class="vigencia-origem" value="'+escapeHtml(r.observacao || '')+'" placeholder="Ex.: resolução tarifária ou fatura conferida"></div><label class="checkbox-field"><input type="checkbox" class="vigencia-confirmada"'+(r.confirmada?' checked':'')+'> Valores conferidos: aplicar a partir deste mês</label><button type="button" class="btn btn-sm vigencia-remover">Remover programação</button></fieldset>';
+}
+function vigenciasTarifariasHtml(profile,client){
+  return '<details class="panel" id="m-vigencias"><summary>Tarifas por período (opcional)</summary><p class="hint">Programe alterações para 2027 ou qualquer outro mês. Somente valores conferidos entram no cálculo; campos vazios mantêm o valor anterior. Desconto em decimal: 0,20 = 20%. Fio B e tributos da conta não são multiplicados novamente.</p><div id="m-vigencias-lista">'+((client && client.vigenciasTarifarias) || []).map(function(r){return vigenciaTarifariaLinhaHtml(profile,r);}).join('')+'</div><button type="button" class="btn" id="m-vigencia-adicionar">Programar alteração de tarifas</button></details>';
+}
+function configurarVigenciasModal(){
+  var host=document.getElementById('m-vigencias');if(!host)return;
+  host.addEventListener('click',function(e){
+    if(e.target.closest('#m-vigencia-adicionar')){
+      var p=getProfile(document.getElementById('m-profile').value);
+      if(!p){toast('Escolha um perfil antes de programar tarifas.');return;}
+      document.getElementById('m-vigencias-lista').insertAdjacentHTML('beforeend',vigenciaTarifariaLinhaHtml(p));
+    }
+    var remover=e.target.closest('.vigencia-remover');if(remover)remover.closest('.vigencia-linha').remove();
+  });
+}
+function lerVigenciasModal(){
+  var rows=[],erro='';
+  document.querySelectorAll('.vigencia-linha').forEach(function(el){
+    var valores={};
+    el.querySelectorAll('.vigencia-valor').forEach(function(inp){
+      if(!inp.value.trim())return;
+      var n=numeroConta(inp.value);if(n===null)erro='Use valores numéricos válidos nas tarifas programadas.';else valores[inp.dataset.chave]=n;
+    });
+    var row={id:el.dataset.id,perfilId:el.dataset.perfil,inicio:el.querySelector('.vigencia-inicio').value,valores:valores,confirmada:el.querySelector('.vigencia-confirmada').checked,observacao:el.querySelector('.vigencia-origem').value.trim()};
+    var p=getProfile(row.perfilId);if(!p)erro='O perfil da tarifa programada não existe. Confira a programação.';
+    rows.push(row);
+  });
+  state.profiles.forEach(function(p){erro=erro || validarVigenciasTarifarias(rows,p);});
+  return {rows:rows,erro:erro};
+}
+function registroTarifarioHtml(d){
+  var m=d.vigenciaTarifaria;if(!m)return '';
+  return '<details class="panel"><summary>Conferência das tarifas do período</summary><p class="hint">Tarifas aplicadas a '+escapeHtml(m.referencia)+'. Fórmulas '+escapeHtml(d.versaoCalculo)+' preservadas.</p>'+m.aplicadas.map(function(r){return '<p class="hint">Vigência '+escapeHtml(r.inicio)+' · '+escapeHtml(r.observacao || 'Valores conferidos no cadastro')+'</p>';}).join('')+'<p class="hint">O histórico guarda os valores e a programação usados nesta fatura. Alterar o cadastro não recalcula documentos salvos.</p></details>';
+}
+function conferirTributosConta(texto){
+  var linhas=String(texto || '').split(/\r?\n/),seen={},out=[];
+  linhas.forEach(function(l){
+    if(!/\b(?:CBS|IBS|ICMS|PIS|COFINS)\b/i.test(l))return;
+    var s=l.trim();if(s && !seen[s] && out.length<20){seen[s]=true;out.push(s.slice(0,1000));}
   });
   return out;
 }
+function tributosConferenciaHtml(linhas){
+  if(!linhas || !linhas.length)return '';
+  return '<details class="panel"><summary>Tributos da conta — conferência</summary><p class="hint">Trechos identificados no PDF. Podem já estar incluídos nos preços ou no total da conta; não são adicionados automaticamente. Confira a base e o repasse antes de lançar novos encargos.</p>'+linhas.map(function(l){return '<p class="hint">'+escapeHtml(l)+'</p>';}).join('')+'</details>';
+}
 
+function fixosEfetivos(client, profile, referencia){
+  return resolverTarifasPeriodo(client,profile,referencia || getReferenciaAtual()).valores;
+}
 
 /* Dois caminhos de entrada, usando os mesmos campos e as mesmas fórmulas. */
 var modoLancamentoFormulario='manual';
@@ -1401,8 +1491,12 @@ function atualizarModoLancamento(){
 function atualizarResumoLancamento(){
   atualizarPendenciasLancamento();
   var c=selectedClient(),p=c && getProfile(c.profileId),host=document.getElementById('lancamento-tarifas');if(!p || !host)return;
-  var fixos=fixosEfetivos(c,p),preco=(fixos.precoBase || 0)*(1-(fixos.desconto || 0))+(fixos.taxaBandeira || 0);
+  var tarifasPeriodo=resolverTarifasPeriodo(c,p,getReferenciaAtual());
+  var fixos=tarifasPeriodo.valores,preco=(fixos.precoBase || 0)*(1-(fixos.desconto || 0))+(fixos.taxaBandeira || 0);
   host.textContent='Tarifas do cadastro: energia R$ '+Number(fixos.precoBase || 0).toLocaleString('pt-BR',{minimumFractionDigits:6,maximumFractionDigits:6})+'/kWh; bandeira R$ '+Number(fixos.taxaBandeira || 0).toLocaleString('pt-BR',{minimumFractionDigits:6,maximumFractionDigits:6})+'/kWh; desconto '+fmtNum((fixos.desconto || 0)*100,2)+'%. Valor com desconto R$ '+Number(preco).toLocaleString('pt-BR',{minimumFractionDigits:6,maximumFractionDigits:6})+'/kWh. Confira em Valores fixos ou Editar cliente.';
+  if(tarifasPeriodo.aplicadas.length)host.textContent+=' Programação conferida aplicada desde '+tarifasPeriodo.aplicadas[tarifasPeriodo.aplicadas.length-1].inicio+'.';
+  if(tarifasPeriodo.erro)host.textContent='Confira a programação de tarifas: '+tarifasPeriodo.erro;
+  var lista=document.getElementById('fixos-lancamento');if(lista)lista.innerHTML=Object.keys(fixos).map(function(k){var def=p.variaveis.find(function(v){return v.chave===k;});return '<div class="breakdown-row"><span class="lbl">'+escapeHtml(apresentacaoCampoFatura(def,p,null).rotulo)+'</span><span class="val tabular">'+formatarValorFatura(fixos[k],apresentacaoCampoFatura(def,p,null).formato,true)+'</span></div>';}).join('');
   var el=document.getElementById('lancamento-saldo-explicacao');if(!el)return;
   var v=readMensaisFromForm(),uso=p.distribuicaoAutomaticaPontos?Math.max(0,(v.energiaAtiva || 0)+(v.consumoTotal || 0)-(v.injecaoNaConta || 0)-(v.injecaoTotal || 0)):Math.max(0,-(v.saldoDelta || 0));
   if(p.distribuicaoAutomaticaPontos && importacaoFormulario && document.getElementById('gd2-geracao-base') && document.getElementById('gd2-geracao-base').checked){uso=Math.max(0,(v.energiaAtiva || 0)-(v.injecaoNaConta || 0));}
@@ -1440,7 +1534,7 @@ function renderNovoOrcamento(){
       '</div>' +
     '</fieldset>' +
     '<details class="panel" style="cursor:pointer"><summary style="font-weight:600;cursor:pointer">Valores fixos aplicados a este cliente (definidos no perfil, editáveis em "Editar cliente")</summary>' +
-      '<div style="margin-top:10px">' + (fixosHtml || '<span style="color:var(--ink-soft);font-size:13px">Este perfil não possui variáveis fixas.</span>') + '</div>' +
+      '<div id="fixos-lancamento" style="margin-top:10px">' + (fixosHtml || '<span style="color:var(--ink-soft);font-size:13px">Este perfil não possui variáveis fixas.</span>') + '</div>' +
     '</details>';
 
   var camposAdendo =
@@ -1729,7 +1823,9 @@ function onCalcular(){
   var referencia = getReferenciaAtual();
   var ajuste = num('f-ajuste');
   var observacoes = txt('f-observacoes');
-  var fixos = fixosEfetivos(c, profile);
+  var tarifasPeriodo = resolverTarifasPeriodo(c,profile,referencia);
+  if(tarifasPeriodo.erro){toast(tarifasPeriodo.erro);return;}
+  var fixos = tarifasPeriodo.valores;
   var mensais = readMensaisFromForm();
   if(perfilConsumoGD1(profile) && (mensais.energiaAtiva < 0 || mensais.injecaoTotal < 0)){
     toast('No GD1, o consumo não compensado e a injeção precisam ser iguais ou maiores que zero. A variação de saldo pode ser negativa.'); return;
@@ -1826,6 +1922,7 @@ function onCalcular(){
     fixosEntrada: copiarDados(fixos), versaoCalculo: '1.06',
     energiaDocumentoInputs: copiarDados(energiaDocumentoInputs)
   };
+  if(tarifasPeriodo.aplicadas.length)novoDraft.vigenciaTarifaria={schema:'tarifas-por-periodo-v1',referencia:referencia,aplicadas:copiarDados(tarifasPeriodo.aplicadas),valores:copiarDados(fixos),origemFioB:'valor da conta em reais; sem multiplicação adicional'};
   if(saldoContextoFormulario)novoDraft.saldoTransferencia=copiarDados(saldoContextoFormulario);
   if(importacaoFormulario)novoDraft.importacaoEquatorial=copiarDados(importacaoFormulario);
   if(document.getElementById('confirmar-saldo-conta').checked)novoDraft.confirmarSaldoConta=true;
@@ -2112,7 +2209,7 @@ function analisarContaEquatorial(texto, profile){
   }
   if(!/EQUATORIAL/.test(t))avisos.push('Distribuidora não identificada com segurança. Confirme que este documento é uma fatura da Equatorial.');
   if(generation.length>1)avisos.push('Há várias UCs geradoras no SCEE; a conta destinatária deve ser conferida separadamente.');
-  return {schema:'equatorial-v1',valores:valores,evidencias:evidencias,avisos:avisos,geradoras:generation,excedentesRecebidos:excedentes,gd2:gd2};
+  return {tributosConferencia:conferirTributosConta(texto),schema:'equatorial-v1',valores:valores,evidencias:evidencias,avisos:avisos,geradoras:generation,excedentesRecebidos:excedentes,gd2:gd2};
 }
 function importacaoContaHtml(){
   var c=selectedClient(),p=c && getProfile(c.profileId),gd2=p && !perfilConsumoGD1(p);
@@ -2214,7 +2311,7 @@ function renderRevisaoConta(){
     var type=/^leitura/.test(key)?'date':'text';
     return '<div class="eq-revisao-campo"><label class="checkbox-field"><input type="checkbox" data-eq-usar="'+key+'"'+(key==='uc'?' checked disabled':(known?' checked':''))+'> '+escapeHtml(pair[1])+'</label><input type="'+type+'" data-eq-valor="'+key+'" aria-label="Conferir '+escapeHtml(pair[1])+'" value="'+escapeHtml(value)+'"><small>'+escapeHtml(data.evidencias[key] || 'Não identificado: confira o PDF e complete somente se necessário.')+'</small></div>';
   }).join('');
-  rows='<p class="hint"><strong>Excedente recebido:</strong> '+escapeHtml(v.excedenteRecebidoKwh===undefined?'não identificado':energiaTexto(v.excedenteRecebidoKwh))+'. Informação do SCEE; não será somada novamente ao saldo final da Equatorial.</p>'+rows;
+  rows='<p class="hint"><strong>Excedente recebido:</strong> '+escapeHtml(v.excedenteRecebidoKwh===undefined?'não identificado':energiaTexto(v.excedenteRecebidoKwh))+'. Informação do SCEE; não será somada novamente ao saldo final da Equatorial.</p>'+tributosConferenciaHtml(data.tributosConferencia)+rows;
   var host=document.getElementById('eq-revisao');if(!host)return;
   host.innerHTML='<details id="eq-revisao-detalhes" open><summary>Conferência da fatura</summary>'+data.avisos.map(function(a){return '<p class="hint">'+escapeHtml(a)+'</p>';}).join('')+
     '<p class="hint">Crédito recebido: '+escapeHtml(v.creditoRecebidoKwh===undefined?'não identificado':energiaTexto(v.creditoRecebidoKwh))+'. Não é automaticamente tratado como crédito novo. Campos selecionados substituem os atuais; desmarque para preservar.</p>'+rows+
@@ -2252,6 +2349,7 @@ function aplicarContaEquatorial(){
   if(imported.dados.gd2){var oldBruto=document.querySelector('.energia-documento-input[data-chave="consumoRealKwh"]');if(oldBruto)oldBruto.value='';}
   if(imported.dados.gd2 && chosen.injecaoCicloKwh!==undefined && chosen.compensadoKwh!==undefined)mensal('saldoDelta',p.possuiItensMultiplos?chosen.compensadoKwh-chosen.injecaoCicloKwh:chosen.injecaoCicloKwh-chosen.compensadoKwh);
   importacaoFormulario={schema:'importacao-equatorial-v1',metodo:imported.metodo,arquivo:imported.nomeArquivo,uc:chosen.uc,identidade:identidadeSaldoFormulario(),referencia:getReferenciaAtual(),leituraInicio:chosen.leituraInicio || '',leituraFim:chosen.leituraFim || '',usarGeracaoBase:true,vinculoUcPonto:vincular?{indice:dest.indice,uc:chosen.uc,nome:dest.nome}:null,camposConferidos:copiarDados(chosen),conferidoEm:new Date().toISOString()};
+  if(imported.dados.tributosConferencia && imported.dados.tributosConferencia.length)importacaoFormulario.tributosConferencia=copiarDados(imported.dados.tributosConferencia);
   if(chosen.excedenteRecebidoKwh!==undefined){importacaoFormulario.excedenteRecebidoKwh=chosen.excedenteRecebidoKwh;importacaoFormulario.excedentesRecebidos=copiarDados(imported.dados.excedentesRecebidos || []);importacaoFormulario.exibirExcedenteResumo=true;importacaoFormulario.exibirExcedenteInterno=true;}
   var detalhes=document.getElementById('eq-revisao-detalhes');if(detalhes)detalhes.open=false;
   modoLancamentoFormulario='fatura';var modo=document.getElementById('lancamento-modo');if(modo)modo.value='fatura';atualizarModoLancamento();renderPeriodoConta();marcarFaturaDesatualizada();salvarRascunhoAtual();toast('Dados conferidos aplicados. Complete os campos restantes e calcule o orçamento.');
@@ -2749,7 +2847,7 @@ function renderPreview(){
   var historicoAviso = d.id ? '<div class="panel"><b>Fatura do histórico</b><p class="hint">Valores originais salvos. Calcular novamente gera um novo orçamento com as configurações atuais.</p>'+saldoRegistroHtml(d)+registroImportacaoHtml(d)+'</div>' : '';
   var client = clienteDoDocumento(d);
   var documentoHtml = construirHtmlFatura(client,profile,d,configDoDocumento(d),null);
-  col.innerHTML = historicoAviso + avisoHtml + botoesHtml +
+  col.innerHTML = historicoAviso + avisoHtml + registroTarifarioHtml(d) + botoesHtml +
     '<details class="panel" open><summary style="font-weight:600;cursor:pointer">Prévia da fatura do cliente</summary>' +
     '<div data-fatura-previa style="padding-top:14px">' + documentoHtml + '</div></details>' +
     '<details class="panel"><summary style="font-weight:600;cursor:pointer">Escolher detalhes extras</summary>' + checklistHtml + '</details>' + secundariosHtml;
@@ -3563,6 +3661,8 @@ async function baixarPdf(modo){
     if(interno){
       paragrafo('Perfil: '+profile.nome+' · Consumo: '+m.energia.origemConsumo+'. O total financeiro foi preservado.',9);
       if(m.avisos.length){titulo('CONFERÊNCIA');m.avisos.forEach(function(a){paragrafo(a,9,[139,76,30]);});}
+      if(d.vigenciaTarifaria){titulo('TARIFAS DO PERÍODO');paragrafo('Referência: '+d.vigenciaTarifaria.referencia+'. Fórmulas '+d.versaoCalculo+' preservadas.',9);d.vigenciaTarifaria.aplicadas.forEach(function(r){paragrafo('Vigência '+r.inicio+' · '+(r.observacao || 'Valores conferidos no cadastro'),9);});}
+      if(d.importacaoEquatorial && d.importacaoEquatorial.tributosConferencia){titulo('TRIBUTOS — CONFERÊNCIA DA FATURA');paragrafo('Trechos do PDF; podem já integrar a tarifa ou o total. Não foram adicionados automaticamente.',8.5);d.importacaoEquatorial.tributosConferencia.forEach(function(l){paragrafo(l,8.5);});}
       titulo('DADOS LANÇADOS DA CONTA');linhas(m.entradas);
       if(d.importacaoEquatorial && d.importacaoEquatorial.exibirExcedenteInterno!==false && linhasExcedenteRecebido(d.importacaoEquatorial).length){titulo('EXCEDENTE RECEBIDO — EQUATORIAL');linhas(linhasExcedenteRecebido(d.importacaoEquatorial));paragrafo('Informação da fatura SCEE, separada da geração e do crédito recebido. Não foi somada novamente ao saldo final confirmado.',8.5);}
       if(m.calculados.length){titulo('CONFERÊNCIA DO CÁLCULO');paragrafo('Valores intermediários para conferência. As quantidades usadas nas fórmulas não substituem o consumo total real. R$ = valor; kWh = energia; R$/kWh = tarifa; % = percentual.',8.5);linhas(m.calculados);}
@@ -4252,7 +4352,7 @@ function renderClientOverridesFixos(profile, overridesAtuais){
   if(fixos.length === 0) return '<span class="hint">Este perfil não possui variáveis fixas para ajustar por cliente.</span>';
   return fixos.map(function(v){
     var val = (overridesAtuais && overridesAtuais[v.chave] !== undefined) ? overridesAtuais[v.chave] : v.valorPadrao;
-    return '<div class="field"><label>' + escapeHtml(v.rotulo) + '</label><input type="text" inputmode="decimal" class="m-fixo" data-chave="' + v.chave + '" value="' + fmtNum(val) + '"></div>';
+    return '<div class="field"><label>' + escapeHtml(v.rotulo) + '</label><input type="text" inputmode="decimal" class="m-fixo" data-chave="' + v.chave + '" value="' + numeroParaFormulario(val) + '"></div>';
   }).join('');
 }
 
@@ -4276,6 +4376,7 @@ function openClientModal(id){
           state.profiles.map(function(p){ return '<option value="'+p.id+'"'+(profileAtual&&p.id===profileAtual.id?' selected':'')+'>'+escapeHtml(p.nome)+'</option>'; }).join('') +
         '</select></div>' +
         '<div class="field" id="m-fixos-wrap"><label>Valores fixos deste cliente</label><div id="m-fixos">' + renderClientOverridesFixos(profileAtual, editing?editing.overridesFixos:null) + '</div></div>' +
+        vigenciasTarifariasHtml(profileAtual,editing) +
         '<div class="field" id="m-pontos-field" style="' + (profileAtual&&profileAtual.possuiItensMultiplos?'':'display:none') + '">' +
           '<label>Pontos de consumo (um por linha)</label>' +
           '<textarea id="m-pontos" placeholder="Casa - 12345678\nBeach Tennis - 87654321">' + escapeHtml(editing ? pontosPadraoDoCliente(editing).map(function(p){ return p.nome + (p.uc ? ' - ' + p.uc : ''); }).join('\n') : '') + '</textarea>' +
@@ -4301,6 +4402,7 @@ function openClientModal(id){
       '</div>' +
     '</div>';
 
+  configurarVigenciasModal();
   document.getElementById('m-profile').addEventListener('change', function(e){
     var novoProfile = getProfile(e.target.value);
     document.getElementById('m-fixos').innerHTML = renderClientOverridesFixos(novoProfile, null);
@@ -4313,6 +4415,7 @@ async function saveClientFromModal(existingId){
   var nome = limparTextoExibicao(txt('m-nome'));
   if(!nome){ toast('Informe o nome do cliente.'); return; }
   var profileId = document.getElementById('m-profile').value;
+  var programacao=lerVigenciasModal();if(programacao.erro){toast(programacao.erro);return;}
   var overridesFixos = {};
   document.querySelectorAll('.m-fixo').forEach(function(inp){ overridesFixos[inp.dataset.chave] = parseNumBR(inp.value); });
   var pontosTexto = txt('m-pontos');
@@ -4327,6 +4430,7 @@ async function saveClientFromModal(existingId){
     id: existingId || uid(), nome: nome, uc: limparTextoExibicao(txt('m-uc')), profileId: profileId,
     documento:limparTextoExibicao(txt('m-documento')), local:limparTextoExibicao(txt('m-local')),
     overridesFixos: overridesFixos, pontosPadrao: pontosPadrao,
+    vigenciasTarifarias: programacao.rows,
     chavePix: txt('m-pix'), banco: txt('m-banco'), beneficiario: txt('m-beneficiario'), condicaoPagamento: txt('m-condicao'),
     locadorPagaFatura: !!(document.getElementById('m-paga-fatura') && document.getElementById('m-paga-fatura').checked),
     cidadePix: txt('m-cidade-pix'),
@@ -4560,12 +4664,12 @@ async function onSignOut(){
    O aviso aparece uma vez por versão por navegador (localStorage compartilhado
    entre o site principal e os subsites, pois ficam no mesmo domínio).
    ============================================================ */
-var IG_BASE_VERSION = '1.08.8';
-var IG_BASE_RELEASE_ID = '1.08.8-2026-10-10';
+var IG_BASE_VERSION = '1.09';
+var IG_BASE_RELEASE_ID = '1.09-2026-10-10';
 var IG_BASE_CHANGELOG = [
-  "IG Base agora é a página principal do domínio, com acesso às ferramentas.",
-  "Solar Organization está em /solar-organization/, com retorno ao IG Base pela identidade do site.",
-  "Links corrigidos; cálculos, contas, histórico e design preservados."
+  "Tarifas podem ser programadas por mês no cadastro do cliente, com confirmação antes de aplicar.",
+  "Histórico registra as tarifas usadas; mudanças futuras não recalculam faturas salvas.",
+  "Preparação para 2027: conferência de novos tributos sem duplicar cobranças e fórmulas atuais preservadas."
 ];
 function igbMostrarChangelog(){
   var KEY = 'igbase_changelog_visto';
