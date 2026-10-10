@@ -302,12 +302,12 @@ document.getElementById('settings-signout').addEventListener('click', sairDaCont
    O aviso aparece uma vez por versão por navegador (localStorage compartilhado
    entre o site principal e os subsites, pois ficam no mesmo domínio).
    ============================================================ */
-var IG_BASE_VERSION = '1.08.3';
-var IG_BASE_RELEASE_ID = '1.08.3-2026-10-09';
+var IG_BASE_VERSION = '1.08.4';
+var IG_BASE_RELEASE_ID = '1.08.4-2026-10-09';
 var IG_BASE_CHANGELOG = [
-  "Escolha entre lançamento manual e importação por fatura, com conferências adicionais recolhidas.",
-  "GD2 destaca geração APsystems, tarifas e saldo já cobrado para reproduzir os cálculos anteriores.",
-  "Ponto principal sem UC pode receber a UC da conta neste orçamento após sua confirmação, sem alterar o cadastro ou fórmulas."
+  "Campos de saldo e avisos no topo, com ajustes e movimentos em áreas recolhidas.",
+  "Lançamento manual e por fatura usam o saldo anterior salvo no histórico da mesma UC.",
+  "Créditos confirmados, uso calculado e diferenças da Equatorial aparecem separados, com origem e registro."
 ];
 function igbMostrarChangelog(){
   var KEY = 'igbase_changelog_visto';
