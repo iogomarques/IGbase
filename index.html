@@ -352,6 +352,11 @@
   @media print{.arquivo-pronto{display:none!important}}
 
 [hidden]{display:none !important}
+#lancamento-pendencias{border:1px solid #c7a958;background:#fff8df}
+#lancamento-avisos{margin:0;line-height:1.5}
+#saldo-alerta-topo{border-left:4px solid #a2670c;padding:8px 12px;background:#fff0c5;color:#624000;font-weight:600}
+#saldo-movimentos dt{font-weight:600;margin-top:8px}
+#saldo-movimentos dd{margin:2px 0 8px;overflow-wrap:anywhere}
 #lancamento-cobranca .checkbox-field{font-weight:600}
 #lancamento-escolha select{width:100%}
 </style>
@@ -1280,8 +1285,10 @@ function organizarLancamento(){
     var check=col.querySelector('.in-mensal[data-chave="saldoCobreNegativo"],.in-mensal[data-chave="saldoJaCobrado"]');
     if(check){var field=check.closest('.field');document.getElementById('lancamento-condicao-saldo').append(field);}
   }
-  recolher(document.getElementById('saldo-dados'),'lancamento-saldo','Saldo inicial, saldo final e créditos confirmados');
+  var saldo=document.getElementById('saldo-dados'),cobranca=document.getElementById('lancamento-cobranca');if(saldo && cobranca)cobranca.before(saldo);
+  var tarefa=document.createElement('fieldset');tarefa.id='lancamento-pendencias';tarefa.innerHTML='<legend>O que preencher agora</legend><p id="lancamento-avisos" role="status" aria-live="polite"></p><p id="saldo-alerta-topo" role="status" aria-live="polite" hidden></p>';if(!document.getElementById('lancamento-pendencias'))col.prepend(tarefa);
   var consumoBase=col.querySelector('[data-chave="consumoTotal"]');if(consumoBase && p.possuiItensMultiplos){var label=consumoBase.closest('.field').querySelector('label');if(label)label.textContent='Base de consumo do modelo de rateio (kWh)';}
+  var variacao=col.querySelector('.in-mensal[data-chave="saldoDelta"]');if(variacao){var rotulo=variacao.closest('.field').querySelector('label');if(rotulo)rotulo.textContent=p.possuiItensMultiplos?'Compensação menos injeção do ciclo (kWh)':perfilConsumoGD1(p)?'Variação na conta (kWh): negativo = uso de saldo':'Injeção do ciclo menos compensação (kWh)';}
   var seletor=document.getElementById('lancamento-modo');if(seletor)seletor.value=modoLancamentoFormulario;
   atualizarModoLancamento();
 }
@@ -1293,6 +1300,7 @@ function atualizarModoLancamento(){
   atualizarResumoLancamento();
 }
 function atualizarResumoLancamento(){
+  atualizarPendenciasLancamento();
   var c=selectedClient(),p=c && getProfile(c.profileId),host=document.getElementById('lancamento-tarifas');if(!p || !host)return;
   var fixos=fixosEfetivos(c,p),preco=(fixos.precoBase || 0)*(1-(fixos.desconto || 0))+(fixos.taxaBandeira || 0);
   host.textContent='Tarifas do cadastro: energia R$ '+Number(fixos.precoBase || 0).toLocaleString('pt-BR',{minimumFractionDigits:6,maximumFractionDigits:6})+'/kWh; bandeira R$ '+Number(fixos.taxaBandeira || 0).toLocaleString('pt-BR',{minimumFractionDigits:6,maximumFractionDigits:6})+'/kWh; desconto '+fmtNum((fixos.desconto || 0)*100,2)+'%. Valor com desconto R$ '+Number(preco).toLocaleString('pt-BR',{minimumFractionDigits:6,maximumFractionDigits:6})+'/kWh. Confira em Valores fixos ou Editar cliente.';
@@ -1868,7 +1876,7 @@ function atualizarSaldoAnterior(forcar){
   var motivo=document.getElementById('saldo-correcao-motivo');if(motivo)motivo.value='';
   /* Trocar mês/UC não reutiliza a leitura de uso de outro período. */
   var uso=document.querySelector('[data-chave="saldoUtilizadoKwh"]');if(uso)uso.value='';
-  renderOrigemSaldo();
+  renderOrigemSaldo();atualizarPendenciasLancamento();
 }
 function renderOrigemSaldo(){
   var meta=saldoContextoFormulario, status=document.getElementById('saldo-origem-status');
@@ -2161,7 +2169,7 @@ function conciliarSaldoConfirmado(resumo, draft){
   var calculado=inicial !== null && uso !== null ? Math.max(0,inicial-uso)+(novos || 0) : null;
   var final=confirmado && conta !== null ? conta : calculado;
   var credito=novos;
-  if(credito === null && confirmado && calculado !== null)credito=Math.max(0,conta-calculado);
+  /* Diferença de conciliação não comprova a entrada de novos créditos. */
   resumo.saldoRestanteKwh=final;
   resumo.conciliacaoSaldo={schema:'saldo-confirmado-v1',saldoInicialKwh:inicial,usadoKwh:uso,
     creditosNovosConfirmadosKwh:credito,saldoCalculadoKwh:calculado,saldoFinalContaKwh:confirmado?conta:null,
@@ -2171,12 +2179,11 @@ function conciliarSaldoConfirmado(resumo, draft){
   return resumo;
 }
 function conciliacaoSaldoCamposHtml(){
-  return '<details class="panel"><summary>Novos créditos e conferência com a distribuidora</summary><p class="hint">Saldo final = saldo inicial − créditos antigos utilizados + novos créditos confirmados. Não use a geração bruta ou crédito recebido total como se fosse todo crédito novo.</p>'+ 
-    '<div class="field"><label for="credito-novo-entrada">Novos créditos acumulados confirmados (kWh)</label><input type="text" inputmode="decimal" id="credito-novo-entrada" class="energia-documento-input" data-chave="creditoNovoKwh" placeholder="Vazio: não acrescentar créditos"><span class="hint">Informe somente o valor efetivamente creditado. A energia excedente estimada permanece separada.</span></div>'+ 
-    '<div class="field"><label for="saldo-final-conta">Saldo final indicado na Equatorial (kWh)</label><input type="text" inputmode="decimal" id="saldo-final-conta" class="energia-documento-input" data-chave="saldoFinalContaKwh" placeholder="Não informado"></div>'+ 
-    '<label class="checkbox-field"><input type="checkbox" id="confirmar-saldo-conta">Conferi este saldo final na fatura e quero usá-lo para o próximo período.</label>'+ 
-    '<div class="field"><label for="motivo-conciliacao-saldo">Observação da conferência do saldo</label><input type="text" id="motivo-conciliacao-saldo" placeholder="Ex.: saldo final conferido na fatura da Equatorial"></div>'+ 
-    '<p class="hint">Uma diferença com o saldo calculado fica registrada para conferência, sem alterar as cobranças em reais ou reescrever faturas antigas.</p></details>';
+  return '<div class="field"><label for="saldo-final-conta">Saldo final na Equatorial (kWh) — se disponível</label><input type="text" inputmode="decimal" id="saldo-final-conta" class="energia-documento-input" data-chave="saldoFinalContaKwh" placeholder="Opcional: conferir na fatura"></div>'+
+    '<label class="checkbox-field"><input type="checkbox" id="confirmar-saldo-conta">Conferi o saldo final e quero usá-lo no próximo mês.</label>'+
+    '<details class="panel" id="saldo-creditos-detalhes"><summary>Registrar novos créditos confirmados</summary><p class="hint">Preencha somente quando a distribuidora confirmar novos créditos. Geração e excedente estimado não entram automaticamente no saldo.</p>'+
+    '<div class="field"><label for="credito-novo-entrada">Créditos novos confirmados (kWh)</label><input type="text" inputmode="decimal" id="credito-novo-entrada" class="energia-documento-input" data-chave="creditoNovoKwh" placeholder="Vazio: nenhum acréscimo confirmado"></div>'+
+    '<div class="field"><label for="motivo-conciliacao-saldo">Origem / comprovante / observação</label><input type="text" id="motivo-conciliacao-saldo" placeholder="Ex.: créditos confirmados na fatura de outubro"></div></details>';
 }
 function validarConciliacaoSaldo(){
   var dados=lerEnergiaDocumento(),check=document.getElementById('confirmar-saldo-conta');
@@ -2191,20 +2198,43 @@ function notaConciliacaoSaldo(r){
 }
 
 function saldoDocumentoCamposHtml(profile, camposPerfil){
-  var temVariacao = (profile.variaveis || []).some(function(v){return v.categoria === 'mensal' && v.chave === 'saldoDelta';});
-  return '<fieldset id="saldo-dados"><legend>Saldo de energia</legend>' + camposPerfil +
-    (temVariacao ? '<p class="hint" style="margin:0 0 12px">Na variação do mês, use negativo para saldo consumido e positivo para energia acumulada, conforme a conta. Zero indica nenhuma variação.</p>' : '') +
-    '<div class="field"><label for="saldo-disponivel-entrada">Saldo disponível antes do uso (kWh)</label><input type="text" inputmode="decimal" id="saldo-disponivel-entrada" class="energia-documento-input" data-chave="saldoDisponivelKwh" placeholder="Não informado"><span class="hint">Informe o crédito disponível no início do ciclo. Vazio significa desconhecido; zero significa nenhum crédito.</span></div>' +
-    /* Compatibilidade: preserva leituras explícitas em rascunhos/histórico anteriores,
-       sem criar um segundo lançamento editável do mesmo uso de saldo. */
-    '<p class="hint" id="saldo-origem-status" role="status"></p>' +
-    '<button type="button" class="btn" data-action="recuperar-saldo-anterior">Recuperar saldo do histórico</button>' +
-    '<div class="field" id="saldo-correcao-campo"><label for="saldo-correcao-motivo">Motivo da informação ou correção manual</label><input type="text" id="saldo-correcao-motivo" placeholder="Ex.: saldo conferido na distribuidora"></div>' +
-    '<div class="field"><label for="saldo-utilizado-entrada">Saldo acumulado utilizado neste período (kWh)</label><input type="text" inputmode="decimal" id="saldo-utilizado-entrada" class="energia-documento-input" data-chave="saldoUtilizadoKwh" placeholder="Vazio: apurar pelos dados do mês"><span class="hint">Informe somente o uso de créditos anteriores. Zero preserva o saldo inicial; vazio mantém a apuração existente. A variação de saldo da conta continua sendo usada nas fórmulas.</span></div>' +
-    conciliacaoSaldoCamposHtml() +
-    '<div class="field"><label for="saldo-final-automatico">Saldo disponível após a fatura (automático)</label><input type="text" id="saldo-final-automatico" readonly aria-readonly="true" placeholder="Calculado ao gerar o orçamento"><span class="hint" id="saldo-resumo-uso" role="status">O uso de saldo e o saldo final serão apurados ao calcular o orçamento.</span></div>' +
-    '<button type="button" class="btn" id="saldo-reset-automatico" data-action="reset-saldo-automatico" hidden>Usar apuração automática de saldo</button>' +
-    '</fieldset>';
+  return '<fieldset id="saldo-dados"><legend>Saldo de energia (kWh)</legend>'+
+    '<p class="hint">Confira o saldo inicial. O uso será calculado com os dados do mês.</p>'+
+    '<div class="field"><label for="saldo-disponivel-entrada">Saldo inicial — mês anterior (kWh)</label><input type="text" inputmode="decimal" id="saldo-disponivel-entrada" class="energia-documento-input" data-chave="saldoDisponivelKwh" placeholder="Informe se não houver histórico"></div>'+
+    '<p class="hint" id="saldo-origem-status" role="status"></p>'+camposPerfil+
+    conciliacaoSaldoCamposHtml()+
+    '<div class="field"><label for="saldo-final-automatico">Saldo para o próximo mês (kWh)</label><input type="text" id="saldo-final-automatico" readonly aria-readonly="true" placeholder="Clique em Calcular orçamento"><p class="hint" id="saldo-resumo-uso" role="status">Calcule para conferir entradas, uso e saldo final.</p></div>'+
+    '<details class="panel" id="saldo-rastreio"><summary>Ver movimentos e origem do saldo</summary><div id="saldo-movimentos"></div><p class="hint">A data registrada é a da conferência no sistema. O momento do crédito na distribuidora só é conhecido pelo comprovante; não há consulta automática.</p></details>'+
+    '<details class="panel" id="saldo-ajustes"><summary>Corrigir ou recuperar saldo</summary>'+
+    '<button type="button" class="btn" data-action="recuperar-saldo-anterior">Recuperar saldo do histórico</button>'+
+    '<div class="field" id="saldo-correcao-campo"><label for="saldo-correcao-motivo">Motivo da correção do saldo inicial</label><input type="text" id="saldo-correcao-motivo" placeholder="Informe a origem do valor"></div>'+
+    '<div class="field"><label for="saldo-utilizado-entrada">Uso de créditos antigos conferido (kWh)</label><input type="text" inputmode="decimal" id="saldo-utilizado-entrada" class="energia-documento-input" data-chave="saldoUtilizadoKwh" placeholder="Vazio: cálculo automático"><span class="hint">Preencha apenas para substituir a apuração do mês por um uso conferido.</span></div>'+
+    '<button type="button" class="btn" id="saldo-reset-automatico" data-action="reset-saldo-automatico" hidden>Usar apuração automática de saldo</button></details></fieldset>';
+}
+function atualizarPendenciasLancamento(){
+  var el=document.getElementById('lancamento-avisos');if(!el)return;
+  var passos=[],pdf=modoLancamentoFormulario==='fatura',campo=document.getElementById('saldo-disponivel-entrada'),geracao=document.getElementById('gd2-geracao');
+  if(pdf && !importacaoFormulario)passos.push('Leia a fatura, confira a UC e aplique os dados.');
+  if(!pdf)passos.push('Preencha os dados do mês.');
+  if(geracao && !geracao.value.trim())passos.push('Informe a geração GD2 no período de leitura.');
+  if(campo && !campo.value.trim())passos.push('Saldo anterior não encontrado: informe o saldo inicial ou confira o saldo final da Equatorial.');
+  if(saldoContextoFormulario && saldoContextoFormulario.aviso)passos.push(saldoContextoFormulario.aviso);
+  var check=document.getElementById('confirmar-saldo-conta'),final=document.getElementById('saldo-final-conta');
+  if(final && final.value.trim() && check && !check.checked)passos.push('Confirme o saldo final para usá-lo no próximo mês.');
+  var dados=lerEnergiaDocumento();if(dados.creditoNovoKwh!==null && dados.creditoNovoKwh>0)passos.push('Créditos novos informados: confira o comprovante antes de salvar.');
+  el.textContent=passos.join(' ') || 'Dados preenchidos. Confira a cobrança e clique em Calcular orçamento.';
+}
+function renderMovimentosSaldo(resumo,draft){
+  var el=document.getElementById('saldo-movimentos');if(!el)return;
+  var m=resumo.conciliacaoSaldo,novos=m?m.creditosNovosConfirmadosKwh:null;
+  var rows=[['Saldo inicial',energiaTexto(resumo.saldoDisponivelKwh)],['Uso de créditos antigos',energiaTexto(resumo.saldoUtilizadoKwh)+(resumo.origemSaldo==='informado'?' — informado':' — calculado')],['Créditos novos',novos===null?'Sem acréscimo confirmado':energiaTexto(novos)+' — informado e confirmado'],['Saldo final',energiaTexto(resumo.saldoRestanteKwh)+(m && m.saldoFinalContaKwh!==null?' — conferido na Equatorial':' — calculado')]];
+  if(m && m.diferencaKwh!==null && Math.abs(m.diferencaKwh)>0.000001)rows.push(['Diferença a conferir',energiaTexto(m.diferencaKwh)+' — não classificada como crédito novo']);
+  if(draft.confirmacaoSaldoEm)rows.push(['Registrado em',new Date(draft.confirmacaoSaldoEm).toLocaleString('pt-BR')]);
+  if(draft.motivoConciliacaoSaldo)rows.push(['Comprovante / observação',draft.motivoConciliacaoSaldo]);
+  if(draft.importacaoEquatorial)rows.push(['Fatura de origem',draft.importacaoEquatorial.arquivo || 'Fatura importada']);
+  var alerta=document.getElementById('saldo-alerta-topo'),diferenca=m && m.diferencaKwh!==null && Math.abs(m.diferencaKwh)>0.000001;
+  if(alerta){alerta.hidden=!diferenca;alerta.textContent=diferenca?'Atenção: o saldo da Equatorial difere do cálculo em '+energiaTexto(m.diferencaKwh)+'. O saldo confirmado será usado no próximo mês; confira os movimentos. Essa diferença não comprova créditos novos.':'';}
+  el.innerHTML='<dl>'+rows.map(function(r){return '<dt>'+escapeHtml(r[0])+'</dt><dd>'+escapeHtml(r[1])+'</dd>';}).join('')+'</dl>';
 }
 function atualizarConsumoAutomatico(profile, draft){
   var campo = document.getElementById('consumo-real-automatico');
@@ -2229,9 +2259,8 @@ function atualizarConsumoAutomatico(profile, draft){
   var saldoFinal = document.getElementById('saldo-final-automatico');
   if(saldoFinal) saldoFinal.value = energiaTexto(resumo.saldoRestanteKwh);
   var uso = document.getElementById('saldo-resumo-uso');
-  if(uso) uso.textContent = 'Saldo utilizado no mês: ' + energiaTexto(resumo.saldoUtilizadoKwh) +
-    (resumo.origemSaldo === 'informado' ? ' (informado).' : ' (automático).') +
-    (resumo.conciliacaoSaldo ? notaConciliacaoSaldo(resumo) : ' Saldo final = saldo disponível antes do uso − saldo utilizado. A injeção excedente fica separada.');
+  if(uso) uso.textContent='Usado: '+energiaTexto(resumo.saldoUtilizadoKwh)+' · Créditos novos: '+(resumo.conciliacaoSaldo && resumo.conciliacaoSaldo.creditosNovosConfirmadosKwh!==null?energiaTexto(resumo.conciliacaoSaldo.creditosNovosConfirmadosKwh):'nenhum confirmado')+' · Saldo final '+(resumo.conciliacaoSaldo && resumo.conciliacaoSaldo.saldoFinalContaKwh!==null?'conferido na Equatorial.':'calculado.');
+  renderMovimentosSaldo(resumo,draft);atualizarPendenciasLancamento();
   atualizarLeituraPreservada();
   var resetSaldo = document.getElementById('saldo-reset-automatico');
   if(resetSaldo) resetSaldo.hidden = resumo.origemSaldo !== 'informado';
@@ -2536,6 +2565,9 @@ function construirHtmlFatura(client,profile,draft,dc,qrDataUrl){
 
 
 function marcarFaturaDesatualizada(){
+  var alerta=document.getElementById('saldo-alerta-topo');if(alerta){alerta.hidden=false;alerta.textContent='Os dados mudaram. Calcule novamente para atualizar o saldo.';}
+  var movimentos=document.getElementById('saldo-movimentos');if(movimentos)movimentos.textContent='Calcule novamente para conferir os movimentos atuais.';
+  var saldoFinal=document.getElementById('saldo-final-automatico');if(saldoFinal)saldoFinal.value='';
   if(!state.lastDraft)return;state.faturaDesatualizada=true;
   versaoDocumento++;
   limparArquivoPronto();
@@ -4399,12 +4431,12 @@ async function onSignOut(){
    O aviso aparece uma vez por versão por navegador (localStorage compartilhado
    entre o site principal e os subsites, pois ficam no mesmo domínio).
    ============================================================ */
-var IG_BASE_VERSION = '1.08.3';
-var IG_BASE_RELEASE_ID = '1.08.3-2026-10-09';
+var IG_BASE_VERSION = '1.08.4';
+var IG_BASE_RELEASE_ID = '1.08.4-2026-10-09';
 var IG_BASE_CHANGELOG = [
-  "Escolha entre lançamento manual e importação por fatura, com conferências adicionais recolhidas.",
-  "GD2 destaca geração APsystems, tarifas e saldo já cobrado para reproduzir os cálculos anteriores.",
-  "Ponto principal sem UC pode receber a UC da conta neste orçamento após sua confirmação, sem alterar o cadastro ou fórmulas."
+  "Campos de saldo e avisos no topo, com ajustes e movimentos em áreas recolhidas.",
+  "Lançamento manual e por fatura usam o saldo anterior salvo no histórico da mesma UC.",
+  "Créditos confirmados, uso calculado e diferenças da Equatorial aparecem separados, com origem e registro."
 ];
 function igbMostrarChangelog(){
   var KEY = 'igbase_changelog_visto';
