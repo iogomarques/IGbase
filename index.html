@@ -1995,7 +1995,8 @@ function analisarContaEquatorial(texto, profile){
   if(cycle){Array.from(cycle[1].matchAll(/UC\s+([\d.\-]+)\s*:\s*([\d.,]+)/g)).forEach(function(m){var value=numeroConta(m[2]);if(value !== null)generation.push({uc:m[1],kwh:value});});}
   var excedentes=[],porUc={},conflitoExcedente=false;
   Array.from(t.matchAll(/EXCEDENTE\s+RECEBIDO\s+KWH\s*:\s*([\s\S]*?)(?=CREDITO\s+RECEBIDO|SALDO\s+KWH|CADASTRO\s+RATEIO|GERACAO\s+CICLO|EXCEDENTE\s+RECEBIDO|$)/g)).forEach(function(bloco){
-    Array.from(bloco[1].matchAll(/UC\s+([\d.\-]+)\s*:\s*([^\s]+)/g)).forEach(function(m){var n=numeroConta(m[2]),uc=m[1],key=uc.replace(/\D/g,'').replace(/^0+/,'');if(n===null || n<0 || !key){conflitoExcedente=true;return;}
+    var secao=bloco[1].replace(/,\s*(?=UC\b)/g,' ');
+    Array.from(secao.matchAll(/UC\s+([\d.\-]+)\s*:\s*([^\s]+)/g)).forEach(function(m){var n=numeroConta(m[2]),uc=m[1],key=uc.replace(/\D/g,'').replace(/^0+/,'');if(n===null || n<0 || !key){conflitoExcedente=true;return;}
       if(porUc[key] && Math.abs(porUc[key].kwh-n)>0.000001){conflitoExcedente=true;return;}
       if(!porUc[key]){porUc[key]={uc:uc,kwh:n};excedentes.push(porUc[key]);}
     });
@@ -2178,10 +2179,10 @@ function renderPeriodoConta(){renderExcedenteRecebido();var gen=document.getElem
 function completarVariacaoContaGd2(silencioso){
   var c=selectedClient(),p=c && getProfile(c.profileId),m=importacaoFormulario;
   if(!p || perfilConsumoGD1(p))return;
-  if(silencioso && (modoLancamentoFormulario!=='fatura' || !m))return;
   if(m && (m.referencia!==getReferenciaAtual() || m.identidade!==identidadeSaldoFormulario()))return;
-  var gen=document.querySelector('.in-mensal[data-chave="injecaoTotal"]');if(!gen || !gen.value.trim()){toast('Informe a geração total do período no campo GD2. Zero deve ser informado explicitamente quando não houve geração.');return false;}
+  var gen=document.querySelector('.in-mensal[data-chave="injecaoTotal"]');if(!gen)return;if(!gen.value.trim()){toast('Informe a geração total do período no campo GD2. Zero deve ser informado explicitamente quando não houve geração.');return false;}
   var partes=gen.value.split('+').map(numeroConta);if(partes.some(function(v){return v===null || v<0;})){toast('Confira a geração informada. Use números válidos em kWh.');return false;}var n=partes.reduce(function(a,b){return a+b;},0);
+  if(silencioso && (modoLancamentoFormulario!=='fatura' || !m))return;
   var total=document.querySelector('.in-mensal[data-chave="consumoTotal"]'),check=document.getElementById('gd2-geracao-base');
   if(p.possuiItensMultiplos && p.distribuicaoAutomaticaPontos && (p.formulasCompartilhadas || []).some(function(f){return /^\s*autoConsumo\s*=\s*consumoTotal\s*-\s*injecaoNaConta\s*$/.test(f);}) && total && check && check.checked)total.value=numeroParaFormulario(n);
   var status=document.getElementById('gd2-apuracao');if(status)status.textContent='Geração informada: '+fmtKwh(n)+'. '+(m?'Dados da conta preservados; variação e injeção na rede vêm da fatura conferida.':'Confira os demais dados do mês lançados manualmente.');
@@ -4460,12 +4461,12 @@ async function onSignOut(){
    O aviso aparece uma vez por versão por navegador (localStorage compartilhado
    entre o site principal e os subsites, pois ficam no mesmo domínio).
    ============================================================ */
-var IG_BASE_VERSION = '1.08.5';
-var IG_BASE_RELEASE_ID = '1.08.5-2026-10-09';
+var IG_BASE_VERSION = '1.08.6';
+var IG_BASE_RELEASE_ID = '1.08.6-2026-10-10';
 var IG_BASE_CHANGELOG = [
-  "Leitura automática do EXCEDENTE RECEBIDO da fatura Equatorial, com conferência do valor e das UCs.",
-  "Opções para mostrar o excedente recebido no resumo Equatorial e no PDF interno.",
-  "Excedente, geração, crédito recebido e saldo final permanecem separados, evitando somar créditos duas vezes."
+  "Validação com 24 meses em sequência nos modelos GD1 e GD2, usando lançamento manual e importação por fatura.",
+  "GD2 manual exige geração explícita, aceita zero e rejeita valores inválidos antes de calcular.",
+  "Leitura de excedente recebido corrigida quando UCs aparecem juntas após a vírgula, sem alterar as fórmulas de cobrança."
 ];
 function igbMostrarChangelog(){
   var KEY = 'igbase_changelog_visto';
