@@ -1293,6 +1293,7 @@ function organizarLancamento(){
   atualizarModoLancamento();
 }
 function atualizarModoLancamento(){
+  renderExcedenteRecebido();
   var pdf=modoLancamentoFormulario==='fatura',importar=document.getElementById('importacao-equatorial');if(importar)importar.hidden=!pdf;
   var dados=document.getElementById('lancamento-dados');if(dados){dados.open=!pdf;var summary=dados.querySelector('summary');if(summary)summary.hidden=!pdf;}
   var dica=document.getElementById('lancamento-orientacao');if(dica)dica.textContent=pdf?'Leia a conta, confira os dados e aplique. No GD2, informe também a geração do APsystems e confira a cobrança do saldo.':'Digite os dados do mês. A leitura por PDF fica disponível ao escolher Importar fatura da Equatorial.';
@@ -1992,6 +1993,15 @@ function analisarContaEquatorial(texto, profile){
   Object.keys(sums).forEach(function(key){if(sums[key].length)put(key,sums[key].reduce(function(a,b){return a+b;},0),'Soma dos lançamentos identificados, conferência obrigatória');});
   var cycle=/GERACAO\s+CICLO[^\n]*?KWH\s*:\s*([\s\S]*?)(?=EXCEDENTE\s+RECEBIDO|CREDITO\s+RECEBIDO|SALDO\s+KWH|$)/.exec(t);
   if(cycle){Array.from(cycle[1].matchAll(/UC\s+([\d.\-]+)\s*:\s*([\d.,]+)/g)).forEach(function(m){var value=numeroConta(m[2]);if(value !== null)generation.push({uc:m[1],kwh:value});});}
+  var excedentes=[],porUc={},conflitoExcedente=false;
+  Array.from(t.matchAll(/EXCEDENTE\s+RECEBIDO\s+KWH\s*:\s*([\s\S]*?)(?=CREDITO\s+RECEBIDO|SALDO\s+KWH|CADASTRO\s+RATEIO|GERACAO\s+CICLO|EXCEDENTE\s+RECEBIDO|$)/g)).forEach(function(bloco){
+    Array.from(bloco[1].matchAll(/UC\s+([\d.\-]+)\s*:\s*([^\s]+)/g)).forEach(function(m){var n=numeroConta(m[2]),uc=m[1],key=uc.replace(/\D/g,'').replace(/^0+/,'');if(n===null || n<0 || !key){conflitoExcedente=true;return;}
+      if(porUc[key] && Math.abs(porUc[key].kwh-n)>0.000001){conflitoExcedente=true;return;}
+      if(!porUc[key]){porUc[key]={uc:uc,kwh:n};excedentes.push(porUc[key]);}
+    });
+  });
+  if(conflitoExcedente){excedentes=[];avisos.push('Excedente recebido com valores inválidos ou divergentes: confira o PDF e informe o total na revisão.');}
+  if(excedentes.length)put('excedenteRecebidoKwh',excedentes.reduce(function(a,b){return a+b.kwh;},0),'EXCEDENTE RECEBIDO KWH — soma das UCs identificadas; separado da geração e do crédito recebido');
   if(generation.length){put('injecaoCicloKwh',generation.reduce(function(a,b){return a+b.kwh;},0),'Energia injetada na rede no ciclo, registrada no SCEE; não é a geração total APsystems');}
   if(!gd2 && generation.length){put('injecaoTotal',generation.reduce(function(a,b){return a+b.kwh;},0),'Geração ciclo informada no SCEE, por UC geradora');}
   if(gd2)avisos.push('GD2: consulte a geração total no APsystems para o intervalo de leitura. A energia injetada ou compensada da conta não substitui a produção total.');
@@ -2002,7 +2012,7 @@ function analisarContaEquatorial(texto, profile){
   }
   if(!/EQUATORIAL/.test(t))avisos.push('Distribuidora não identificada com segurança. Confirme que este documento é uma fatura da Equatorial.');
   if(generation.length>1)avisos.push('Há várias UCs geradoras no SCEE; a conta destinatária deve ser conferida separadamente.');
-  return {schema:'equatorial-v1',valores:valores,evidencias:evidencias,avisos:avisos,geradoras:generation,gd2:gd2};
+  return {schema:'equatorial-v1',valores:valores,evidencias:evidencias,avisos:avisos,geradoras:generation,excedentesRecebidos:excedentes,gd2:gd2};
 }
 function importacaoContaHtml(){
   var c=selectedClient(),p=c && getProfile(c.profileId),gd2=p && !perfilConsumoGD1(p);
@@ -2069,7 +2079,7 @@ async function lerContaEquatorial(ocr){
   }catch(e){if(seq===importacaoSequencia)statusImportacaoConta(e.name==='PasswordException'?'O PDF está protegido por senha. Abra uma cópia desbloqueada para importar.':(e.message || 'Falha ao ler a fatura. Tente novamente.'));}
   finally{if(leitura.worker)try{await leitura.worker.terminate();}catch(e){};if(leitura.task)try{await leitura.task.destroy();}catch(e){};if(leituraEquatorial===leitura)leituraEquatorial=null;}
 }
-var CAMPOS_CONTA=[['uc','UC da conta'],['referencia','Mês de referência'],['leituraInicio','Leitura anterior'],['leituraFim','Leitura atual'],['valorFatura','Total da fatura (R$)'],['energiaAtiva','Consumo não compensado (kWh)'],['compensadoKwh','Energia compensada na conta (kWh)'],['consumoTotal','Leitura total da conta principal (kWh)'],['consumoRealKwh','Consumo bruto real (kWh)'],['injecaoTotal','Geração/injeção do ciclo — GD1 (kWh)'],['injecaoCicloKwh','Injeção na rede no ciclo (kWh) — dado da conta'],['gastoNaoCompensado','Gasto não compensado (R$)'],['bandeira','Adicional de bandeira (R$)'],['fioB','Fio B (R$)'],['iluminacao','Iluminação pública (R$)'],['multas','Multas (R$)'],['adicionais','Juros e correção (R$)'],['saldoFinalContaKwh','Saldo final indicado na distribuidora (kWh)']];
+var CAMPOS_CONTA=[['uc','UC da conta'],['referencia','Mês de referência'],['leituraInicio','Leitura anterior'],['leituraFim','Leitura atual'],['valorFatura','Total da fatura (R$)'],['energiaAtiva','Consumo não compensado (kWh)'],['compensadoKwh','Energia compensada na conta (kWh)'],['consumoTotal','Leitura total da conta principal (kWh)'],['consumoRealKwh','Consumo bruto real (kWh)'],['injecaoTotal','Geração/injeção do ciclo — GD1 (kWh)'],['injecaoCicloKwh','Injeção na rede no ciclo (kWh) — dado da conta'],['gastoNaoCompensado','Gasto não compensado (R$)'],['bandeira','Adicional de bandeira (R$)'],['fioB','Fio B (R$)'],['iluminacao','Iluminação pública (R$)'],['multas','Multas (R$)'],['adicionais','Juros e correção (R$)'],['excedenteRecebidoKwh','Excedente recebido (kWh)'],['saldoFinalContaKwh','Saldo final indicado na distribuidora (kWh)']];
 /* Comparação de importação apenas: preservar as chaves históricas do saldo. */
 function ucEquivalenteConta(a,b){
   var x=chaveUcSaldo(a),y=chaveUcSaldo(b);
@@ -2104,6 +2114,7 @@ function renderRevisaoConta(){
     var type=/^leitura/.test(key)?'date':'text';
     return '<div class="eq-revisao-campo"><label class="checkbox-field"><input type="checkbox" data-eq-usar="'+key+'"'+(key==='uc'?' checked disabled':(known?' checked':''))+'> '+escapeHtml(pair[1])+'</label><input type="'+type+'" data-eq-valor="'+key+'" aria-label="Conferir '+escapeHtml(pair[1])+'" value="'+escapeHtml(value)+'"><small>'+escapeHtml(data.evidencias[key] || 'Não identificado: confira o PDF e complete somente se necessário.')+'</small></div>';
   }).join('');
+  rows='<p class="hint"><strong>Excedente recebido:</strong> '+escapeHtml(v.excedenteRecebidoKwh===undefined?'não identificado':energiaTexto(v.excedenteRecebidoKwh))+'. Informação do SCEE; não será somada novamente ao saldo final da Equatorial.</p>'+rows;
   var host=document.getElementById('eq-revisao');if(!host)return;
   host.innerHTML='<details id="eq-revisao-detalhes" open><summary>Conferência da fatura</summary>'+data.avisos.map(function(a){return '<p class="hint">'+escapeHtml(a)+'</p>';}).join('')+
     '<p class="hint">Crédito recebido: '+escapeHtml(v.creditoRecebidoKwh===undefined?'não identificado':energiaTexto(v.creditoRecebidoKwh))+'. Não é automaticamente tratado como crédito novo. Campos selecionados substituem os atuais; desmarque para preservar.</p>'+rows+
@@ -2141,11 +2152,28 @@ function aplicarContaEquatorial(){
   if(imported.dados.gd2){var oldBruto=document.querySelector('.energia-documento-input[data-chave="consumoRealKwh"]');if(oldBruto)oldBruto.value='';}
   if(imported.dados.gd2 && chosen.injecaoCicloKwh!==undefined && chosen.compensadoKwh!==undefined)mensal('saldoDelta',p.possuiItensMultiplos?chosen.compensadoKwh-chosen.injecaoCicloKwh:chosen.injecaoCicloKwh-chosen.compensadoKwh);
   importacaoFormulario={schema:'importacao-equatorial-v1',metodo:imported.metodo,arquivo:imported.nomeArquivo,uc:chosen.uc,identidade:identidadeSaldoFormulario(),referencia:getReferenciaAtual(),leituraInicio:chosen.leituraInicio || '',leituraFim:chosen.leituraFim || '',usarGeracaoBase:true,vinculoUcPonto:vincular?{indice:dest.indice,uc:chosen.uc,nome:dest.nome}:null,camposConferidos:copiarDados(chosen),conferidoEm:new Date().toISOString()};
+  if(chosen.excedenteRecebidoKwh!==undefined){importacaoFormulario.excedenteRecebidoKwh=chosen.excedenteRecebidoKwh;importacaoFormulario.excedentesRecebidos=copiarDados(imported.dados.excedentesRecebidos || []);importacaoFormulario.exibirExcedenteResumo=true;importacaoFormulario.exibirExcedenteInterno=true;}
   var detalhes=document.getElementById('eq-revisao-detalhes');if(detalhes)detalhes.open=false;
   modoLancamentoFormulario='fatura';var modo=document.getElementById('lancamento-modo');if(modo)modo.value='fatura';atualizarModoLancamento();renderPeriodoConta();marcarFaturaDesatualizada();salvarRascunhoAtual();toast('Dados conferidos aplicados. Complete os campos restantes e calcule o orçamento.');
 }
 var importacaoFormulario=null;
-function renderPeriodoConta(){var gen=document.getElementById('gd2-periodo'),m=importacaoFormulario,base=document.getElementById('gd2-geracao-base');if(base && m)base.checked=m.usarGeracaoBase!==false;if(gen)gen.textContent=m && m.leituraInicio && m.leituraFim?'Informe no APsystems o período de '+m.leituraInicio.split('-').reverse().join('/')+' a '+m.leituraFim.split('-').reverse().join('/')+'.':'Consulte a geração total no APsystems para as datas de leitura da fatura.';var el=document.getElementById('eq-periodo-aplicado');if(!el)return;
+function linhasExcedenteRecebido(m){
+  if(!m || m.excedenteRecebidoKwh===undefined)return [];
+  var linhas=[{rotulo:'Excedente recebido na Equatorial (kWh)',valor:energiaTexto(m.excedenteRecebidoKwh)}];
+  (m.excedentesRecebidos || []).forEach(function(it){linhas.push({rotulo:'Excedente recebido · UC '+it.uc,valor:energiaTexto(it.kwh)});});
+  return linhas;
+}
+function renderExcedenteRecebido(){
+  var m=importacaoFormulario,host=document.getElementById('excedente-recebido-painel');
+  if(!m || m.excedenteRecebidoKwh===undefined){if(host)host.remove();return;}
+  if(!host){host=document.createElement('fieldset');host.id='excedente-recebido-painel';var saldo=document.getElementById('saldo-dados');if(!saldo)return;saldo.before(host);}
+  host.innerHTML='<legend>Excedente recebido — Equatorial</legend><p class="hint">Dado extraído de EXCEDENTE RECEBIDO KWH e aplicado após a conferência. Separado da geração e do crédito recebido; não soma novamente ao saldo confirmado.</p>'+
+    '<label class="checkbox-field"><input type="checkbox" id="excedente-exibir-resumo"'+(m.exibirExcedenteResumo!==false?' checked':'')+'> Mostrar no resumo Equatorial</label>'+
+    '<label class="checkbox-field"><input type="checkbox" id="excedente-exibir-interno"'+(m.exibirExcedenteInterno!==false?' checked':'')+'> Incluir no PDF interno</label>'+
+    '<div id="excedente-resumo-equatorial"'+(m.exibirExcedenteResumo===false?' hidden':'')+'><strong>Resumo Equatorial</strong>'+linhasExcedenteRecebido(m).map(function(it){return '<p>'+escapeHtml(it.rotulo)+': <b>'+escapeHtml(it.valor)+'</b></p>';}).join('')+
+    '<p class="hint">Fatura: '+escapeHtml(m.arquivo || '')+' · Referência: '+escapeHtml(m.referencia || '')+'. O total conferido prevalece; os valores por UC preservam a leitura original.</p></div>';
+}
+function renderPeriodoConta(){renderExcedenteRecebido();var gen=document.getElementById('gd2-periodo'),m=importacaoFormulario,base=document.getElementById('gd2-geracao-base');if(base && m)base.checked=m.usarGeracaoBase!==false;if(gen)gen.textContent=m && m.leituraInicio && m.leituraFim?'Informe no APsystems o período de '+m.leituraInicio.split('-').reverse().join('/')+' a '+m.leituraFim.split('-').reverse().join('/')+'.':'Consulte a geração total no APsystems para as datas de leitura da fatura.';var el=document.getElementById('eq-periodo-aplicado');if(!el)return;
   var m=importacaoFormulario;el.textContent=m ? 'Fatura conferida: '+m.referencia+' · UC '+m.uc+'. '+(m.leituraInicio&&m.leituraFim?'Período de leitura: '+m.leituraInicio.split('-').reverse().join('/')+' a '+m.leituraFim.split('-').reverse().join('/')+'. ':'')+(perfilConsumoGD1(getProfile(selectedClient().profileId))?'':'GD2: consulte a geração desse intervalo no APsystems e informe no campo de geração.'):'';}
 function completarVariacaoContaGd2(silencioso){
   var c=selectedClient(),p=c && getProfile(c.profileId),m=importacaoFormulario;
@@ -3436,6 +3464,7 @@ async function baixarPdf(modo){
       paragrafo('Perfil: '+profile.nome+' · Consumo: '+m.energia.origemConsumo+'. O total financeiro foi preservado.',9);
       if(m.avisos.length){titulo('CONFERÊNCIA');m.avisos.forEach(function(a){paragrafo(a,9,[139,76,30]);});}
       titulo('DADOS LANÇADOS DA CONTA');linhas(m.entradas);
+      if(d.importacaoEquatorial && d.importacaoEquatorial.exibirExcedenteInterno!==false && linhasExcedenteRecebido(d.importacaoEquatorial).length){titulo('EXCEDENTE RECEBIDO — EQUATORIAL');linhas(linhasExcedenteRecebido(d.importacaoEquatorial));paragrafo('Informação da fatura SCEE, separada da geração e do crédito recebido. Não foi somada novamente ao saldo final confirmado.',8.5);}
       if(m.calculados.length){titulo('CONFERÊNCIA DO CÁLCULO');paragrafo('Valores intermediários para conferência. As quantidades usadas nas fórmulas não substituem o consumo total real. R$ = valor; kWh = energia; R$/kWh = tarifa; % = percentual.',8.5);linhas(m.calculados);}
       if(profile.possuiItensMultiplos && d.itensResultado){
         checkBreak(90);titulo('RATEIO POR PONTO');
@@ -4431,12 +4460,12 @@ async function onSignOut(){
    O aviso aparece uma vez por versão por navegador (localStorage compartilhado
    entre o site principal e os subsites, pois ficam no mesmo domínio).
    ============================================================ */
-var IG_BASE_VERSION = '1.08.4';
-var IG_BASE_RELEASE_ID = '1.08.4-2026-10-09';
+var IG_BASE_VERSION = '1.08.5';
+var IG_BASE_RELEASE_ID = '1.08.5-2026-10-09';
 var IG_BASE_CHANGELOG = [
-  "Campos de saldo e avisos no topo, com ajustes e movimentos em áreas recolhidas.",
-  "Lançamento manual e por fatura usam o saldo anterior salvo no histórico da mesma UC.",
-  "Créditos confirmados, uso calculado e diferenças da Equatorial aparecem separados, com origem e registro."
+  "Leitura automática do EXCEDENTE RECEBIDO da fatura Equatorial, com conferência do valor e das UCs.",
+  "Opções para mostrar o excedente recebido no resumo Equatorial e no PDF interno.",
+  "Excedente, geração, crédito recebido e saldo final permanecem separados, evitando somar créditos duas vezes."
 ];
 function igbMostrarChangelog(){
   var KEY = 'igbase_changelog_visto';
@@ -4621,6 +4650,7 @@ document.addEventListener('change', function(e){
   var t = e.target;
   if(t.id==='lancamento-modo'){modoLancamentoFormulario=t.value==='fatura'?'fatura':'manual';if(modoLancamentoFormulario==='manual' && (leituraEquatorial || leituraPreparando))cancelarLeituraConta();atualizarModoLancamento();marcarFaturaDesatualizada();salvarRascunhoAtual();return;}
   atualizarResumoLancamento();
+  if((t.id==='excedente-exibir-resumo' || t.id==='excedente-exibir-interno') && importacaoFormulario){importacaoFormulario[t.id==='excedente-exibir-resumo'?'exibirExcedenteResumo':'exibirExcedenteInterno']=t.checked;renderExcedenteRecebido();marcarFaturaDesatualizada();salvarRascunhoAtual();return;}
   if(t.id==='gd2-geracao-base' && importacaoFormulario){importacaoFormulario.usarGeracaoBase=t.checked;salvarRascunhoAtual();}
   if(t.id === 'eq-arquivo' && (importacaoEquatorial || leituraEquatorial || leituraPreparando))cancelarLeituraConta();
   if(t.matches && t.matches('.in-mensal,.item-val,.energia-documento-input,#f-ref-mes,#f-ref-ano,#confirmar-saldo-conta')){marcarFaturaDesatualizada();salvarRascunhoAtual();}
