@@ -2008,17 +2008,41 @@ async function lerContaEquatorial(ocr){
   finally{if(leitura.worker)try{await leitura.worker.terminate();}catch(e){};if(leitura.task)try{await leitura.task.destroy();}catch(e){};if(leituraEquatorial===leitura)leituraEquatorial=null;}
 }
 var CAMPOS_CONTA=[['uc','UC da conta'],['referencia','Mês de referência'],['leituraInicio','Leitura anterior'],['leituraFim','Leitura atual'],['valorFatura','Total da fatura (R$)'],['energiaAtiva','Consumo não compensado (kWh)'],['compensadoKwh','Energia compensada na conta (kWh)'],['consumoTotal','Leitura total da conta principal (kWh)'],['consumoRealKwh','Consumo bruto real (kWh)'],['injecaoTotal','Geração/injeção do ciclo — GD1 (kWh)'],['injecaoCicloKwh','Injeção na rede no ciclo (kWh) — dado da conta'],['gastoNaoCompensado','Gasto não compensado (R$)'],['bandeira','Adicional de bandeira (R$)'],['fioB','Fio B (R$)'],['iluminacao','Iluminação pública (R$)'],['multas','Multas (R$)'],['adicionais','Juros e correção (R$)'],['saldoFinalContaKwh','Saldo final indicado na distribuidora (kWh)']];
+/* Comparação de importação apenas: preservar as chaves históricas do saldo. */
+function ucEquivalenteConta(a,b){
+  var x=chaveUcSaldo(a),y=chaveUcSaldo(b);
+  if(!x || !y)return false;
+  if(/^\d+$/.test(x) && /^\d+$/.test(y)){x=x.replace(/^0+/, '');y=y.replace(/^0+/, '');}
+  return !!x && !!y && x===y;
+}
+function destinoUcConta(){
+  var c=selectedClient(),p=c && getProfile(c.profileId);
+  if(!c)return {uc:'',nome:'Cliente não selecionado'};
+  if(p && p.possuiItensMultiplos){
+    var items=readItemRows(),principais=items.filter(function(it){return !!it.pontoPrincipal;});
+    if(principais.length>1)return {uc:'',nome:'Mais de um ponto principal marcado'};
+    var main=principais[0] || (p.distribuicaoAutomaticaPontos?items[0]:null);
+    return {uc:main?main.uc:'',nome:'Ponto principal'+(main && main.nome?' — '+main.nome:'')};
+  }
+  return {uc:c.uc,nome:'Cliente'+(c.nome?' — '+c.nome:'')};
+}
+function atualizarConferenciaUcConta(){
+  var el=document.querySelector('[data-eq-valor="uc"]'),host=document.getElementById('eq-uc-status');if(!el || !host)return;
+  var dest=destinoUcConta(),ok=ucEquivalenteConta(el.value,dest.uc);
+  host.textContent=(ok?'UC correspondente. ':'UC requer conferência. ')+'Fatura: '+(el.value.trim() || 'não informada')+'. '+dest.nome+': '+(dest.uc || 'UC não cadastrada')+'. '+(ok?'Pontos, traços e zeros à esquerda não alteram a identificação.':'Confira o número no PDF e o cadastro do cliente/ponto principal. Se trocar a unidade, leia o PDF novamente.');
+}
 function renderRevisaoConta(){
   var data=importacaoEquatorial.dados,c=selectedClient(),p=getProfile(c.profileId),v=data.valores;
   var rows=CAMPOS_CONTA.filter(function(pair){var keys=(p.variaveis || []).map(function(v){return v.chave;});if(data.gd2 && pair[0]==='consumoRealKwh')return false;if(['gastoNaoCompensado','multas','adicionais','fioB','iluminacao'].includes(pair[0]) && !keys.includes(pair[0]))return false;if(pair[0]==='bandeira' && !keys.includes('adicionalBandeira'))return false;return !((p.possuiItensMultiplos && pair[0]==='energiaAtiva') || (data.gd2 && pair[0]==='injecaoTotal') || (pair[0]==='consumoTotal') || (!data.gd2 && pair[0]==='injecaoCicloKwh'));}).map(function(pair){
     var key=pair[0],known=v[key] !== undefined, value=known?(typeof v[key]==='number'?numeroParaFormulario(v[key]):v[key]):'';
     var type=/^leitura/.test(key)?'date':'text';
-    return '<div class="eq-revisao-campo"><label class="checkbox-field"><input type="checkbox" data-eq-usar="'+key+'"'+(known?' checked':'')+'> '+escapeHtml(pair[1])+'</label><input type="'+type+'" data-eq-valor="'+key+'" aria-label="Conferir '+escapeHtml(pair[1])+'" value="'+escapeHtml(value)+'"><small>'+escapeHtml(data.evidencias[key] || 'Não identificado: confira o PDF e complete somente se necessário.')+'</small></div>';
+    return '<div class="eq-revisao-campo"><label class="checkbox-field"><input type="checkbox" data-eq-usar="'+key+'"'+(key==='uc'?' checked disabled':(known?' checked':''))+'> '+escapeHtml(pair[1])+'</label><input type="'+type+'" data-eq-valor="'+key+'" aria-label="Conferir '+escapeHtml(pair[1])+'" value="'+escapeHtml(value)+'"><small>'+escapeHtml(data.evidencias[key] || 'Não identificado: confira o PDF e complete somente se necessário.')+'</small></div>';
   }).join('');
   var host=document.getElementById('eq-revisao');if(!host)return;
   host.innerHTML='<details id="eq-revisao-detalhes" open><summary>Conferência da fatura</summary>'+data.avisos.map(function(a){return '<p class="hint">'+escapeHtml(a)+'</p>';}).join('')+
     '<p class="hint">Crédito recebido: '+escapeHtml(v.creditoRecebidoKwh===undefined?'não identificado':energiaTexto(v.creditoRecebidoKwh))+'. Não é automaticamente tratado como crédito novo. Campos selecionados substituem os atuais; desmarque para preservar.</p>'+rows+
-    '<label class="checkbox-field"><input type="checkbox" id="eq-confirmar-uc">Conferi a UC destinatária e os valores no PDF.</label><button type="button" class="btn btn-primary" data-action="aplicar-conta-equatorial">Aplicar dados conferidos</button></details>';
+    '<p class="hint" id="eq-uc-status" role="status"></p><label class="checkbox-field"><input type="checkbox" id="eq-confirmar-uc">Conferi a UC destinatária e os valores no PDF.</label><button type="button" class="btn btn-primary" data-action="aplicar-conta-equatorial">Aplicar dados conferidos</button></details>';
+  var ucInput=host.querySelector('[data-eq-valor="uc"]');if(ucInput)ucInput.addEventListener('input',atualizarConferenciaUcConta);atualizarConferenciaUcConta();
 }
 function aplicarContaEquatorial(){
   var imported=importacaoEquatorial,c=selectedClient();if(!imported || !c)return;
@@ -2029,9 +2053,8 @@ function aplicarContaEquatorial(){
     if(['uc','referencia','leituraInicio','leituraFim'].includes(key)){chosen[key]=raw;return;}
     var n=numeroConta(raw);if(n===null || n<0)error='Use números válidos e não negativos nos campos da fatura.';else chosen[key]=n;
   });
-  if(error){toast(error);return;}var p=getProfile(c.profileId),uc=chaveUcSaldo(chosen.uc),expected=chaveUcSaldo(c.uc);
-  if(p.possuiItensMultiplos){var items=readItemRows(),main=items.find(function(it){return !!it.pontoPrincipal;}) || (p.distribuicaoAutomaticaPontos?items[0]:null);expected=main?chaveUcSaldo(main.uc):expected;}
-  if(!uc || !expected || uc!==expected){toast('A UC conferida não corresponde à conta selecionada. Corrija o cadastro ou escolha o cliente/ponto adequado; nenhuma alteração foi aplicada.');return;}
+  if(error){toast(error);return;}var p=getProfile(c.profileId),uc=chaveUcSaldo(chosen.uc),dest=destinoUcConta();
+  if(!ucEquivalenteConta(chosen.uc,dest.uc)){atualizarConferenciaUcConta();toast('UC da fatura: '+(chosen.uc || 'não informada')+'. '+dest.nome+': '+(dest.uc || 'não cadastrada')+'. Os números não correspondem; confira a UC no PDF e selecione/corrija o cliente ou ponto principal. Nenhuma alteração foi aplicada.');return;}
   if(chosen.referencia && !referenciaPeriodo(chosen.referencia)){toast('Informe referência válida, como Setembro/2026.');return;}
   if((chosen.leituraInicio && !dataFiltroValida(chosen.leituraInicio)) || (chosen.leituraFim && !dataFiltroValida(chosen.leituraFim)) || (chosen.leituraInicio && chosen.leituraFim && chosen.leituraInicio>=chosen.leituraFim)){toast('Confira as datas de leitura anterior e atual.');return;}
   if(chosen.referencia){var ref=referenciaPeriodo(chosen.referencia);setReferenciaAtual(MESES_PT[ref.mes-1]+'/'+ref.ano);atualizarSaldoAnterior(true);}
@@ -4312,13 +4335,12 @@ async function onSignOut(){
    O aviso aparece uma vez por versão por navegador (localStorage compartilhado
    entre o site principal e os subsites, pois ficam no mesmo domínio).
    ============================================================ */
-var IG_BASE_VERSION = '1.08.1';
-var IG_BASE_RELEASE_ID = '1.08.1-2026-10-09';
+var IG_BASE_VERSION = '1.08.2';
+var IG_BASE_RELEASE_ID = '1.08.2-2026-10-09';
 var IG_BASE_CHANGELOG = [
-  "Correção da leitura de faturas Equatorial com páginas de atendimento sem texto: os dados da conta são preservados.",
-  "Leitura direta do PDF tem prioridade sobre OCR para evitar perda de valores legíveis.",
-  "Geração GD2 ganha campo destacado com período APsystems, sem confundir geração, injeção na rede e compensação.",
-  "Preenchimento GD2 corrigido conforme os modelos anteriores, com revisão recolhida após aplicar e fórmulas financeiras preservadas."
+  "UCs com pontuação ou zeros à esquerda são reconhecidas como a mesma unidade ao importar a fatura.",
+  "A conferência mostra a UC da fatura e a UC cadastrada do cliente ou ponto principal antes de aplicar.",
+  "Faturas de outra unidade continuam bloqueadas. Cálculos e histórico preservados."
 ];
 function igbMostrarChangelog(){
   var KEY = 'igbase_changelog_visto';
