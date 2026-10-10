@@ -302,12 +302,12 @@ document.getElementById('settings-signout').addEventListener('click', sairDaCont
    O aviso aparece uma vez por versão por navegador (localStorage compartilhado
    entre o site principal e os subsites, pois ficam no mesmo domínio).
    ============================================================ */
-var IG_BASE_VERSION = '1.08.5';
-var IG_BASE_RELEASE_ID = '1.08.5-2026-10-09';
+var IG_BASE_VERSION = '1.08.6';
+var IG_BASE_RELEASE_ID = '1.08.6-2026-10-10';
 var IG_BASE_CHANGELOG = [
-  "Leitura automática do EXCEDENTE RECEBIDO da fatura Equatorial, com conferência do valor e das UCs.",
-  "Opções para mostrar o excedente recebido no resumo Equatorial e no PDF interno.",
-  "Excedente, geração, crédito recebido e saldo final permanecem separados, evitando somar créditos duas vezes."
+  "Validação com 24 meses em sequência nos modelos GD1 e GD2, usando lançamento manual e importação por fatura.",
+  "GD2 manual exige geração explícita, aceita zero e rejeita valores inválidos antes de calcular.",
+  "Leitura de excedente recebido corrigida quando UCs aparecem juntas após a vírgula, sem alterar as fórmulas de cobrança."
 ];
 function igbMostrarChangelog(){
   var KEY = 'igbase_changelog_visto';
