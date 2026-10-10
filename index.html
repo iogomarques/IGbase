@@ -240,6 +240,11 @@
   /* ---- Perfis ---- */
   .profile-card{ background: var(--surface); border:1px solid var(--line); border-radius: var(--radius-s); padding: 14px 16px; margin-bottom:10px; transition: box-shadow .2s var(--ease), border-color .2s var(--ease); }
   .profile-card:hover{ box-shadow: var(--shadow-lift); border-color: var(--accent-soft); }
+  .eq-revisao-campo{display:grid;gap:6px;margin:14px 0;min-width:0;}
+  .eq-revisao-campo input[type=text],.eq-revisao-campo input[type=date]{width:100%;min-width:0;}
+  .eq-revisao-campo small{overflow-wrap:anywhere;color:var(--ink-soft);}
+  #eq-arquivo{max-width:100%;}
+  #eq-revisao .btn{margin-top:12px;}
   .profile-card .head{ display:flex; justify-content:space-between; align-items:flex-start; gap:10px; flex-wrap:wrap; }
   .profile-card h3{ margin:0 0 4px; font-family: var(--serif); font-size:16px; }
   .profile-card .desc{ font-size:12.5px; color: var(--ink-soft); margin:0 0 8px; max-width:520px; }
@@ -1250,6 +1255,8 @@ function fixosEfetivos(client, profile){
 function renderNovoOrcamento(){
   var container = document.getElementById('tab-content');
   var c = selectedClient();
+  if(leituraEquatorial || leituraPreparando)cancelarLeituraConta();
+  importacaoEquatorial=null;
   if(!c){
     container.innerHTML = '<div class="empty-state"><p>Você ainda não tem nenhum cliente cadastrado.</p><button class="btn btn-primary" data-action="new-client">Cadastrar primeiro cliente</button></div>';
     return;
@@ -1321,7 +1328,7 @@ function renderNovoOrcamento(){
 
   container.innerHTML =
     '<div class="quote-grid">' +
-      '<div class="quote-form-col">' + formHtml +
+      '<div class="quote-form-col">' + importacaoContaHtml() + formHtml +
         '<div class="btn-row"><button class="btn btn-primary" data-action="calcular">Calcular orçamento</button></div>' +
       '</div>' +
       '<div class="quote-preview-col" id="preview-col">' +
@@ -1329,10 +1336,10 @@ function renderNovoOrcamento(){
       '</div>' +
     '</div>';
 
-  saldoContextoFormulario=null;
+  saldoContextoFormulario=null;importacaoFormulario=null;
   restaurarRascunhoSeExistir(c, profile);
   if(!saldoContextoFormulario)atualizarSaldoAnterior(true);
-  renderOrigemSaldo();
+  renderOrigemSaldo();renderPeriodoConta();
 }
 
 function readMensaisFromForm(){
@@ -1373,6 +1380,9 @@ function lerFormularioBruto(){
     observacoes: txt('f-observacoes'),
     energiaDocumento: lerEnergiaDocumento(),
     saldoTransferencia: saldoContextoFormulario ? copiarDados(saldoContextoFormulario) : null,
+    importacaoEquatorial:importacaoFormulario ? copiarDados(importacaoFormulario) : null,
+    confirmarSaldoConta:!!(document.getElementById('confirmar-saldo-conta') && document.getElementById('confirmar-saldo-conta').checked),
+    motivoConciliacaoSaldo:txt('motivo-conciliacao-saldo'),
     mensais: {}, itens: null
   };
   document.querySelectorAll('.in-mensal').forEach(function(inp){
@@ -1434,7 +1444,10 @@ function restaurarRascunhoSeExistir(client, profile){
   }
   saldoContextoFormulario=rascunho.saldoTransferencia ? copiarDados(rascunho.saldoTransferencia) : {modo:'manual',identidade:identidadeSaldoFormulario(),referencia:getReferenciaAtual(),motivo:'Rascunho anterior recuperado',aviso:'Saldo do rascunho preservado. Confira a origem antes de emitir.'};
   setIf('saldo-correcao-motivo',saldoContextoFormulario.motivo || '');
-  renderOrigemSaldo();
+  importacaoFormulario=rascunho.importacaoEquatorial ? copiarDados(rascunho.importacaoEquatorial) : null;
+  document.getElementById('confirmar-saldo-conta').checked=!!rascunho.confirmarSaldoConta;
+  setIf('motivo-conciliacao-saldo',rascunho.motivoConciliacaoSaldo || '');
+  renderPeriodoConta();renderOrigemSaldo();
   toast('Recuperamos os dados do seu último lançamento não salvo para este cliente.');
   onCalcular();
 }
@@ -1546,7 +1559,7 @@ function onCalcular(){
   var c = selectedClient(); if(!c) return;
   var profile = getProfile(c.profileId); if(!profile) return;
 
-  if(!validarTransferenciaSaldo())return;
+  if(!validarTransferenciaSaldo() || !validarConciliacaoSaldo())return;
   var referencia = getReferenciaAtual();
   var ajuste = num('f-ajuste');
   var observacoes = txt('f-observacoes');
@@ -1648,6 +1661,10 @@ function onCalcular(){
     energiaDocumentoInputs: copiarDados(energiaDocumentoInputs)
   };
   if(saldoContextoFormulario)novoDraft.saldoTransferencia=copiarDados(saldoContextoFormulario);
+  if(importacaoFormulario)novoDraft.importacaoEquatorial=copiarDados(importacaoFormulario);
+  if(document.getElementById('confirmar-saldo-conta').checked)novoDraft.confirmarSaldoConta=true;
+  var novosCreditos=valorEnergiaInformado(energiaDocumentoInputs.creditoNovoKwh);
+  if(novoDraft.confirmarSaldoConta || novosCreditos !== null){novoDraft.motivoConciliacaoSaldo=txt('motivo-conciliacao-saldo');novoDraft.confirmacaoSaldoEm=new Date().toISOString();}
   novoDraft.resumoEnergia = construirResumoEnergia(profile, novoDraft);
   if(novoDraft.resumoEnergia.erroSaldo){ toast(novoDraft.resumoEnergia.erroSaldo); return; }
   state.lastDraft = novoDraft;
@@ -1663,7 +1680,7 @@ function valorEnergiaInformado(v){
 }
 function lerEnergiaDocumento(){
   var dados = {};
-  ['consumoRealKwh','consumoCompensadoKwh','injecaoMesKwh','saldoDisponivelKwh','saldoUtilizadoKwh'].forEach(function(chave){
+  ['consumoRealKwh','consumoCompensadoKwh','injecaoMesKwh','saldoDisponivelKwh','saldoUtilizadoKwh','creditoNovoKwh','saldoFinalContaKwh'].forEach(function(chave){
     var el = document.querySelector('.energia-documento-input[data-chave="' + chave + '"]');
     dados[chave] = !el || !el.value.trim() ? null : /[^0-9.,+\-\s]/.test(el.value) ? NaN : parseNumBR(el.value);
   });
@@ -1759,6 +1776,7 @@ function procurarSaldoAnterior(identidade, referencia, quotes){
 }
 function verificarOrigemSaldo(q, quotes, visitados){
   var meta=q.saldoTransferencia;
+  if(q.confirmarSaldoConta && q.energiaDocumentoInputs && valorEnergiaInformado(q.energiaDocumentoInputs.saldoFinalContaKwh) !== null && q.resumoEnergia && q.resumoEnergia.saldoRestanteKwh === q.energiaDocumentoInputs.saldoFinalContaKwh)return '';
   if(!meta || meta.modo !== 'automatico') return '';
   visitados=visitados || {};
   if(visitados[q.id]) return 'Cadeia de saldos inválida.';
@@ -1781,6 +1799,8 @@ function atualizarSaldoAnterior(forcar){
   var id=identidadeSaldoFormulario(), ref=getReferenciaAtual();
   var mudou=!saldoContextoFormulario || saldoContextoFormulario.identidade !== id || saldoContextoFormulario.referencia !== ref;
   if(!mudou && !forcar) {renderOrigemSaldo();return;}
+  if(mudou){['creditoNovoKwh','saldoFinalContaKwh'].forEach(function(k){var el=document.querySelector('.energia-documento-input[data-chave="'+k+'"]');if(el)el.value='';});var check=document.getElementById('confirmar-saldo-conta');if(check)check.checked=false;setIf('motivo-conciliacao-saldo','');
+    if(importacaoFormulario && (importacaoFormulario.referencia !== ref || (importacaoFormulario.identidade && importacaoFormulario.identidade !== id))){importacaoFormulario=null;renderPeriodoConta();}}
   var anterior=procurarSaldoAnterior(id,ref,state.quotes);
   saldoContextoFormulario={identidade:id,referencia:ref,modo:anterior.quote?'automatico':'manual',
     origemId:anterior.quote ? anterior.quote.id : null,origemReferencia:anterior.quote ? anterior.quote.referencia : '',
@@ -1845,6 +1865,232 @@ function avisoSaldoHistorico(q){
   return aviso ? '<p class="hint" role="status"><strong>Saldo requer revisão:</strong> '+escapeHtml(aviso)+' Os valores salvos foram preservados; confira antes de criar a próxima fatura.</p>' : '';
 }
 
+/* Importação local: dados extraídos só entram no formulário após conferência. */
+var importacaoEquatorial=null, leituraEquatorial=null, importacaoSequencia=0, leituraPreparando=false;
+function normalizarTextoConta(t){return String(t || '').normalize('NFD').replace(/[\u0300-\u036f]/g,'').toUpperCase();}
+function numeroConta(t){
+  t=String(t || '').trim().replace(/\s/g,'').replace(/,$/,'');
+  if(!/^-?(?:\d{1,3}(?:\.\d{3})+|\d+)(?:,\d+)?$/.test(t))return null;
+  var n=Number(t.replace(/\./g,'').replace(',','.'));return Number.isFinite(n)?n:null;
+}
+function linhasPdfConta(items){
+  var rows=[];
+  (items || []).filter(function(it){return it.str && it.str.trim();}).sort(function(a,b){return b.transform[5]-a.transform[5] || a.transform[4]-b.transform[4];}).forEach(function(it){
+    var y=it.transform[5],row=rows.find(function(r){return Math.abs(r.y-y)<2;});
+    if(!row){row={y:y,items:[]};rows.push(row);}row.items.push(it);
+  });
+  return rows.sort(function(a,b){return b.y-a.y;}).map(function(row){return row.items.sort(function(a,b){return a.transform[4]-b.transform[4];}).map(function(it){return it.str;}).join(' ');}).join('\n');
+}
+function analisarContaEquatorial(texto, profile){
+  var raw=String(texto || ''), t=normalizarTextoConta(raw), linhas=t.split(/\r?\n/), valores={}, evidencias={}, avisos=[], ambiguos={};
+  var gd2=!!(profile && !perfilConsumoGD1(profile));
+  function put(key,value,source){if(ambiguos[key] || value === null || value === undefined || value < 0)return;
+    if(valores[key] !== undefined && Math.abs(valores[key]-value)>0.000001){delete valores[key];ambiguos[key]=true;evidencias[key]='Valores divergentes no documento — preencher manualmente';avisos.push('Mais de um valor para '+key+'.');return;}
+    valores[key]=value;evidencias[key]=source;
+  }
+  function uniqueCapture(key,regex){var matches=Array.from(t.matchAll(regex));var nums=matches.map(function(m){return numeroConta(m[1]);}).filter(function(n){return n !== null;});
+    var distinct=Array.from(new Set(nums));if(distinct.length===1)put(key,distinct[0],matches[0][0].slice(0,180));else if(distinct.length>1)avisos.push('Valores divergentes em '+key+'.');}
+  uniqueCapture('saldoFinalContaKwh',/\bSALDO\s+KWH\s*[:=]?\s*([\d.,]+)/g);
+  /* CRÉDITO RECEBIDO não identifica sozinho novos créditos acumulados. */
+  uniqueCapture('creditoRecebidoKwh',/CREDITO\s+RECEBIDO\s+KWH\s*[:=]?\s*([\d.,]+)/g);
+  var ref=/\b(JAN|FEV|MAR|ABR|MAI|JUN|JUL|AGO|SET|OUT|NOV|DEZ)\s*\/\s*(20\d{2})\b/.exec(t);
+  if(ref){valores.referencia=MESES_PT[['JAN','FEV','MAR','ABR','MAI','JUN','JUL','AGO','SET','OUT','NOV','DEZ'].indexOf(ref[1])]+'/'+ref[2];evidencias.referencia=ref[0];}
+  var ucLabel=/(?:UNIDADE\s+CONSUMIDORA|CONTA\s+CONTRATO|CODIGO\s+DO\s+CLIENTE)\s*[:\n]?\s*([\d.\-]{8,20})/.exec(t);
+  if(ucLabel){valores.uc=ucLabel[1];evidencias.uc=ucLabel[0];}
+  if(!valores.uc){var header=/RAMAL:\s*[\d.,]+%\s+([\d.\-]{8,20})/.exec(t);var footer=/EQUATORIAL[^\n]*?S\/A\s+([\d.\-]{8,20})/.exec(t);var code=header || footer;if(code){valores.uc=code[1];evidencias.uc='Código destinatário no cabeçalho/rodapé da distribuidora; conferir';}}
+  var prices=Array.from(t.matchAll(/R\$\s*\*+\s*([\d.,]+)/g)).map(function(m){return numeroConta(m[1]);}).filter(function(v){return v !== null;});
+  if(new Set(prices).size===1)put('valorFatura',prices[0],'Total da fatura, indicado por R$ no cabeçalho');
+  else uniqueCapture('valorFatura',/(?:TOTAL\s+A\s+PAGAR|VALOR\s+DA\s+FATURA)\s*[:\s]*(?:R\$\s*)?([\d.,]+)/g);
+  var sums={bandeira:[],fioB:[],multas:[],adicionais:[]}, generation=[];
+  linhas.forEach(function(line){
+    var medidor=/ENERGIA\s+ATIVA\s*-\s*KWH\s+\S+\s+([\d.,]+)\s+([\d.,]+)\s+([\d.,]+)\s+([\d.,]+)/.exec(line);
+    if(medidor){var anterior=numeroConta(medidor[1]),atual=numeroConta(medidor[2]),coef=numeroConta(medidor[3]),medido=numeroConta(medidor[4]);
+      if(anterior!==null && atual!==null && coef>0 && medido!==null && Math.abs((atual-anterior)*coef-medido)<0.02){put('consumoRealKwh',medido,line);if(profile && profile.possuiItensMultiplos)put('consumoTotal',medido,line);}}
+    var row=/\bKWH\b\s+([\d.,]+)\s+([\d.,]+)\s+(-?[\d.,]+)/.exec(line);
+    if(row){var qty=numeroConta(row[1]), amount=numeroConta(row[3]);
+      if(/CONSUMO\s+NAO\s+COMPENSADO/.test(line)){put('energiaAtiva',qty,line);put('gastoNaoCompensado',amount,line);}
+      if(/CONSUMO\s+SCEE/.test(line))put('compensadoKwh',qty,line);
+      if(/ADC\s+BANDEIRA|ADICIONAL\s+BANDEIRA/.test(line) && amount !== null)sums.bandeira.push(amount);
+      if(/PARC\s+INJET\s+S\s*\/\s*DESC|FIO\s*B/.test(line) && amount !== null)sums.fioB.push(amount);
+    }
+    var nonTable=/CONTRIB.*ILUM.*?(?:PUBLICA|MUNICIPAL)\s*[-:]?\s*([\d.,]+)/.exec(line);
+    if(nonTable)put('iluminacao',numeroConta(nonTable[1]),nonTable[0]);
+    var fee=/\b(MULTA|JUROS|CORRECAO\s+MONETARIA)\b[^\d]*([\d.,]+)/.exec(line);
+    if(fee){var amount=numeroConta(fee[2]);if(amount !== null)(fee[1]==='MULTA'?sums.multas:sums.adicionais).push(amount);}
+    var dates=Array.from(line.matchAll(/\b(\d{2}\/\d{2}\/20\d{2})\b/g)).map(function(m){return m[1];});
+    if(!valores.leituraInicio && dates.length>=3){var start=dates[0].split('/').reverse().join('-'),end=dates[1].split('/').reverse().join('-');
+      var days=(Date.parse(end)-Date.parse(start))/86400000;
+      if(dataFiltroValida(start)&&dataFiltroValida(end)&&days>0&&days<=90){valores.leituraInicio=start;valores.leituraFim=end;evidencias.leituraInicio=evidencias.leituraFim='Datas do cabeçalho — confirme anterior e atual';}}
+  });
+  Object.keys(sums).forEach(function(key){if(sums[key].length)put(key,sums[key].reduce(function(a,b){return a+b;},0),'Soma dos lançamentos identificados, conferência obrigatória');});
+  var cycle=/GERACAO\s+CICLO[^\n]*?KWH\s*:\s*([\s\S]*?)(?=EXCEDENTE\s+RECEBIDO|CREDITO\s+RECEBIDO|SALDO\s+KWH|$)/.exec(t);
+  if(cycle){Array.from(cycle[1].matchAll(/UC\s+([\d.\-]+)\s*:\s*([\d.,]+)/g)).forEach(function(m){var value=numeroConta(m[2]);if(value !== null)generation.push({uc:m[1],kwh:value});});}
+  if(!gd2 && generation.length){put('injecaoTotal',generation.reduce(function(a,b){return a+b.kwh;},0),'Geração ciclo informada no SCEE, por UC geradora');}
+  if(gd2)avisos.push('GD2: consulte a geração total no APsystems para o intervalo de leitura. A energia injetada ou compensada da conta não substitui a produção total.');
+  if(valores.compensadoKwh !== undefined){
+    if(valores.energiaAtiva === undefined && /CONSUMO\s+SCEE/.test(t)){avisos.push('Consumo não compensado não identificado: confira se é zero.');}
+    if(valores.energiaAtiva !== undefined)put('consumoRealKwh',valores.compensadoKwh+valores.energiaAtiva,'Compensado + consumo não compensado');
+    if(profile && profile.possuiItensMultiplos && valores.energiaAtiva !== undefined)put('consumoTotal',valores.compensadoKwh+valores.energiaAtiva,'Compensado + consumo não compensado: confira leitura da conta principal');
+  }
+  if(!/EQUATORIAL/.test(t))avisos.push('Distribuidora não identificada com segurança. Confirme que este documento é uma fatura da Equatorial.');
+  if(generation.length>1)avisos.push('Há várias UCs geradoras no SCEE; a conta destinatária deve ser conferida separadamente.');
+  return {schema:'equatorial-v1',valores:valores,evidencias:evidencias,avisos:avisos,geradoras:generation,gd2:gd2};
+}
+function importacaoContaHtml(){
+  var c=selectedClient(),p=c && getProfile(c.profileId),gd2=p && !perfilConsumoGD1(p);
+  return '<fieldset id="importacao-equatorial"><legend>Importar fatura da Equatorial</legend><p class="hint">Selecione o PDF para extrair os dados e conferir antes de preencher. A fatura é lida neste navegador, sem envio do arquivo a um serviço de análise.</p>'+ 
+    '<div class="field"><label for="eq-arquivo">Fatura em PDF</label><input type="file" id="eq-arquivo" accept="application/pdf,.pdf"></div>'+ 
+    '<div class="btn-row"><button type="button" class="btn" data-action="ler-conta-equatorial">Ler PDF</button><button type="button" class="btn" data-action="ler-conta-ocr">Ler PDF escaneado (OCR)</button><button type="button" class="btn btn-ghost" data-action="cancelar-importacao">Cancelar leitura</button></div>'+ 
+    '<p class="hint" id="eq-status" role="status">OCR pode demorar mais; revise os números reconhecidos.</p><div id="eq-revisao"></div>'+ 
+    '<p class="hint" id="eq-periodo-aplicado" role="status"></p>'+(gd2?'<div class="btn-row"><a href="https://apsystemsema.com/ema/index.action" target="_blank" rel="noopener noreferrer">Consultar APsystems</a><button type="button" class="btn" data-action="variacao-conta-gd2">Completar variação com a geração informada (GD2)</button></div>':'')+'</fieldset>';
+}
+function statusImportacaoConta(texto){var el=document.getElementById('eq-status');if(el)el.textContent=texto;}
+var promessaPdfConta=null;
+async function carregarPdfConta(){
+  if(promessaPdfConta)return promessaPdfConta;
+  promessaPdfConta=(async function(){
+    var bases=['https://cdn.jsdelivr.net/npm/pdfjs-dist@6.4.299/legacy/build/','https://unpkg.com/pdfjs-dist@6.4.299/legacy/build/'];
+    for(var base of bases){try{var timer;var lib=await Promise.race([import(base+'pdf.mjs'),new Promise(function(_,reject){timer=setTimeout(function(){reject(new Error('Tempo limite ao carregar o leitor PDF.'));},20000);})]).finally(function(){clearTimeout(timer);});lib.GlobalWorkerOptions.workerSrc=base+'pdf.worker.mjs';return lib;}catch(e){}}
+    throw new Error('Não foi possível carregar o leitor PDF. Confira a conexão e tente novamente.');
+  })();
+  try{return await promessaPdfConta;}catch(e){promessaPdfConta=null;throw e;}
+}
+async function carregarOcrConta(){
+  var ok=await carregarBibliotecaExportacao('ocr-conta',['https://cdn.jsdelivr.net/npm/tesseract.js@7.0.0/dist/tesseract.min.js','https://unpkg.com/tesseract.js@7.0.0/dist/tesseract.min.js'],function(){return !!window.Tesseract;});
+  if(!ok)throw new Error('Não foi possível carregar o OCR. Confira a conexão e tente novamente.');return window.Tesseract;
+}
+async function cancelarLeituraConta(){
+  importacaoSequencia++;leituraPreparando=false;var leitura=leituraEquatorial;leituraEquatorial=null;importacaoEquatorial=null;
+  if(leitura){if(leitura.worker)try{await leitura.worker.terminate();}catch(e){};if(leitura.task)try{await leitura.task.destroy();}catch(e){}}
+  var review=document.getElementById('eq-revisao');if(review)review.innerHTML='';statusImportacaoConta('Leitura cancelada. Os campos do orçamento foram preservados.');
+}
+async function lerContaEquatorial(ocr){
+  if(leituraEquatorial || leituraPreparando){toast('Uma leitura já está em andamento. Cancele-a antes de escolher outro arquivo.');return;}
+  var el=document.getElementById('eq-arquivo'),file=el && el.files && el.files[0], c=selectedClient();
+  if(!file){toast('Selecione uma fatura PDF.');return;}
+  if(file.size>20*1024*1024){toast('O limite é 20 MB. Separe as páginas necessárias da fatura.');return;}
+  var preparo=++importacaoSequencia;leituraPreparando=true;var bytes;
+  try{bytes=new Uint8Array(await file.arrayBuffer());}catch(e){statusImportacaoConta('Não foi possível ler o arquivo selecionado.');leituraPreparando=false;return;}
+  if(preparo !== importacaoSequencia)return;leituraPreparando=false;
+  if(String.fromCharCode.apply(null,bytes.slice(0,5)) !== '%PDF-'){toast('O arquivo selecionado não é um PDF válido.');return;}
+  var seq=preparo,perfil=getProfile(c.profileId),leitura={seq:seq,clientId:c.id,profileId:c.profileId,identity:identidadeSaldoFormulario(),referencia:getReferenciaAtual(),task:null,worker:null};
+  leituraEquatorial=leitura;importacaoEquatorial=null;var review=document.getElementById('eq-revisao');if(review)review.innerHTML='';
+  function atual(){return seq===importacaoSequencia && selectedClient() && selectedClient().id===leitura.clientId && selectedClient().profileId===leitura.profileId && identidadeSaldoFormulario()===leitura.identity && getReferenciaAtual()===leitura.referencia && document.getElementById('eq-revisao');}
+  try{
+    statusImportacaoConta('Carregando leitor PDF…');var lib=await carregarPdfConta();if(!atual())return;
+    leitura.task=lib.getDocument({data:bytes,isEvalSupported:false,enableScripting:false,useSystemFonts:true,stopAtErrors:true});
+    var pdf=await leitura.task.promise;if(pdf.numPages>6)throw new Error('Selecione um PDF com até 6 páginas para esta importação.');
+    var textos=[];
+    if(ocr){var T=await carregarOcrConta();if(!atual())return;statusImportacaoConta('Preparando reconhecimento de texto…');leitura.worker=await T.createWorker('por',1,{logger:function(m){if(atual())statusImportacaoConta('OCR: '+Math.round((m.progress || 0)*100)+'% — '+(m.status || 'processando'));}});}
+    for(var pageNo=1;pageNo<=pdf.numPages;pageNo++){
+      if(!atual())return;statusImportacaoConta('Lendo página '+pageNo+' de '+pdf.numPages+'…');var page=await pdf.getPage(pageNo);
+      var content=await page.getTextContent();var texto=linhasPdfConta(content.items);
+      if(ocr || texto.replace(/\s/g,'').length<80){
+        if(!leitura.worker)throw new Error('Este PDF tem pouco texto legível. Use Ler PDF escaneado (OCR).');
+        var viewport=page.getViewport({scale:1});var scale=Math.min(2,Math.sqrt(2600000/(viewport.width*viewport.height)));viewport=page.getViewport({scale:scale});
+        var canvas=document.createElement('canvas');canvas.width=Math.ceil(viewport.width);canvas.height=Math.ceil(viewport.height);
+        try{await page.render({canvasContext:canvas.getContext('2d'),viewport:viewport}).promise;var result=await leitura.worker.recognize(canvas);texto=result.data.text;}finally{canvas.width=0;canvas.height=0;}
+      }
+      textos.push(texto);page.cleanup();
+    }
+    if(!atual())return;
+    var parsed=analisarContaEquatorial(textos.join('\n'),perfil);importacaoEquatorial={dados:parsed,nomeArquivo:file.name,metodo:ocr?'ocr':'texto-pdf',clientId:c.id,profileId:c.profileId,identity:leitura.identity,referencia:leitura.referencia};
+    renderRevisaoConta();statusImportacaoConta('Leitura concluída. Confira os dados e selecione o que será preenchido.');
+  }catch(e){if(seq===importacaoSequencia)statusImportacaoConta(e.name==='PasswordException'?'O PDF está protegido por senha. Abra uma cópia desbloqueada para importar.':(e.message || 'Falha ao ler a fatura. Tente novamente.'));}
+  finally{if(leitura.worker)try{await leitura.worker.terminate();}catch(e){};if(leitura.task)try{await leitura.task.destroy();}catch(e){};if(leituraEquatorial===leitura)leituraEquatorial=null;}
+}
+var CAMPOS_CONTA=[['uc','UC da conta'],['referencia','Mês de referência'],['leituraInicio','Leitura anterior'],['leituraFim','Leitura atual'],['valorFatura','Total da fatura (R$)'],['energiaAtiva','Consumo não compensado (kWh)'],['compensadoKwh','Energia compensada na conta (kWh)'],['consumoTotal','Leitura total da conta principal (kWh)'],['consumoRealKwh','Consumo bruto real (kWh)'],['injecaoTotal','Geração/injeção do ciclo — GD1 (kWh)'],['gastoNaoCompensado','Gasto não compensado (R$)'],['bandeira','Adicional de bandeira (R$)'],['fioB','Fio B (R$)'],['iluminacao','Iluminação pública (R$)'],['multas','Multas (R$)'],['adicionais','Juros e correção (R$)'],['saldoFinalContaKwh','Saldo final indicado na distribuidora (kWh)']];
+function renderRevisaoConta(){
+  var data=importacaoEquatorial.dados,c=selectedClient(),p=getProfile(c.profileId),v=data.valores;
+  var rows=CAMPOS_CONTA.filter(function(pair){return !((p.possuiItensMultiplos && pair[0]==='energiaAtiva') || (data.gd2 && pair[0]==='injecaoTotal') || (!p.possuiItensMultiplos && pair[0]==='consumoTotal'));}).map(function(pair){
+    var key=pair[0],known=v[key] !== undefined, value=known?(typeof v[key]==='number'?numeroParaFormulario(v[key]):v[key]):'';
+    var type=/^leitura/.test(key)?'date':'text';
+    return '<div class="eq-revisao-campo"><label class="checkbox-field"><input type="checkbox" data-eq-usar="'+key+'"'+(known?' checked':'')+'> '+escapeHtml(pair[1])+'</label><input type="'+type+'" data-eq-valor="'+key+'" aria-label="Conferir '+escapeHtml(pair[1])+'" value="'+escapeHtml(value)+'"><small>'+escapeHtml(data.evidencias[key] || 'Não identificado: confira o PDF e complete somente se necessário.')+'</small></div>';
+  }).join('');
+  var host=document.getElementById('eq-revisao');if(!host)return;
+  host.innerHTML='<p><strong>Conferência da fatura</strong></p>'+data.avisos.map(function(a){return '<p class="hint">'+escapeHtml(a)+'</p>';}).join('')+
+    '<p class="hint">Crédito recebido: '+escapeHtml(v.creditoRecebidoKwh===undefined?'não identificado':energiaTexto(v.creditoRecebidoKwh))+'. Não é automaticamente tratado como crédito novo. Campos selecionados substituem os atuais; desmarque para preservar.</p>'+rows+
+    '<label class="checkbox-field"><input type="checkbox" id="eq-confirmar-uc">Conferi a UC destinatária e os valores no PDF.</label><button type="button" class="btn btn-primary" data-action="aplicar-conta-equatorial">Aplicar dados conferidos</button>';
+}
+function aplicarContaEquatorial(){
+  var imported=importacaoEquatorial,c=selectedClient();if(!imported || !c)return;
+  if(c.id!==imported.clientId || c.profileId!==imported.profileId || identidadeSaldoFormulario()!==imported.identity || getReferenciaAtual()!==imported.referencia){toast('Cliente, UC ou referência mudou após a leitura. Leia o PDF novamente.');return;}
+  if(!document.getElementById('eq-confirmar-uc').checked){toast('Confirme a conferência da UC e dos valores antes de aplicar.');return;}
+  var chosen={},error='';document.querySelectorAll('[data-eq-usar]:checked').forEach(function(check){var key=check.dataset.eqUsar,el=document.querySelector('[data-eq-valor="'+key+'"]'),raw=el.value.trim();
+    if(!raw){error='Complete ou desmarque os campos vazios.';return;}
+    if(['uc','referencia','leituraInicio','leituraFim'].includes(key)){chosen[key]=raw;return;}
+    var n=numeroConta(raw);if(n===null || n<0)error='Use números válidos e não negativos nos campos da fatura.';else chosen[key]=n;
+  });
+  if(error){toast(error);return;}var p=getProfile(c.profileId),uc=chaveUcSaldo(chosen.uc),expected=chaveUcSaldo(c.uc);
+  if(p.possuiItensMultiplos){var items=readItemRows(),main=items.find(function(it){return !!it.pontoPrincipal;}) || (p.distribuicaoAutomaticaPontos?items[0]:null);expected=main?chaveUcSaldo(main.uc):expected;}
+  if(!uc || !expected || uc!==expected){toast('A UC conferida não corresponde à conta selecionada. Corrija o cadastro ou escolha o cliente/ponto adequado; nenhuma alteração foi aplicada.');return;}
+  if(chosen.referencia && !referenciaPeriodo(chosen.referencia)){toast('Informe referência válida, como Setembro/2026.');return;}
+  if((chosen.leituraInicio && !dataFiltroValida(chosen.leituraInicio)) || (chosen.leituraFim && !dataFiltroValida(chosen.leituraFim)) || (chosen.leituraInicio && chosen.leituraFim && chosen.leituraInicio>=chosen.leituraFim)){toast('Confira as datas de leitura anterior e atual.');return;}
+  if(chosen.referencia){var ref=referenciaPeriodo(chosen.referencia);setReferenciaAtual(MESES_PT[ref.mes-1]+'/'+ref.ano);atualizarSaldoAnterior(true);}
+  function mensal(key,val){if(val===undefined)return;var el=document.querySelector('.in-mensal[data-chave="'+key+'"]');if(el)el.value=numeroParaFormulario(val);}
+  ['energiaAtiva','consumoTotal','injecaoTotal','gastoNaoCompensado','fioB','iluminacao','multas','adicionais'].forEach(function(k){if(k!=='energiaAtiva' || !p.possuiItensMultiplos)mensal(k,chosen[k]);});
+  mensal('adicionalBandeira',chosen.bandeira);mensal('valorFaturaImpresso',chosen.valorFatura);mensal('valorFaturaInfo',chosen.valorFatura);
+  function energia(key,val){if(val===undefined)return;var el=document.querySelector('.energia-documento-input[data-chave="'+key+'"]');if(el)el.value=numeroParaFormulario(val);}
+  energia('consumoCompensadoKwh',chosen.compensadoKwh);energia('consumoRealKwh',chosen.consumoRealKwh);energia('saldoFinalContaKwh',chosen.saldoFinalContaKwh);
+  if(chosen.saldoFinalContaKwh !== undefined){document.getElementById('confirmar-saldo-conta').checked=true;setIf('motivo-conciliacao-saldo','Saldo final conferido na fatura importada da Equatorial');}
+  mensal('injecaoNaConta',chosen.compensadoKwh);
+  /* No rateio GD2, Energia Ativa é a energia compensada da conta principal. */
+  if(p.possuiItensMultiplos)mensal('energiaAtiva',chosen.compensadoKwh);
+  /* Base transparente para a variação, quando o perfil já usa esta relação. */
+  if(!imported.dados.gd2 && chosen.injecaoTotal!==undefined && chosen.compensadoKwh!==undefined)mensal('saldoDelta',chosen.injecaoTotal-chosen.compensadoKwh);
+  importacaoFormulario={schema:'importacao-equatorial-v1',metodo:imported.metodo,arquivo:imported.nomeArquivo,uc:chosen.uc,identidade:identidadeSaldoFormulario(),referencia:getReferenciaAtual(),leituraInicio:chosen.leituraInicio || '',leituraFim:chosen.leituraFim || '',camposConferidos:copiarDados(chosen),conferidoEm:new Date().toISOString()};
+  renderPeriodoConta();marcarFaturaDesatualizada();salvarRascunhoAtual();toast('Dados conferidos aplicados. Complete os campos restantes e calcule o orçamento.');
+}
+var importacaoFormulario=null;
+function renderPeriodoConta(){var el=document.getElementById('eq-periodo-aplicado');if(!el)return;
+  var m=importacaoFormulario;el.textContent=m ? 'Fatura conferida: '+m.referencia+' · UC '+m.uc+'. '+(m.leituraInicio&&m.leituraFim?'Período de leitura: '+m.leituraInicio.split('-').reverse().join('/')+' a '+m.leituraFim.split('-').reverse().join('/')+'. ':'')+(perfilConsumoGD1(getProfile(selectedClient().profileId))?'':'GD2: consulte a geração desse intervalo no APsystems e informe no campo de geração.'):'';}
+function completarVariacaoContaGd2(){
+  var c=selectedClient(),p=c && getProfile(c.profileId),m=importacaoFormulario;
+  if(!p || perfilConsumoGD1(p) || !m || m.uc !== (m.camposConferidos || {}).uc || m.referencia !== getReferenciaAtual())return;
+  var comp=(m.camposConferidos || {}).compensadoKwh,gen=document.querySelector('.in-mensal[data-chave="injecaoTotal"]'),delta=document.querySelector('.in-mensal[data-chave="saldoDelta"]');
+  if(comp===undefined || !gen || !gen.value.trim() || !delta)return;
+  var n=numeroConta(gen.value);if(n===null)return;delta.value=numeroParaFormulario(n-comp);marcarFaturaDesatualizada();salvarRascunhoAtual();
+  toast('Variação de saldo preenchida: geração informada − compensação conferida na conta. Revise antes de calcular.');
+}
+
+/* Regra aprovada: saldo inicial − uso de créditos antigos + créditos novos confirmados. */
+function conciliarSaldoConfirmado(resumo, draft){
+  var dados=draft.energiaDocumentoInputs || {}, novos=valorEnergiaInformado(dados.creditoNovoKwh);
+  var conta=valorEnergiaInformado(dados.saldoFinalContaKwh), confirmado=!!draft.confirmarSaldoConta;
+  if(novos === null && (!confirmado || conta === null))return resumo;
+  var inicial=resumo.saldoDisponivelKwh, uso=resumo.saldoUtilizadoKwh;
+  var calculado=inicial !== null && uso !== null ? Math.max(0,inicial-uso)+(novos || 0) : null;
+  var final=confirmado && conta !== null ? conta : calculado;
+  var credito=novos;
+  if(credito === null && confirmado && calculado !== null)credito=Math.max(0,conta-calculado);
+  resumo.saldoRestanteKwh=final;
+  resumo.conciliacaoSaldo={schema:'saldo-confirmado-v1',saldoInicialKwh:inicial,usadoKwh:uso,
+    creditosNovosConfirmadosKwh:credito,saldoCalculadoKwh:calculado,saldoFinalContaKwh:confirmado?conta:null,
+    diferencaKwh:confirmado && calculado !== null ? conta-calculado : null,
+    origem:confirmado?'saldo final conferido na distribuidora':'créditos novos informados e confirmados',
+    motivo:draft.motivoConciliacaoSaldo || '',confirmadoEm:draft.confirmacaoSaldoEm || ''};
+  return resumo;
+}
+function conciliacaoSaldoCamposHtml(){
+  return '<details class="panel"><summary>Novos créditos e conferência com a distribuidora</summary><p class="hint">Saldo final = saldo inicial − créditos antigos utilizados + novos créditos confirmados. Não use a geração bruta ou crédito recebido total como se fosse todo crédito novo.</p>'+ 
+    '<div class="field"><label for="credito-novo-entrada">Novos créditos acumulados confirmados (kWh)</label><input type="text" inputmode="decimal" id="credito-novo-entrada" class="energia-documento-input" data-chave="creditoNovoKwh" placeholder="Vazio: não acrescentar créditos"><span class="hint">Informe somente o valor efetivamente creditado. A energia excedente estimada permanece separada.</span></div>'+ 
+    '<div class="field"><label for="saldo-final-conta">Saldo final indicado na Equatorial (kWh)</label><input type="text" inputmode="decimal" id="saldo-final-conta" class="energia-documento-input" data-chave="saldoFinalContaKwh" placeholder="Não informado"></div>'+ 
+    '<label class="checkbox-field"><input type="checkbox" id="confirmar-saldo-conta">Conferi este saldo final na fatura e quero usá-lo para o próximo período.</label>'+ 
+    '<div class="field"><label for="motivo-conciliacao-saldo">Observação da conferência do saldo</label><input type="text" id="motivo-conciliacao-saldo" placeholder="Ex.: saldo final conferido na fatura da Equatorial"></div>'+ 
+    '<p class="hint">Uma diferença com o saldo calculado fica registrada para conferência, sem alterar as cobranças em reais ou reescrever faturas antigas.</p></details>';
+}
+function validarConciliacaoSaldo(){
+  var dados=lerEnergiaDocumento(),check=document.getElementById('confirmar-saldo-conta');
+  if(check && check.checked && (dados.saldoFinalContaKwh===null || !Number.isFinite(dados.saldoFinalContaKwh))){toast('Informe um saldo final válido da distribuidora ou desmarque a confirmação.');return false;}
+  return true;
+}
+function notaConciliacaoSaldo(r){
+  var m=r.conciliacaoSaldo;if(!m)return '';
+  return ' Saldo final '+(m.saldoFinalContaKwh !== null?'conferido na distribuidora':'com novos créditos confirmados')+': '+energiaTexto(r.saldoRestanteKwh)+'. '+
+    (m.creditosNovosConfirmadosKwh !== null?'Novos créditos confirmados: '+energiaTexto(m.creditosNovosConfirmadosKwh)+'. ':'')+
+    (m.diferencaKwh !== null && Math.abs(m.diferencaKwh)>0.000001?'Diferença em relação ao saldo calculado registrada para conferência. ':'');
+}
+
 function saldoDocumentoCamposHtml(profile, camposPerfil){
   var temVariacao = (profile.variaveis || []).some(function(v){return v.categoria === 'mensal' && v.chave === 'saldoDelta';});
   return '<fieldset id="saldo-dados"><legend>Saldo de energia</legend>' + camposPerfil +
@@ -1856,6 +2102,7 @@ function saldoDocumentoCamposHtml(profile, camposPerfil){
     '<button type="button" class="btn" data-action="recuperar-saldo-anterior">Recuperar saldo do histórico</button>' +
     '<div class="field" id="saldo-correcao-campo"><label for="saldo-correcao-motivo">Motivo da informação ou correção manual</label><input type="text" id="saldo-correcao-motivo" placeholder="Ex.: saldo conferido na distribuidora"></div>' +
     '<div class="field"><label for="saldo-utilizado-entrada">Saldo acumulado utilizado neste período (kWh)</label><input type="text" inputmode="decimal" id="saldo-utilizado-entrada" class="energia-documento-input" data-chave="saldoUtilizadoKwh" placeholder="Vazio: apurar pelos dados do mês"><span class="hint">Informe somente o uso de créditos anteriores. Zero preserva o saldo inicial; vazio mantém a apuração existente. A variação de saldo da conta continua sendo usada nas fórmulas.</span></div>' +
+    conciliacaoSaldoCamposHtml() +
     '<div class="field"><label for="saldo-final-automatico">Saldo disponível após a fatura (automático)</label><input type="text" id="saldo-final-automatico" readonly aria-readonly="true" placeholder="Calculado ao gerar o orçamento"><span class="hint" id="saldo-resumo-uso" role="status">O uso de saldo e o saldo final serão apurados ao calcular o orçamento.</span></div>' +
     '<button type="button" class="btn" id="saldo-reset-automatico" data-action="reset-saldo-automatico" hidden>Usar apuração automática de saldo</button>' +
     '</fieldset>';
@@ -1885,7 +2132,7 @@ function atualizarConsumoAutomatico(profile, draft){
   var uso = document.getElementById('saldo-resumo-uso');
   if(uso) uso.textContent = 'Saldo utilizado no mês: ' + energiaTexto(resumo.saldoUtilizadoKwh) +
     (resumo.origemSaldo === 'informado' ? ' (informado).' : ' (automático).') +
-    ' Saldo final = saldo disponível antes do uso − saldo utilizado. A injeção excedente fica separada.';
+    (resumo.conciliacaoSaldo ? notaConciliacaoSaldo(resumo) : ' Saldo final = saldo disponível antes do uso − saldo utilizado. A injeção excedente fica separada.');
   atualizarLeituraPreservada();
   var resetSaldo = document.getElementById('saldo-reset-automatico');
   if(resetSaldo) resetSaldo.hidden = resumo.origemSaldo !== 'informado';
@@ -1981,7 +2228,7 @@ function construirResumoEnergia(profile, draft){
       Math.abs(conferenciaGD1.compensadoKwh-Math.max(0,Number(sc.injecaoTotal)-Number(sc.saldoDelta))) > 0.000001) ||
     (injInformada !== null && sc.injecaoTotal !== undefined && Math.abs(injInformada-Number(sc.injecaoTotal)) > 0.000001) ||
     (saldoInformado !== null && saldoAutomatico !== null && Math.abs(saldoInformado-saldoAutomatico) > 0.000001);
-  return {schema:'fluxo-energia-v2', consumoRealKwh:consumo, injecaoMesKwh:injecao,
+  return conciliarSaldoConfirmado({schema:'fluxo-energia-v2', consumoRealKwh:consumo, injecaoMesKwh:injecao,
     injecaoMesUtilizadaKwh:mesUtilizado, saldoDisponivelKwh:disponivel, saldoUtilizadoKwh:saldo,
     saldoRestanteKwh:restante, saldoNaoCobradoKwh:isento,
     saldoCobradoKwh:isento === null || saldo === null ? null : Math.max(0,saldo-isento),
@@ -1990,7 +2237,7 @@ function construirResumoEnergia(profile, draft){
     creditoMesNaoUtilizadoKwh:conhecida ? Math.max(0,injecao-mesUtilizado) : null,
     origemConsumo:realInformado !== null ? 'informado' : realCalculo !== null ? 'apurado nos dados do perfil' : 'não informado',
     dadosDivergemDoCalculo:diverge, origemSaldo:saldoInformado !== null ? 'informado' : 'apurado', erroSaldo:erroSaldo,
-    conferenciaConsumoGD1:conferenciaGD1, pontos:pontos};
+    conferenciaConsumoGD1:conferenciaGD1, pontos:pontos},draft);
 }
 function resumoEnergiaDoDocumento(profile, draft){
   return draft.resumoEnergia && draft.resumoEnergia.schema === 'fluxo-energia-v2'
@@ -2017,8 +2264,9 @@ function notaResumoEnergia(r){
     else partes.push('Saldo utilizado incluído na cobrança de energia.');
   }
   if(r.consumoNaoCobertoKwh > 0) partes.push('Diferença sem cobertura de energia: ' + energiaTexto(r.consumoNaoCobertoKwh) + '.');
-  if(r.saldoDisponivelKwh === null) partes.push('Saldo antes do uso e saldo final não informados.');
-  else partes.push('Saldo: ' + energiaTexto(r.saldoDisponivelKwh) + ' antes do uso − ' + energiaTexto(r.saldoUtilizadoKwh) + ' utilizado = ' + energiaTexto(r.saldoRestanteKwh) + ' disponível após a fatura.');
+  if(r.saldoDisponivelKwh === null) partes.push(r.conciliacaoSaldo && r.saldoRestanteKwh !== null ? 'Saldo inicial não informado; saldo final conferido na distribuidora.' : 'Saldo antes do uso e saldo final não informados.');
+  else if(!r.conciliacaoSaldo)partes.push('Saldo: ' + energiaTexto(r.saldoDisponivelKwh) + ' antes do uso − ' + energiaTexto(r.saldoUtilizadoKwh) + ' utilizado = ' + energiaTexto(r.saldoRestanteKwh) + ' disponível após a fatura.');
+  if(r.conciliacaoSaldo)partes.push(notaConciliacaoSaldo(r));
   if(r.creditoMesNaoUtilizadoKwh > 0) partes.push('Injeção do mês não utilizada: ' + energiaTexto(r.creditoMesNaoUtilizadoKwh) + ' (separada do saldo anterior).');
   return partes.join(' ');
 }
@@ -2198,6 +2446,11 @@ function marcarFaturaDesatualizada(){
 /* ============================================================
    PREVIEW: DOCUMENTO DO CLIENTE (o gestor confere pelo PDF interno)
    ============================================================ */
+function registroImportacaoHtml(d){var m=d.importacaoEquatorial,r=d.resumoEnergia && d.resumoEnergia.conciliacaoSaldo,out='';
+  if(m)out+='<p class="hint">Fatura de origem: '+escapeHtml(m.arquivo || '')+' · '+escapeHtml(m.metodo || '')+' · UC '+escapeHtml(m.uc || '')+'. Leitura: '+escapeHtml(m.leituraInicio || '')+' a '+escapeHtml(m.leituraFim || '')+'. Conferida em '+escapeHtml(m.conferidoEm || '')+'.</p>';
+  if(r)out+='<p class="hint">Conferência do saldo: '+escapeHtml(r.origem || '')+'. '+escapeHtml(r.motivo || '')+(r.diferencaKwh!==null?' Diferença registrada: '+fmtKwh(r.diferencaKwh)+'.':'')+'</p>';
+  return out;
+}
 function renderPreview(){
   var col = document.getElementById('preview-col');
   if(!col || !state.lastDraft) return;
@@ -2234,7 +2487,7 @@ function renderPreview(){
   var avisos = modeloDocumento(clienteDoDocumento(d),profile,d,configDoDocumento(d),false).avisos;
   var avisoHtml = avisos.length ? '<div class="panel" style="border-color:#d5ad72"><b>Conferir dados de energia</b>' +
     avisos.map(function(a){return '<p class="hint">' + escapeHtml(a) + '</p>';}).join('') + '</div>' : '';
-  var historicoAviso = d.id ? '<div class="panel"><b>Fatura do histórico</b><p class="hint">Valores originais salvos. Calcular novamente gera um novo orçamento com as configurações atuais.</p>'+saldoRegistroHtml(d)+'</div>' : '';
+  var historicoAviso = d.id ? '<div class="panel"><b>Fatura do histórico</b><p class="hint">Valores originais salvos. Calcular novamente gera um novo orçamento com as configurações atuais.</p>'+saldoRegistroHtml(d)+registroImportacaoHtml(d)+'</div>' : '';
   var client = clienteDoDocumento(d);
   var documentoHtml = construirHtmlFatura(client,profile,d,configDoDocumento(d),null);
   col.innerHTML = historicoAviso + avisoHtml + botoesHtml +
@@ -2465,6 +2718,9 @@ function duplicarQuote(id){
   }
   saldoContextoFormulario=q.saldoTransferencia ? copiarDados(q.saldoTransferencia) : {modo:'manual',identidade:identidadeSaldoFormulario(),referencia:getReferenciaAtual(),motivo:'Fatura anterior usada como base',aviso:'Saldo inicial da base preservado. Troque o mês para recuperar o saldo cronologicamente anterior.'};
   setIf('saldo-correcao-motivo',saldoContextoFormulario.motivo || '');renderOrigemSaldo();
+  importacaoFormulario=q.importacaoEquatorial ? copiarDados(q.importacaoEquatorial) : null;
+  document.getElementById('confirmar-saldo-conta').checked=!!q.confirmarSaldoConta;
+  setIf('motivo-conciliacao-saldo',q.motivoConciliacaoSaldo || '');renderPeriodoConta();
   toast('Dados carregados como base. O novo cálculo usará o perfil e as configurações atuais.');
 }
 async function deleteQuote(id){
@@ -4044,14 +4300,14 @@ async function onSignOut(){
    O aviso aparece uma vez por versão por navegador (localStorage compartilhado
    entre o site principal e os subsites, pois ficam no mesmo domínio).
    ============================================================ */
-var IG_BASE_VERSION = '1.07';
-var IG_BASE_RELEASE_ID = '1.07-2026-10-09';
+var IG_BASE_VERSION = '1.08';
+var IG_BASE_RELEASE_ID = '1.08-2026-10-09';
 var IG_BASE_CHANGELOG = [
-  "Saldo inicial recuperado da fatura cronologicamente anterior da mesma UC, com origem visível.",
-  "Uso do saldo acumulado pode ser informado, inclusive zero, mantendo as regras financeiras existentes.",
-  "Correções manuais registram motivo e valor de origem para conferência.",
-  "Mudanças, exclusões, duplicidades e lançamentos fora de ordem no histórico sinalizam saldos que precisam de revisão.",
-  "Faturas já salvas mantêm seus valores; melhorias de exportação para Safari preservadas."
+  "Importação local de PDFs da Equatorial com revisão da UC, valores e período antes de preencher.",
+  "Reconhecimento de texto em PDFs escaneados (OCR), com campos ausentes ou incertos para conferência.",
+  "Saldo com novos créditos confirmados e conciliação do saldo final informado pela distribuidora.",
+  "GD2 combina dados da conta com a geração consultada pelo usuário no APsystems para o período de leitura.",
+  "Histórico e rascunhos preservam origem da importação e conferência do saldo, sem modificar cobranças antigas."
 ];
 function igbMostrarChangelog(){
   var KEY = 'igbase_changelog_visto';
@@ -4208,7 +4464,7 @@ var _rascunhoTimer = null;
 document.addEventListener('input', function(e){
   var t = e.target;
   registrarEdicaoSaldo(t);
-  var relevante = t.id === 'f-ref-mes' || t.id === 'f-ref-ano' || t.id === 'f-ajuste' || t.id === 'f-observacoes' || t.id === 'saldo-correcao-motivo' ||
+  var relevante = t.id === 'f-ref-mes' || t.id === 'f-ref-ano' || t.id === 'f-ajuste' || t.id === 'f-observacoes' || t.id === 'saldo-correcao-motivo' || t.id === 'confirmar-saldo-conta' || t.id === 'motivo-conciliacao-saldo' ||
     (t.classList && (t.classList.contains('in-mensal') || t.classList.contains('energia-documento-input') || t.classList.contains('item-nome') || t.classList.contains('item-uc') || t.classList.contains('item-val')));
   if(!relevante) return;
   marcarFaturaDesatualizada();
@@ -4233,7 +4489,8 @@ document.addEventListener('input', function(e){
 document.addEventListener('change', function(e){
   atualizarFiltroLista(e.target);
   var t = e.target;
-  if(t.matches && t.matches('.in-mensal,.item-val,.energia-documento-input,#f-ref-mes,#f-ref-ano'))marcarFaturaDesatualizada();
+  if(t.id === 'eq-arquivo' && (importacaoEquatorial || leituraEquatorial || leituraPreparando))cancelarLeituraConta();
+  if(t.matches && t.matches('.in-mensal,.item-val,.energia-documento-input,#f-ref-mes,#f-ref-ano,#confirmar-saldo-conta')){marcarFaturaDesatualizada();salvarRascunhoAtual();}
   if(t.classList && t.classList.contains('item-val-checkbox') && t.dataset.chave === 'pontoPrincipal' && t.checked){
     var wrap = document.getElementById('pontos-container');
     if(!wrap) return;
@@ -4289,6 +4546,11 @@ document.addEventListener('click', function(e){
     case 'add-ponto': addPontoRow(); marcarFaturaDesatualizada(); break;
     case 'remove-ponto': removePontoRow(id); marcarFaturaDesatualizada(); break;
     case 'recuperar-saldo-anterior': atualizarSaldoAnterior(true);marcarFaturaDesatualizada();salvarRascunhoAtual();break;
+    case 'ler-conta-equatorial': lerContaEquatorial(false);break;
+    case 'ler-conta-ocr': lerContaEquatorial(true);break;
+    case 'cancelar-importacao': cancelarLeituraConta();break;
+    case 'aplicar-conta-equatorial': aplicarContaEquatorial();break;
+    case 'variacao-conta-gd2': completarVariacaoContaGd2();break;
     case 'calcular': onCalcular(); break;
     case 'salvar-historico': onSalvarHistorico(); break;
     case 'baixar-doc': baixarDoc(); break;
