@@ -48,5 +48,13 @@ async function read(file){
  }
  return sheets;
 }
-root.SolarBudgetXlsx={read};
+async function readDocument(file){
+ const entries=await unzip(await file.arrayBuffer()),docx=/\.docx$/i.test(file.name),path=docx?'word/document.xml':'content.xml',doc=xml(entries.get(path)),rows=[];
+ const body=tags(doc,docx?'body':'text')[0];if(!body)throw Error('Documento sem conteúdo reconhecido. Exporte para PDF ou cole o texto.');let count=0;
+ const paragraphs=node=>tags(node,'p').map(p=>docx?tags(p,'t').map(t=>t.textContent).join(''):p.textContent).join(' ');
+ function repeat(node,name,max){const attr=Array.from(node.attributes).find(a=>a.localName===name),n=attr?Number(attr.value):1;if(!Number.isInteger(n)||n<1||n>max)throw Error('Repetições da tabela acima do limite. Exporte para PDF ou CSV.');return n;}
+ function visit(node){if(++count>100000)throw Error('Documento acima do limite de leitura.');if(node.localName===(docx?'tbl':'table')){for(const row of tags(node,docx?'tr':'table-row')){const values=[];for(const c of Array.from(row.children).filter(c=>[docx?'tc':'table-cell','covered-table-cell'].includes(c.localName))){const value=paragraphs(c).replace(/[\t\r\n]/g,' '),n=docx?1:repeat(c,'number-columns-repeated',500);for(let k=0;k<n;k++)values.push(value);if(values.length>2000)throw Error('Tabela com colunas demais.');}const n=docx?1:repeat(row,'number-rows-repeated',2000);if(rows.length+n>10000)throw Error('Documento com linhas demais.');for(let k=0;k<n;k++)rows.push(values.join('\t'));}return;}if(node.localName==='p'){rows.push(docx?tags(node,'t').map(t=>t.textContent).join(''):node.textContent);return;}for(const c of node.children)visit(c);}
+ visit(body);return [{name:file.name,text:rows.join('\n')}];
+}
+root.SolarBudgetXlsx={read,readDocument};
 })(typeof window!=='undefined'?window:globalThis);

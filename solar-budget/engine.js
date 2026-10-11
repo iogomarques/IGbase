@@ -1,7 +1,7 @@
-/* Solar Budget 1.09.6 — pure calculation and import model; no energy billing dependencies. */
+/* Solar Budget 1.09.7 — pure calculation and import model; no energy billing dependencies. */
 (function(root){
 'use strict';
-const VERSION='1.09.6', uid=()=>globalThis.crypto?.randomUUID?.() || 'sb-'+Date.now()+'-'+Math.random().toString(36).slice(2);
+const VERSION='1.09.7', uid=()=>globalThis.crypto?.randomUUID?.() || 'sb-'+Date.now()+'-'+Math.random().toString(36).slice(2);
 const clone=x=>JSON.parse(JSON.stringify(x));
 const norm=x=>String(x??'').normalize('NFD').replace(/[\u0300-\u036f]/g,'').toLowerCase().replace(/[^a-z0-9]+/g,' ').trim();
 function num(x){
@@ -14,7 +14,7 @@ function num(x){
  const n=Number(t);return Number.isFinite(n)?n:null;
 }
 const round=x=>Math.round((x+Number.EPSILON)*100)/100;
-function unit(x){const t=norm(x);return ({m:'m',metro:'m',metros:'m',un:'un',und:'un',unid:'un',unidade:'un',unidades:'un',pcs:'un',pc:'un',peca:'un',pecas:'un',kg:'kg',quilograma:'kg',l:'l',litro:'l',litros:'l',conjunto:'conj',conjuntos:'conj',conj:'conj',barra:'barra',barras:'barra',rolo:'rolo',rolos:'rolo',pacote:'pacote',pacotes:'pacote',kit:'kit',caixa:'caixa',caixas:'caixa'})[t]||t;}
+function unit(x){const t=norm(x);return ({mt:'m',mts:'m',br:'barra',rl:'rolo',cx:'caixa',pct:'pacote',pc:'un',pca:'un',pç:'un',ea:'un',m:'m',metro:'m',metros:'m',un:'un',und:'un',unid:'un',unidade:'un',unidades:'un',pcs:'un',pc:'un',peca:'un',pecas:'un',kg:'kg',quilograma:'kg',l:'l',litro:'l',litros:'l',conjunto:'conj',conjuntos:'conj',conj:'conj',barra:'barra',barras:'barra',rolo:'rolo',rolos:'rolo',pacote:'pacote',pacotes:'pacote',kit:'kit',caixa:'caixa',caixas:'caixa'})[t]||t;}
 const valid=n=>typeof n==='number'&&Number.isFinite(n)&&n>=0;
 function fresh(){return {schema:'solar-budget-v1',version:VERSION,id:uid(),name:'Nova cotação',items:[],suppliers:[],sources:[],aliases:[],choices:{},bundles:[],cartMode:'combined',singleSupplierId:'',client:{nome:'',documento:'',contato:'',email:'',telefone:'',endereco:'',projeto:''},doc:{company:'',contact:'',color:'#2f663f',companySnapshot:null},updatedAt:new Date().toISOString()};}
 const item=(description='')=>({id:uid(),description,qty:null,unit:'',confirmed:false});
@@ -134,10 +134,11 @@ function calculate(d){
  return {results,carts,suppliers,commonCount:common.length,warnings,total:carts.some(c=>c.total===null)?null:round(carts.reduce((a,c)=>a+c.total,0)),complete:d.items.length>0&&results.every(r=>!r.invalid&&r.missing<1e-8)&&!warnings.length,conditionsMissing:carts.some(c=>c.lines.length&&c.missingConditions),supplierCount:d.suppliers.length};
 }
 function parse(text,type,source='Texto'){ // All extraction remains editable, never auto-confirmed.
+ if(root.SolarBudgetImport){const table=root.SolarBudgetImport.parseText(text,type,source);if(table)return table;}
  if(type==='list'&&root.SolarBudgetImport){const parsed=root.SolarBudgetImport.parseList(text,source);if(parsed)return parsed;}
  const rows=[],notes=[],lines=String(text).split(/\r?\n/);let headers=null,reportedTotal=null;
  for(let n=0;n<lines.length;n++){
-  let raw=lines[n].trim();if(!raw)continue;
+  let raw=lines[n].trim().replace(/^\s*[-•–]\s+|^\d+[.)]\s+(?=\d)/,'');if(!raw)continue;
   const cells=raw.split(/\t|;|\|/).map(x=>x.trim());const normal=norm(raw);
   if(/^(?:lista|cotacao)(?: de)? materiais(?: eletricos)?$/.test(normal)){notes.push(raw);continue;}
   if(/^(?:valor )?total(?: geral| da cotacao)?\s*[:=]/i.test(raw)){const m=raw.match(/[:=]\s*(?:R\$\s*)?([\d.,]+)/i);if(m)reportedTotal=num(m[1]);notes.push(raw);continue;}
