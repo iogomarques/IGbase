@@ -1,7 +1,7 @@
-/* Solar Budget 1.09.5 — pure calculation and import model; no energy billing dependencies. */
+/* Solar Budget 1.09.6 — pure calculation and import model; no energy billing dependencies. */
 (function(root){
 'use strict';
-const VERSION='1.09.5', uid=()=>globalThis.crypto?.randomUUID?.() || 'sb-'+Date.now()+'-'+Math.random().toString(36).slice(2);
+const VERSION='1.09.6', uid=()=>globalThis.crypto?.randomUUID?.() || 'sb-'+Date.now()+'-'+Math.random().toString(36).slice(2);
 const clone=x=>JSON.parse(JSON.stringify(x));
 const norm=x=>String(x??'').normalize('NFD').replace(/[\u0300-\u036f]/g,'').toLowerCase().replace(/[^a-z0-9]+/g,' ').trim();
 function num(x){
@@ -24,14 +24,41 @@ function specs(x){
  const s=String(x).toLowerCase().replace(/,/g,'.');
  return [...s.matchAll(/\d+(?:\.\d+)?\s*(?:mm(?:²|2)?|kw|w|ka|a|v|ip\s*\d+|pol)\b|\d+\s*\/\s*\d+\s*["″]/gi)].map(m=>m[0].replace(/\s/g,''));
 }
+function attributes(text){const s=String(text).toLowerCase().replace(/,/g,'.'),values=re=>[...s.matchAll(re)].map(m=>Number(m[1]));
+ const a={section:values(/(\d+(?:\.\d+)?)\s*mm(?:²|2)?(?=\s|$|[.,;/)])/gi),power:values(/(\d+(?:\.\d+)?)\s*w\b/gi),current:values(/(\d+(?:\.\d+)?)\s*a\b/gi),ip:values(/ip\s*(\d+)/gi),kelvin:values(/(\d{4})\s*k\b/gi)};
+ for(const m of s.matchAll(/(\d(?:\.\d+)?)\s*k\b/gi))a.kelvin.push(Number(m[1])*1000);
+ if(/\d+w?\s*\/\s*\d+w/i.test(s)){const m=/(\d+)w?\s*\/\s*(\d+)w/i.exec(s);a.power=[Number(m[1]),Number(m[2])];}
+ const family=/\b(?:idr|dr|diferencial)\b/.test(s)?'idr':/disj/.test(s)?'disjuntor':/cabo|cordoalha/.test(s)?(/cobre nu|cordoalha/.test(s)?'cordoalha':'cabo'):/terminal|ilh[oó]s|tubolar|tubular/.test(s)?'terminal':/plafon|painel/.test(s)?'plafon':/high\s*bay/.test(s)?'highbay':/refletor|projetor/.test(s)?'refletor':/lumin|slim/.test(s)?'luminaria':'';
+ const infra=norm(text).replace(/\b(?:eletr|eltro|elet)\b/g,'eletroduto').replace(/\bcond\b/g,'condulete');a.family=family||['eletroduto','condulete','perfilado','suspensor','abracadeira','curva','emenda','unidut','luva','bucha','arruela'].find(x=>infra.includes(x))||'';
+ if(!['cabo','terminal','cordoalha'].includes(a.family))a.section=[];
+ a.inch=[];let sizes=s.replace(/\b(\d+)[. ](\d+)\s*\/\s*(\d+)/g,(_,whole,num,den)=>String(Number(whole)+Number(num)/Number(den))+'"');for(const m of sizes.matchAll(/(\d+)\s*\/\s*(\d+)(?=\s|["″]|$)/g))a.inch.push(Number(m[1])/Number(m[2]));for(const m of sizes.matchAll(/(\d+(?:\.\d+)?)\s*["″]/g))a.inch.push(Number(m[1]));
+ a.color=family==='cabo'?Object.entries({preto:/\b(?:preto|pt)\b/,azul:/\b(?:azul|az)\b/,verde:/\b(?:verde|vd)\b/,cinza:/\b(?:cinza|cz)\b/,branco:/\b(?:branco|br)\b/,amarelo:/\b(?:amarelo|am)\b/,vermelho:/\b(?:vermelho|vm)\b/}).find(([,re])=>re.test(s))?.[0]:null;return a;
+}
+function specReview(o,i){const a=attributes(o.description),b=attributes(i?.description),conflicts=[],missing=[];
+ if(a.family&&b.family&&a.family!==b.family)conflicts.push('Tipo diferente: '+a.family+' / '+b.family);
+ if(a.color&&b.color&&a.color!==b.color)conflicts.push('Cor: '+a.color+' / pedido '+b.color);
+ for(const [key,label] of Object.entries({section:'Seção (mm²)',power:'Potência (W)',current:'Corrente (A)',ip:'Proteção IP',kelvin:'Temperatura (K)',inch:'Medida (pol.)'})){if(b[key].length&&!a[key].length)missing.push(label+' não declarada');else if(a[key].length&&b[key].length&&!a[key].some(x=>b[key].includes(x)))conflicts.push(label+': '+a[key].join('/')+' / pedido '+b[key].join('/'));}
+ const request=norm((i?.description||'')+' '+(i?.group||'')),original=norm(o.description);
+ for(const name of ['schneider','tramontina','wago'])if(request.includes(name)&&!original.includes(name))missing.push('Marca '+name+' não declarada');
+ if(/haste/.test(request)){const fraction=/(\d+)\s*\/\s*(\d+)/.exec(i.description),millimeters=/(\d+(?:[.,]\d+)?)\s*mm/i.exec(o.description);if(fraction&&millimeters&&Math.abs(Number(millimeters[1].replace(',','.'))-Number(fraction[1])/Number(fraction[2])*25.4)>.1)conflicts.push('Diâmetro da haste diferente do pedido');}
+ if(/hepr/.test(request)&&!/hepr/.test(original))missing.push('Isolação HEPR não declarada');
+ if(/bivolt/.test(request)&&!/biv|100\s*240|127\s*220/.test(original))missing.push('Bivolt não declarado');
+ if(/\bufo\b/.test(request)&&!/\bufo\b/.test(original))missing.push('Modelo UFO não declarado');
+ if(/conico/.test(request)&&/reto/.test(original))conflicts.push('Conexão reta / pedido cônico');
+ if(/emenda.*\bu\b/.test(request)&&/emenda.*\bi\b/.test(original))conflicts.push('Emenda I / pedido U');
+ return {conflicts,missing};
+}
+function pricing(o){if(!valid(o.price)||!valid(o.quotedQty)||o.quotedQty<=0||!valid(o.quotedTotal))return {price:o.price,basis:'unit',rounding:false};const delta=Math.abs(o.price*o.quotedQty-o.quotedTotal),rounding=delta>.02&&delta<=o.quotedQty*.005+.011;return {price:o.priceBasis==='subtotal'||rounding?o.quotedTotal/o.quotedQty:o.price,basis:o.priceBasis==='subtotal'||rounding?'subtotal':'unit',rounding};}
+function words(t){return norm(t).replace(/\b(?:eletr|eltro|elet)\b/g,'eletroduto').replace(/\bcond\b/g,'condulete').replace(/\b(?:zinc|galv|galvanizado)\b/g,'zincado').replace(/\b(?:unipolar|unip|mono)\b/g,'monopolar').replace(/\b(?:bi|bip)\b/g,'bipolar').replace(/\b(?:tri|trip)\b/g,'tripolar').replace(/\bdr\b/g,'idr').replace(/\b(?:tubolar|tubular|ilhos)\b/g,'terminal').replace(/\bdisj\b/g,'disjuntor').split(' ').map(w=>w.length>4?w.replace(/s$/,''):w).filter(w=>w.length>1&&!['para','com','sem','tipo','padrao','marca','pedido','qdi','qdg'].includes(w));}
 function suggest(o,items,aliases=[]){
  const prior=aliases.find(a=>norm(a.description)===norm(o.description)&&a.specs===specs(o.description).join('|'));
- return items.map(i=>{const a=new Set(norm(o.description).split(' ')),b=new Set(norm(i.description).split(' '));
+ return items.map(i=>{const a=new Set(words(o.description)),b=new Set(words(i.description));
  const common=[...a].filter(t=>b.has(t)).length;const sa=specs(o.description),sb=specs(i.description);
- const conflict=sa.some(v=>sb.some(w=>v.replace(/[\d.]/g,'')===w.replace(/[\d.]/g,'')&&v!==w));
+ const review=specReview(o,i),conflict=review.conflicts.length>0;
  let score=common/Math.max(a.size,b.size,1);if(norm(o.description)===norm(i.description))score=1;
  if(prior&&prior.material===norm(i.description)&&!conflict)score=Math.max(score,.98);
- return {id:i.id,description:i.description,score,conflict};}).filter(x=>x.score>.15).sort((a,b)=>b.score-a.score);
+ const aa=attributes(o.description),bb=attributes(i.description);if(aa.family&&aa.family===bb.family)score+=.18;if(aa.color&&aa.color===bb.color)score+=.15;for(const key of ['section','power','current','ip','inch'])if(aa[key].length&&bb[key].length&&aa[key].some(x=>bb[key].includes(x)))score+=.10;if(aa.family&&bb.family&&aa.family!==bb.family)score-=.3;
+ return {id:i.id,description:i.description,score,conflict,review};}).filter(x=>x.score>.15).sort((a,b)=>b.score-a.score);
 }
 function cost(o,i,need=i?.qty){
  const issues=[];
@@ -42,20 +69,22 @@ function cost(o,i,need=i?.qty){
  if(!valid(o.min)||o.min<=0)issues.push('Mínimo de compra inválido');
  if(unit(o.unit)!==unit(i?.unit))issues.push('Unidade sem conversão confirmada');
  if(o.stock!==null&&!valid(o.stock))issues.push('Disponibilidade inválida');
+ if(o.quoteLimit!=null&&!valid(o.quoteLimit))issues.push('Limite da cotação inválido');
  if(issues.length)return {valid:false,issues};
  const pack=o.pack,minimum=o.divisible?o.min:Math.ceil(o.min);
- const available=o.stock===null?Infinity:o.divisible?o.stock:Math.floor(o.stock);
+ const limit=o.quoteLimit==null?Infinity:o.quoteLimit;const available=Math.min(limit,o.stock===null?Infinity:o.divisible?o.stock:Math.floor(o.stock));
  if(available<minimum)return {valid:false,issues:['Disponibilidade abaixo do mínimo de compra']};
  let buy=o.divisible?need/pack:Math.ceil((need-1e-9)/pack);buy=Math.min(Math.max(buy,minimum),available);
  const supplied=buy*pack;
- return {valid:true,buy,supplied,covered:Math.min(need,supplied),missing:Math.max(0,need-supplied),surplus:Math.max(0,supplied-need),total:round(buy*o.price),issues};
+ const basis=pricing(o);return {valid:true,buy,supplied,covered:Math.min(need,supplied),missing:Math.max(0,need-supplied),surplus:Math.max(0,supplied-need),total:round(buy*basis.price),effectivePrice:basis.price,priceBasis:basis.basis,issues};
 }
 function offerIssues(o){const out=[];
  if(o.quotedQty!==null&&!valid(o.quotedQty))out.push('Quantidade cotada inválida');
  if(o.quotedTotal!==null&&!valid(o.quotedTotal))out.push('Subtotal cotado inválido');
- if(valid(o.price)&&valid(o.quotedQty)&&valid(o.quotedTotal)&&Math.abs(round(o.price*o.quotedQty)-o.quotedTotal)>.02)out.push('Quantidade × preço difere do subtotal informado');
+ if(valid(o.price)&&valid(o.quotedQty)&&valid(o.quotedTotal)&&Math.abs(round(o.price*o.quotedQty)-o.quotedTotal)>.02&&!pricing(o).rounding&&o.priceBasis!=='subtotal')out.push('Quantidade × preço difere do subtotal informado; escolha a base após conferir');
  return out;
 }
+function pendingInfo(s,i){const o=s.offers.find(o=>!o.rejected&&!o.components?.length&&o.itemId===i.id);const issues=o?specReview(o,i):null;return o?{offerId:o.id,original:o.description,price:o.price,quotedQty:o.quotedQty,pack:o.pack,unit:o.unit,reviewState:issues.conflicts.length?'Especificação diferente':'Oferta em revisão'}:{reviewState:s.offers.some(o=>!o.confirmed&&!o.rejected)?'Não identificado':'Não cotado'};}
 function calculate(d){
  const carts=d.suppliers.map(s=>({supplierId:s.id,name:s.name,lines:[],subtotal:0,freight:s.freight,discount:s.discount,total:0,missingConditions:s.freight===null||s.discount===null}));
  const findCart=id=>carts.find(c=>c.supplierId===id);const remain=new Map(d.items.map(i=>[i.id,valid(i.qty)?i.qty:0]));const results=[],warnings=[];
@@ -96,7 +125,7 @@ function calculate(d){
   else c.total=round(c.subtotal+(c.freight??0)-(c.discount??0));
  }
  const suppliers=d.suppliers.map(s=>{
-  const rows=d.items.map(i=>{const opts=s.offers.filter(o=>!o.components?.length).map(o=>({o,r:cost(o,i)})).filter(x=>x.r.valid&&x.r.covered>0).sort((a,b)=>(a.r.missing>0)-(b.r.missing>0)||a.r.total-b.r.total);return {itemId:i.id,description:i.description,...(opts[0]?{...opts[0].r,offerId:opts[0].o.id,original:opts[0].o.description,price:opts[0].o.price,quotedQty:opts[0].o.quotedQty,pack:opts[0].o.pack,unit:opts[0].o.unit}:{valid:false,missing:i.qty,covered:0,total:0})};});
+  const rows=d.items.map(i=>{const opts=s.offers.filter(o=>!o.components?.length).map(o=>({o,r:cost(o,i)})).filter(x=>x.r.valid&&x.r.covered>0).sort((a,b)=>(a.r.missing>0)-(b.r.missing>0)||a.r.total-b.r.total);return {itemId:i.id,description:i.description,...(opts[0]?{...opts[0].r,offerId:opts[0].o.id,original:opts[0].o.description,price:opts[0].o.price,quotedQty:opts[0].o.quotedQty,pack:opts[0].o.pack,unit:opts[0].o.unit}:{valid:false,missing:i.qty,covered:0,total:0,...pendingInfo(s,i)})};});
   const imported=s.offers.reduce((a,o)=>a+(valid(o.quotedTotal)?o.quotedTotal:valid(o.price)&&valid(o.quotedQty)?round(o.price*o.quotedQty):0),0);
   return {id:s.id,name:s.name,rows,coverage:rows.filter(r=>r.valid&&r.missing<1e-8).length,missing:rows.filter(r=>!r.valid),partial:rows.filter(r=>r.valid&&r.missing>1e-8),pending:s.offers.filter(o=>!o.confirmed&&!o.rejected).length,subtotal:round(rows.reduce((a,r)=>a+r.total,0)),imported:round(imported),reported:s.reportedTotal,totalMismatch:s.reportedTotal!==null&&Math.abs(imported-s.reportedTotal)>.02,unpriced:s.offers.filter(o=>!valid(o.quotedTotal)&&!(valid(o.price)&&valid(o.quotedQty))).length};
  });
@@ -105,6 +134,7 @@ function calculate(d){
  return {results,carts,suppliers,commonCount:common.length,warnings,total:carts.some(c=>c.total===null)?null:round(carts.reduce((a,c)=>a+c.total,0)),complete:d.items.length>0&&results.every(r=>!r.invalid&&r.missing<1e-8)&&!warnings.length,conditionsMissing:carts.some(c=>c.lines.length&&c.missingConditions),supplierCount:d.suppliers.length};
 }
 function parse(text,type,source='Texto'){ // All extraction remains editable, never auto-confirmed.
+ if(type==='list'&&root.SolarBudgetImport){const parsed=root.SolarBudgetImport.parseList(text,source);if(parsed)return parsed;}
  const rows=[],notes=[],lines=String(text).split(/\r?\n/);let headers=null,reportedTotal=null;
  for(let n=0;n<lines.length;n++){
   let raw=lines[n].trim();if(!raw)continue;
@@ -137,7 +167,7 @@ function parse(text,type,source='Texto'){ // All extraction remains editable, ne
   if(type==='list'&&r.qty===null)r.note='Quantidade não reconhecida. Confira a fonte.';
   if(type==='offer'&&r.price===null)r.note='Preço unitário não reconhecido. Confira a fonte.';
   // A quoted quantity is the initial purchase limit, subject to review; do not assume more stock.
-  if(type==='offer'&&valid(r.quotedQty))r.stock=r.quotedQty;
+  if(type==='offer'&&valid(r.quotedQty)){r.quoteLimit=r.quotedQty;r.stock=null;}
   rows.push(r);
  }
  return {rows,notes,reportedTotal,original:String(text),source};
@@ -151,6 +181,7 @@ function validate(d){
  for(const s of d.suppliers){if(typeof s.name!=='string')throw Error('Fornecedor inválido.');for(const o of s.offers)if(typeof o.description!=='string'||typeof o.unit!=='string'||!Array.isArray(o.components))throw Error('Oferta inválida.');}
  return clone(d);
 }
-const api={VERSION,uid,clone,norm,num,unit,round,valid,fresh,item,offer,supplier,suggest,specs,cost,offerIssues,calculate,parse,duplicates,validate};
+const api={VERSION,uid,clone,norm,num,unit,round,valid,fresh,item,offer,supplier,suggest,specs,specReview,attributes,pricing,cost,offerIssues,calculate,parse,duplicates,validate};
 if(typeof module!=='undefined'&&module.exports)module.exports=api;root.SolarBudget=api;
 })(typeof window!=='undefined'?window:globalThis);
+
