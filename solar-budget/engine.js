@@ -1,7 +1,7 @@
-/* Solar Budget 1.09.2 — pure calculation and import model; no energy billing dependencies. */
+/* Solar Budget 1.09.3 — pure calculation and import model; no energy billing dependencies. */
 (function(root){
 'use strict';
-const VERSION='1.09.2', uid=()=>globalThis.crypto?.randomUUID?.() || 'sb-'+Date.now()+'-'+Math.random().toString(36).slice(2);
+const VERSION='1.09.3', uid=()=>globalThis.crypto?.randomUUID?.() || 'sb-'+Date.now()+'-'+Math.random().toString(36).slice(2);
 const clone=x=>JSON.parse(JSON.stringify(x));
 const norm=x=>String(x??'').normalize('NFD').replace(/[\u0300-\u036f]/g,'').toLowerCase().replace(/[^a-z0-9]+/g,' ').trim();
 function num(x){
@@ -16,7 +16,7 @@ function num(x){
 const round=x=>Math.round((x+Number.EPSILON)*100)/100;
 function unit(x){const t=norm(x);return ({m:'m',metro:'m',metros:'m',un:'un',und:'un',unid:'un',unidade:'un',unidades:'un',pcs:'un',pc:'un',peca:'un',pecas:'un',kg:'kg',quilograma:'kg',l:'l',litro:'l',litros:'l',conjunto:'conj',conjuntos:'conj',conj:'conj',barra:'barra',barras:'barra',rolo:'rolo',rolos:'rolo',pacote:'pacote',pacotes:'pacote',kit:'kit',caixa:'caixa',caixas:'caixa'})[t]||t;}
 const valid=n=>typeof n==='number'&&Number.isFinite(n)&&n>=0;
-function fresh(){return {schema:'solar-budget-v1',version:VERSION,id:uid(),name:'Nova cotação',items:[],suppliers:[],sources:[],aliases:[],choices:{},bundles:[],doc:{company:'',contact:'',color:'#2f663f'},updatedAt:new Date().toISOString()};}
+function fresh(){return {schema:'solar-budget-v1',version:VERSION,id:uid(),name:'Nova cotação',items:[],suppliers:[],sources:[],aliases:[],choices:{},bundles:[],cartMode:'combined',singleSupplierId:'',client:{nome:'',documento:'',contato:'',email:'',telefone:'',endereco:'',projeto:''},doc:{company:'',contact:'',color:'#2f663f',companySnapshot:null},updatedAt:new Date().toISOString()};}
 const item=(description='')=>({id:uid(),description,qty:null,unit:'',confirmed:false});
 const offer=(description='')=>({id:uid(),description,itemId:'',confirmed:false,rejected:false,price:null,quotedQty:null,quotedTotal:null,unit:'',pack:1,min:1,stock:null,divisible:false,components:[],note:'',source:''});
 const supplier=name=>({id:uid(),name,offers:[],freight:null,discount:null,reportedTotal:null,terms:''});
@@ -58,7 +58,7 @@ function calculate(d){
  const carts=d.suppliers.map(s=>({supplierId:s.id,name:s.name,lines:[],subtotal:0,freight:s.freight,discount:s.discount,total:0,missingConditions:s.freight===null||s.discount===null}));
  const findCart=id=>carts.find(c=>c.supplierId===id);const remain=new Map(d.items.map(i=>[i.id,valid(i.qty)?i.qty:0]));const results=[],warnings=[];
  // Kits are an explicit manual purchase, shared cost recorded exactly once.
- for(const s of d.suppliers)for(const o of s.offers.filter(o=>o.components?.length&&d.bundles.includes(o.id))){
+ for(const s of d.suppliers.filter(s=>d.cartMode!=='single'||s.id===d.singleSupplierId))for(const o of s.offers.filter(o=>o.components?.length&&d.bundles.includes(o.id))){
   const count=o.bundleBuy;const comps=o.components;const unique=new Set(comps.map(c=>c.itemId));
   if(!o.confirmed||o.rejected||!valid(o.price)||!valid(count)||count<=0||(!o.divisible&&!Number.isInteger(count))||!valid(o.min)||count<o.min||(o.stock!==null&&(!valid(o.stock)||count>o.stock))||unique.size!==comps.length||comps.some(c=>{const i=d.items.find(i=>i.id===c.itemId);return !i?.confirmed||unit(c.unit)!==unit(i.unit)||!valid(c.qty)||c.qty<=0;})){
    warnings.push('Kit inválido ou pendente: '+o.description);continue;
@@ -68,8 +68,8 @@ function calculate(d){
  }
  for(const i of d.items){
   let need=remain.get(i.id);const allocations=[];const candidates=[];
-  for(const s of d.suppliers)for(const o of s.offers.filter(o=>!o.components?.length)){const r=cost(o,i,need);if(r.valid&&r.covered>0)candidates.push({s,o,r});}
-  const choice=d.choices[i.id];let used=new Set();let tied=false;
+  for(const s of d.suppliers.filter(s=>d.cartMode!=='single'||s.id===d.singleSupplierId))for(const o of s.offers.filter(o=>!o.components?.length)){const r=cost(o,i,need);if(r.valid&&r.covered>0)candidates.push({s,o,r});}
+  const choice=d.cartMode==='single'?'':d.choices[i.id];let used=new Set();let tied=false;
   while(need>1e-8){
    const available=candidates.filter(x=>!used.has(x.s.id)).map(x=>({...x,r:cost(x.o,i,need)})).filter(x=>x.r.covered>0);
    if(choice==='none')break;
@@ -94,7 +94,7 @@ function calculate(d){
   else c.total=round(c.subtotal+(c.freight??0)-(c.discount??0));
  }
  const suppliers=d.suppliers.map(s=>{
-  const rows=d.items.map(i=>{const opts=s.offers.filter(o=>!o.components?.length).map(o=>({o,r:cost(o,i)})).filter(x=>x.r.valid&&x.r.covered>0).sort((a,b)=>(a.r.missing>0)-(b.r.missing>0)||a.r.total-b.r.total);return {itemId:i.id,description:i.description,...(opts[0]?.r||{valid:false,missing:i.qty,covered:0,total:0})};});
+  const rows=d.items.map(i=>{const opts=s.offers.filter(o=>!o.components?.length).map(o=>({o,r:cost(o,i)})).filter(x=>x.r.valid&&x.r.covered>0).sort((a,b)=>(a.r.missing>0)-(b.r.missing>0)||a.r.total-b.r.total);return {itemId:i.id,description:i.description,...(opts[0]?{...opts[0].r,offerId:opts[0].o.id,original:opts[0].o.description,price:opts[0].o.price,quotedQty:opts[0].o.quotedQty,pack:opts[0].o.pack,unit:opts[0].o.unit}:{valid:false,missing:i.qty,covered:0,total:0})};});
   const imported=s.offers.reduce((a,o)=>a+(valid(o.quotedTotal)?o.quotedTotal:valid(o.price)&&valid(o.quotedQty)?round(o.price*o.quotedQty):0),0);
   return {id:s.id,name:s.name,rows,coverage:rows.filter(r=>r.valid&&r.missing<1e-8).length,missing:rows.filter(r=>!r.valid),partial:rows.filter(r=>r.valid&&r.missing>1e-8),pending:s.offers.filter(o=>!o.confirmed&&!o.rejected).length,subtotal:round(rows.reduce((a,r)=>a+r.total,0)),imported:round(imported),reported:s.reportedTotal,totalMismatch:s.reportedTotal!==null&&Math.abs(imported-s.reportedTotal)>.02,unpriced:s.offers.filter(o=>!valid(o.quotedTotal)&&!(valid(o.price)&&valid(o.quotedQty))).length};
  });

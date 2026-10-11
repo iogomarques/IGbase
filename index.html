@@ -180,7 +180,7 @@ body{background:#f6f8f7}body::before,.glow{display:none}
 
   <footer>
     <div class="footer-links">
-      <a href="/suporte/">Suporte</a>
+      <a href="/empresas/">Empresas</a><a href="/suporte/">Suporte</a>
     </div>
     <div class="status"><span class="dot"></span>Todos os sistemas operacionais</div>
     <div class="version">IG Base v1.03</div>
@@ -255,9 +255,9 @@ async function initAuth(){
   }catch(e){ renderLoggedOut(); }
 }
 function renderLoggedIn(){
-  var nome = currentUsername || (sessionUser && sessionUser.email) || 'usuário';
+  var nome = currentUsername || (sessionUser && sessionUser.user_metadata && sessionUser.user_metadata.username) || 'usuário';
   document.getElementById('topbar-right').innerHTML =
-    '<span class="greeting">Olá, <b>' + escapeHtml(nome) + '</b> 👋</span>' +
+    '<a class="enter-link" href="/empresas/">Empresas</a><span class="greeting">Olá, <b>' + escapeHtml(nome) + '</b> 👋</span>' +
     '<button class="icon-btn" id="settings-btn" aria-label="Configurações">' +
       '<svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M12 15a3 3 0 1 0 0-6 3 3 0 0 0 0 6Z"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 1 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 1 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 1 1-2.83-2.83l.06-.06A1.65 1.65 0 0 0 4.68 15a1.65 1.65 0 0 0-1.51-1H3a2 2 0 1 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 1 1 2.83-2.83l.06.06A1.65 1.65 0 0 0 9 4.6a1.65 1.65 0 0 0 1-1.51V3a2 2 0 1 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 1 1 2.83 2.83l-.06.06A1.65 1.65 0 0 0 19.4 9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 1 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1Z"/></svg>' +
     '</button>';
@@ -314,12 +314,12 @@ document.getElementById('settings-signout').addEventListener('click', sairDaCont
    O aviso aparece uma vez por versão por navegador (localStorage compartilhado
    entre o site principal e os subsites, pois ficam no mesmo domínio).
    ============================================================ */
-var IG_BASE_VERSION = '1.09.2';
-var IG_BASE_RELEASE_ID = '1.09.2-2026-10-11';
+var IG_BASE_VERSION = '1.09.3';
+var IG_BASE_RELEASE_ID = '1.09.3-2026-10-11';
 var IG_BASE_CHANGELOG = [
   "Solar Budget disponível: listas e cotações por arquivos ou texto, com revisão de materiais e ofertas.",
   "Compare fornecedores, confira faltantes e monte carrinhos com quantidades, embalagens e sobras.",
-  "Histórico inicial neste navegador com backup exportável. Solar Organization preservado na versão 1.09.1."
+  "Empresas compartilhadas, escolha de fornecedor e documentos com identificação do cliente no topo."
 ];
 function igbMostrarChangelog(){
   var KEY = 'igbase_changelog_visto';
@@ -356,7 +356,7 @@ function igbMostrarChangelog(){
 var versionEl = document.querySelector('footer .version');
 if(versionEl) versionEl.textContent = 'IG Base v' + IG_BASE_VERSION;
 
-initAuth();
+initAuth().then(function(){if(location.hash==='#configuracoes'&&sessionUser)openSettings();});
 igbMostrarChangelog();
 })();
 </script>
