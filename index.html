@@ -167,13 +167,14 @@ body{background:#f6f8f7}body::before,.glow{display:none}
           <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12h14"/><path d="m12 5 7 7-7 7"/></svg>
         </span>
       </a>
-      <div class="card soon">
+      <a class="card active" href="/solar-budget/">
         <span class="dot"></span>
         <span class="icon-wrap"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect width="16" height="20" x="4" y="2" rx="2"/><line x1="8" x2="16" y1="6" y2="6"/><line x1="16" x2="16" y1="14" y2="18"/><path d="M16 10h.01"/><path d="M12 10h.01"/><path d="M8 10h.01"/><path d="M12 14h.01"/><path d="M8 14h.01"/><path d="M12 18h.01"/><path d="M8 18h.01"/></svg></span>
         <h2>Solar Budget</h2>
         <p>Orçamento e precificação de materiais para montagem de usinas fotovoltaicas.</p>
-        <span class="tag">Em breve</span>
-      </div>
+        <span class="tag">Disponível</span>
+        <span class="go">Acessar ferramenta →</span>
+      </a>
     </div>
   </main>
 
@@ -313,12 +314,12 @@ document.getElementById('settings-signout').addEventListener('click', sairDaCont
    O aviso aparece uma vez por versão por navegador (localStorage compartilhado
    entre o site principal e os subsites, pois ficam no mesmo domínio).
    ============================================================ */
-var IG_BASE_VERSION = '1.09.1';
-var IG_BASE_RELEASE_ID = '1.09.1-2026-10-10';
+var IG_BASE_VERSION = '1.10';
+var IG_BASE_RELEASE_ID = '1.10-2026-10-11';
 var IG_BASE_CHANGELOG = [
-  "Você controla os valores: o site não cria tarifas, impostos ou geração previstos para 2027.",
-  "Tarifas programadas só entram no cálculo após confirmação e na referência indicada; faturas antigas preservadas.",
-  "Entrega concluída: cálculos atuais preservados, revisão da importação e testes de saldo, GD2 e PDFs."
+  "Solar Budget disponível: listas e cotações por arquivos ou texto, com revisão de materiais e ofertas.",
+  "Compare fornecedores, confira faltantes e monte carrinhos com quantidades, embalagens e sobras.",
+  "Histórico inicial neste navegador com backup exportável. Solar Organization preservado na versão 1.09.1."
 ];
 function igbMostrarChangelog(){
   var KEY = 'igbase_changelog_visto';
