@@ -1,7 +1,7 @@
-/* Solar Budget 1.09.3 — pure calculation and import model; no energy billing dependencies. */
+/* Solar Budget 1.09.4 — pure calculation and import model; no energy billing dependencies. */
 (function(root){
 'use strict';
-const VERSION='1.09.3', uid=()=>globalThis.crypto?.randomUUID?.() || 'sb-'+Date.now()+'-'+Math.random().toString(36).slice(2);
+const VERSION='1.09.4', uid=()=>globalThis.crypto?.randomUUID?.() || 'sb-'+Date.now()+'-'+Math.random().toString(36).slice(2);
 const clone=x=>JSON.parse(JSON.stringify(x));
 const norm=x=>String(x??'').normalize('NFD').replace(/[\u0300-\u036f]/g,'').toLowerCase().replace(/[^a-z0-9]+/g,' ').trim();
 function num(x){
@@ -43,8 +43,10 @@ function cost(o,i,need=i?.qty){
  if(unit(o.unit)!==unit(i?.unit))issues.push('Unidade sem conversão confirmada');
  if(o.stock!==null&&!valid(o.stock))issues.push('Disponibilidade inválida');
  if(issues.length)return {valid:false,issues};
- const pack=o.pack;let buy=o.divisible?need/pack:Math.ceil((need-1e-9)/pack);buy=Math.max(buy,o.min);
- if(o.stock!==null)buy=Math.min(buy,o.divisible?o.stock:Math.floor(o.stock));
+ const pack=o.pack,minimum=o.divisible?o.min:Math.ceil(o.min);
+ const available=o.stock===null?Infinity:o.divisible?o.stock:Math.floor(o.stock);
+ if(available<minimum)return {valid:false,issues:['Disponibilidade abaixo do mínimo de compra']};
+ let buy=o.divisible?need/pack:Math.ceil((need-1e-9)/pack);buy=Math.min(Math.max(buy,minimum),available);
  const supplied=buy*pack;
  return {valid:true,buy,supplied,covered:Math.min(need,supplied),missing:Math.max(0,need-supplied),surplus:Math.max(0,supplied-need),total:round(buy*o.price),issues};
 }
