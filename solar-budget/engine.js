@@ -1,7 +1,7 @@
-/* Solar Budget 1.00 — pure calculation and import model; no energy billing dependencies. */
+/* Solar Budget 1.09.2 — pure calculation and import model; no energy billing dependencies. */
 (function(root){
 'use strict';
-const VERSION='1.00', uid=()=>globalThis.crypto?.randomUUID?.() || 'sb-'+Date.now()+'-'+Math.random().toString(36).slice(2);
+const VERSION='1.09.2', uid=()=>globalThis.crypto?.randomUUID?.() || 'sb-'+Date.now()+'-'+Math.random().toString(36).slice(2);
 const clone=x=>JSON.parse(JSON.stringify(x));
 const norm=x=>String(x??'').normalize('NFD').replace(/[\u0300-\u036f]/g,'').toLowerCase().replace(/[^a-z0-9]+/g,' ').trim();
 function num(x){
