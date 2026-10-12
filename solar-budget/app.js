@@ -7,7 +7,7 @@ const amount=x=>x===null||x===undefined?'':Number(x).toLocaleString('pt-BR',{max
 let companyService=null,archiveService=null;
 let db=null,user=null,data=E.fresh(),history=[],review=null,busy=false,dirty=false,cloud=false,cloudError='',cloudVersions={},documentSnapshot=null,sessionGeneration=0,renderDepth=0,renderQueued=false;
 let documentOptions={kind:'cart'},previewGeneration=0;
-function setAccount(value){const name=typeof value==='string'&&value.trim()&&!value.includes('@')?value.trim().slice(0,120):'Usuário';$('account').textContent=name;$('account').title=name;$('settings-user').textContent=name;const parts=name.replace(/([a-zà-ÿ])([A-Z])/g,'$1 $2').split(/\s+/);$('account-avatar').textContent=(parts.length>1?parts[0][0]+parts.at(-1)[0]:name.slice(0,2)).toLocaleUpperCase('pt-BR');}
+function setAccount(value){const name=IGAccount.name(value);$('account').textContent=name;$('account').title=name;$('settings-user').textContent=name;$('account-avatar').textContent=IGAccount.initials(name);}
 function queueRender(){if(!renderQueued){renderQueued=true;setTimeout(()=>{renderQueued=false;render();},0);}}
 const key=()=> 'igbase:solar-budget:v1:'+user.id;
 const notify=(msg,type='success')=>{$('notice').className=type;$('notice').textContent=msg;};
