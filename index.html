@@ -136,7 +136,7 @@ body{background:#f6f8f7}body::before,.glow{display:none}
 @media(max-width:560px){.card{width:100%;max-width:380px}main{padding-top:32px}.modules{margin-top:28px}}
 }
 </style>
-</head>
+<script defer src="/shared/companies.js?v=1.09.8"></script><link rel="stylesheet" href="/shared/presentation.css?v=1.09.8"></head>
 <body>
   <nav class="topbar">
     <div class="topbar-brand">
@@ -255,6 +255,7 @@ async function initAuth(){
   }catch(e){ renderLoggedOut(); }
 }
 function renderLoggedIn(){
+  if(window.IGCompanies&&sessionUser&&supabaseClient){var central=IGCompanies.service(supabaseClient,sessionUser);central.load().catch(function(e){console.warn('Cadastro central: confira Empresas no IG Base.',e.message);});}
   var nome = currentUsername || (sessionUser && sessionUser.user_metadata && sessionUser.user_metadata.username) || 'usuário';
   document.getElementById('topbar-right').innerHTML =
     '<a class="enter-link" href="/empresas/">Empresas</a><span class="greeting">Olá, <b>' + escapeHtml(nome) + '</b> 👋</span>' +
@@ -314,12 +315,12 @@ document.getElementById('settings-signout').addEventListener('click', sairDaCont
    O aviso aparece uma vez por versão por navegador (localStorage compartilhado
    entre o site principal e os subsites, pois ficam no mesmo domínio).
    ============================================================ */
-var IG_BASE_VERSION = '1.09.3';
-var IG_BASE_RELEASE_ID = '1.09.3-2026-10-11';
+var IG_BASE_VERSION = '1.09.8';
+var IG_BASE_RELEASE_ID = '1.09.8-2026-10-12';
 var IG_BASE_CHANGELOG = [
-  "Solar Budget disponível: listas e cotações por arquivos ou texto, com revisão de materiais e ofertas.",
-  "Compare fornecedores, confira faltantes e monte carrinhos com quantidades, embalagens e sobras.",
-  "Empresas compartilhadas, escolha de fornecedor e documentos com identificação do cliente no topo."
+  "Orçamentos e PDFs do Solar Budget organizados por cliente e projeto, com versões salvas na conta.",
+  "Cadastro central de empresas no IG Base; passagem automática dos dados anteriores quando não há conflitos.",
+  "Logos maiores e formulário de cliente simplificado. Cálculos e documentos antigos preservados."
 ];
 function igbMostrarChangelog(){
   var KEY = 'igbase_changelog_visto';

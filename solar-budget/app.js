@@ -4,7 +4,7 @@
 const E=SolarBudget,$=id=>document.getElementById(id),esc=x=>String(x??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
 const money=x=>x===null||x===undefined?'Não informado':Number(x).toLocaleString('pt-BR',{style:'currency',currency:'BRL'});
 const amount=x=>x===null||x===undefined?'':Number(x).toLocaleString('pt-BR',{maximumFractionDigits:6,useGrouping:false});
-let companyService=null;
+let companyService=null,archiveService=null;
 let db=null,user=null,data=E.fresh(),history=[],review=null,busy=false,dirty=false,cloud=false,cloudError='',cloudVersions={},documentSnapshot=null,sessionGeneration=0,renderDepth=0,renderQueued=false;
 let documentOptions={kind:'cart'},previewGeneration=0;
 function queueRender(){if(!renderQueued){renderQueued=true;setTimeout(()=>{renderQueued=false;render();},0);}}
@@ -21,8 +21,8 @@ async function boot(){
  }catch(e){$('loading').hidden=true;$('auth').hidden=false;notify(e.message,'error');}
 }
 async function activate(next){
- const generation=++sessionGeneration;documentSnapshot=null;for(const id of ['preview-dialog','review-dialog'])if($(id).open)$(id).close();$('document').innerHTML='';$('preview-company').innerHTML='';$('company-settings').innerHTML='';$('company-quote').innerHTML='';user=next;review=null;history=[];data=E.fresh();cloud=false;cloudVersions={};dirty=false;
- $('account').textContent=user?.user_metadata?.username||'Usuário';companyService=null;$('settings-page').hidden=true;$('logout').hidden=!user;$('loading').hidden=true;$('auth').hidden=!!user;$('workspace').hidden=!user;
+ const generation=++sessionGeneration;documentSnapshot=null;for(const id of ['preview-dialog','review-dialog'])if($(id).open)$(id).close();$('document').innerHTML='';$('history').innerHTML='';$('sources').innerHTML='';$('preview-company').innerHTML='';$('company-settings').innerHTML='';$('company-quote').innerHTML='';user=next;review=null;history=[];data=E.fresh();cloud=false;cloudVersions={};dirty=false;
+ $('account').textContent=user?.user_metadata?.username||'Usuário';companyService=null;archiveService=null;$('archive-page').hidden=true;$('settings-page').hidden=true;$('logout').hidden=!user;$('loading').hidden=true;$('auth').hidden=!!user;$('workspace').hidden=!user;
  if(!user)return;
  try{
   const raw=localStorage.getItem(key());if(raw){const parsed=JSON.parse(raw);data=E.validate(parsed.draft);if(!Array.isArray(parsed.history))throw Error('Histórico local inválido.');history=parsed.history.map(h=>({...h,data:E.validate(h.data)}));}
@@ -30,17 +30,20 @@ async function activate(next){
  render();
  try{companyService=IGCompanies.service(db,user);await timeout(companyService.load());if(generation!==sessionGeneration)return;const preferred=companyService.selected('solar-budget');if(preferred&&!data.doc.companySnapshot){data.doc.companySnapshot=preferred;data.doc.companyId=preferred.id;}renderCompanies();}catch(e){companyService=null;notify(e.message,'warn');}
  try{const profile=await timeout(db.from('perfis_usuario').select('username').eq('user_id',user.id).maybeSingle());if(generation!==sessionGeneration)return;$('account').textContent=profile.data?.username||user.user_metadata?.username||'Usuário';$('settings-user').textContent=$('account').textContent;}catch(e){}
- try{
-  const r=await timeout(db.from('solar_budget_cotacoes').select('id,data,updated_at').order('updated_at',{ascending:false}));if(generation!==sessionGeneration)return;
-  if(r.error)throw r.error;
-  const remote=r.data.map(row=>{const payload=row.data;E.validate(payload.data);cloudVersions[row.id]=row.updated_at;return payload;});
-  // Merge by stable quotation ID without dropping local-only records.
-  for(const h of remote){const ix=history.findIndex(x=>x.id===h.id);if(ix<0)history.push(h);else if(h.savedAt>history[ix].savedAt)history[ix]=h;}
-  cloud=true;renderHistory();renderMode();
- }catch(e){if(generation!==sessionGeneration)return;cloudError=e.message||'Tabela indisponível';cloud=false;renderMode();}
+ await connectArchive(generation);
 }
-function renderMode(){$('storage-mode').textContent=cloud?'Conta conectada. Histórico salvo na área própria do Solar Budget; rascunho automático neste navegador.':'Conta conectada. Rascunhos e histórico são salvos somente neste navegador. Exporte um backup para guardar ou transferir. Sincronização entre dispositivos ainda não está disponível.';}
-function persistLocal(){if(!user)return;localStorage.setItem(key(),JSON.stringify({draft:data,history}));}
+async function connectArchive(generation=sessionGeneration){
+ const owner=user?.id;if(!owner)return;
+ try{const store=IGBudgetArchive.service(db,user);await timeout(store.load());if(generation!==sessionGeneration||user?.id!==owner)return;
+  const candidates=E.clone(history);try{const old=await timeout(db.from('solar_budget_cotacoes').select('id,data,updated_at').eq('user_id',owner).order('updated_at',{ascending:false}));if(!old.error)for(const row of old.data||[])candidates.push(row.data);}catch(e){}
+  if(generation!==sessionGeneration||user?.id!==owner)return;
+  const existing=store.records,missing=candidates.filter(h=>!existing.some(x=>x.id===h.id&&x.savedAt===h.savedAt||x.legacyOrigin===(h.legacyOrigin||h.id+':'+h.savedAt)));if(missing.length)await timeout(store.importHistory(missing));
+  if(generation!==sessionGeneration||user?.id!==owner)return;archiveService=store;history=store.records;cloud=true;cloudError='';try{persistLocal();}catch(e){}renderHistory();renderMode();
+ }catch(e){if(generation!==sessionGeneration||user?.id!==owner)return;cloud=false;archiveService=null;cloudError=e.message;renderMode();notify('Arquivo da conta não sincronizado: '+e.message+'. Os dados locais foram preservados.','warn');}
+}
+function renderMode(){const text=cloud?'Arquivo conectado à sua conta. Cotações e PDFs salvos disponíveis entre dispositivos. Alterações ainda não salvas permanecem neste navegador.':'Arquivo da conta indisponível. Seus dados locais estão preservados, mas ainda não foram sincronizados. '+cloudError;$('storage-mode').textContent=text;$('archive-status').textContent=text;}
+
+function persistLocal(){if(!user)return;localStorage.setItem(key(),JSON.stringify({draft:data,history:cloud?[]:history,archiveManifest:cloud?history.map(h=>({id:h.id,savedAt:h.savedAt,status:h.status,client:h.data.client?.nome,name:h.data.name})):undefined}));}
 function touch(){dirty=true;data.updatedAt=new Date().toISOString();try{persistLocal();}catch(e){notify('Não foi possível salvar o rascunho neste navegador. Exporte um backup. '+e.message,'error');}renderResults();}
 function inputField(value,field,attrs=''){return '<input '+attrs+' data-field="'+field+'" value="'+esc(typeof value==='number'?amount(value):value)+'">';}
 function unitOptions(value){return ['','un','m','kg','l','conj','barra','rolo','pacote','caixa','kit'].map(u=>'<option '+(u===value?'selected':'')+' value="'+u+'">'+(u||'Revisar')+'</option>').join('');}
@@ -78,7 +81,8 @@ function renderResults(internal=false){
  return result;
  }finally{renderDepth--;}
 }
-function renderHistory(){const q=E.norm($('history-search').value);$('history').innerHTML=history.filter(h=>!q||E.norm(h.data.name).includes(q)).sort((a,b)=>b.savedAt.localeCompare(a.savedAt)).map(h=>'<div class="history-row"><div><b>'+esc(h.data.name)+'</b><div class="tiny">'+new Date(h.savedAt).toLocaleString('pt-BR')+' · '+(h.status==='complete'?'Concluída':'Rascunho')+' · '+money(h.result.total)+'</div></div><div class="actions"><button data-history="'+h.id+'" data-action="open-history">Abrir</button><button data-history="'+h.id+'" data-action="duplicate">Usar como base</button></div></div>').join('')||'<p class="muted">Nenhuma cotação salva.</p>';}
+function renderHistory(){const q=E.norm($('history-search').value),status=$('history-status').value;const rows=history.filter(h=>(status==='all'||status==='documents'?(status!=='documents'||h.documents?.length):h.status===status)&&(!q||E.norm([h.data.name,h.data.client?.nome,h.data.client?.projeto,...h.data.suppliers.map(s=>s.name)].join(' ')).includes(q))).sort((a,b)=>String(a.data.client?.nome||'').localeCompare(String(b.data.client?.nome||''),'pt-BR')||b.savedAt.localeCompare(a.savedAt));let group='';$('history').innerHTML=rows.map(h=>{const client=h.data.client?.nome||'Sem cliente informado',heading=client!==group?'<h3 class="archive-client">'+esc(client)+'</h3>':'';group=client;return heading+'<article class="history-row"><div class="history-meta"><strong>'+esc(h.data.name)+'</strong><span>'+esc(h.data.client?.projeto||'Projeto não informado')+'</span><span class="archive-version">'+new Date(h.savedAt).toLocaleString('pt-BR')+' · '+(h.status==='complete'?'Concluída':'Rascunho')+' · '+money(h.result.total)+'</span><span class="tiny">Fornecedores: '+esc(h.data.suppliers.map(s=>s.name).join(', ')||'Nenhum')+'</span><div class="saved-files">'+(h.documents||[]).flatMap((emission,ei)=>emission.files.map((file,fi)=>'<button data-history="'+esc(h.id)+'" data-emission="'+ei+'" data-file="'+fi+'" data-action="stored-pdf">'+esc(file.name)+' · '+file.pages+' pág.</button>')).join('')+'</div></div><div class="actions"><button data-history="'+esc(h.id)+'" data-action="open-history">Ver cotação / PDFs</button>'+(h.status==='draft'?'<button data-history="'+esc(h.id)+'" data-action="resume-history">Continuar rascunho</button>':'')+'<button data-history="'+esc(h.id)+'" data-action="duplicate">Usar como base</button>'+(h.documents?.length?'<button data-history="'+esc(h.id)+'" data-action="stored-zip">Baixar PDFs salvos</button>':'')+'</div></article>';}).join('')||'<p class="muted">Nenhum orçamento encontrado para estes filtros.</p>';}
+
 function renderSources(){$('sources').innerHTML=data.sources.map(s=>'<details class="source"><summary>'+esc(s.name)+' · '+esc(s.kind)+' · '+new Date(s.at).toLocaleString('pt-BR')+'</summary><pre>'+esc(s.text)+'</pre></details>').join('')||'<p class="muted">Nenhuma fonte importada.</p>';}
 async function pdfText(file,ocr){
  let pdfjs,last;
@@ -187,16 +191,13 @@ async function save(complete){
  if(busy)return;const r=E.calculate(data);if(complete&&(!r.complete||data.suppliers.length<2)){notify('Conclua a revisão, atenda todas as necessidades e cadastre pelo menos dois fornecedores.','error');return;}
  if(complete&&r.conditionsMissing&&!confirm('Existem fretes ou descontos não informados. Salvar a cotação concluída com essa limitação registrada?'))return;
  busy=true;$('save').disabled=true;$('complete').disabled=true;const owner=user.id,generation=sessionGeneration,version=data.updatedAt;
- const savedAt=new Date().toISOString(),entry={id:complete?E.uid():data.id,status:complete?'complete':'draft',savedAt,data:E.clone(data),result:E.clone(r)};
+ const savedAt=new Date().toISOString(),entry={id:E.uid(),quoteId:data.id,status:complete?'complete':'draft',savedAt,data:E.clone(data),result:E.clone(r)};
  try{
-  if(cloud){
-   const previous=cloudVersions[entry.id];let response;
-   if(previous)response=await timeout(db.from('solar_budget_cotacoes').update({data:entry,updated_at:savedAt}).eq('id',entry.id).eq('updated_at',previous).select('id'));
-   else response=await timeout(db.from('solar_budget_cotacoes').insert({id:entry.id,user_id:owner,data:entry,updated_at:savedAt}).select('id'));
-   if(response.error)throw response.error;if(!response.data?.length)throw Error('A cotação foi alterada em outra sessão. Reabra o histórico antes de salvar.');cloudVersions[entry.id]=savedAt;
-  }
+  if(!archiveService||!cloud)throw Error('Arquivo da conta indisponível. Tente sincronizar novamente; o rascunho local foi preservado.');
+  const missing=history.filter(h=>!archiveService.records.some(x=>x.id===h.id&&x.savedAt===h.savedAt||x.legacyOrigin===(h.legacyOrigin||h.id+':'+h.savedAt)));if(missing.length)await timeout(archiveService.importHistory(missing));
+  await timeout(archiveService.save(entry));
   if(user?.id!==owner||generation!==sessionGeneration)throw Error('A sessão mudou durante a gravação.');
-  const next=history.filter(h=>h.id!==entry.id).concat(entry);localStorage.setItem(key(),JSON.stringify({draft:data,history:next}));history=next;if(version===data.updatedAt)dirty=false;renderHistory();notify((complete?'Cotação concluída':'Rascunho salvo')+(cloud?' na sua conta.':' neste navegador. Exporte um backup para guardar uma cópia.'));
+  history=archiveService.records;try{persistLocal();}catch(e){notify('Cotação salva na conta; a cópia local não pôde ser gravada.','warn');}if(version===data.updatedAt)dirty=false;renderHistory();notify((complete?'Cotação concluída':'Rascunho salvo')+(cloud?' na sua conta.':' neste navegador. Exporte um backup para guardar uma cópia.'));
  }catch(e){notify('Gravação não concluída: '+e.message,'error');}finally{busy=false;$('save').disabled=false;$('complete').disabled=false;}
 }
 function download(name,content,type){const blob=content instanceof Blob?content:new Blob([content],{type});const url=URL.createObjectURL(blob),a=document.createElement('a');a.href=url;a.download=name;document.body.append(a);a.click();a.remove();setTimeout(()=>URL.revokeObjectURL(url),30000);}
@@ -218,16 +219,21 @@ function preview(snapshot){
  $('preview-company').querySelector('select')?.addEventListener('change',e=>{if(busy)return;documentSnapshot.data.doc.companySnapshot=companyService.get(e.target.value);documentSnapshot.data.doc.companyId=e.target.value;documentSnapshot.data.doc.company='';documentSnapshot.data.doc.contact='';documentSnapshot.status='preview';previewGeneration++;refreshDocument();if(!snapshot){data.doc=E.clone(documentSnapshot.data.doc);touch();}});
  refreshDocument();$('preview-dialog').showModal();
 }
-async function pdf(all=false){
- if(busy||!documentSnapshot)return;busy=true;const snapshot=E.clone(documentSnapshot),options=E.clone(documentOptions),generation=previewGeneration;$('download-pdf').disabled=true;$('download-all').disabled=true;$('report-kind').disabled=true;$('preview-company').querySelector('select')?.setAttribute('disabled','');$('report-scope').inert=true;
+async function pdf(all=false,saveOnly=false){
+ if(busy||!documentSnapshot)return;busy=true;const snapshot=E.clone(documentSnapshot),options=E.clone(documentOptions),generation=previewGeneration,owner=user?.id,session=sessionGeneration;$('download-pdf').disabled=true;$('download-all').disabled=true;$('save-documents').disabled=true;$('report-kind').disabled=true;$('preview-company').querySelector('select')?.setAttribute('disabled','');$('report-scope').inert=true;
  try{
   await lib('gerador PDF',['https://cdn.jsdelivr.net/npm/jspdf@2.5.1/dist/jspdf.umd.min.js','https://unpkg.com/jspdf@2.5.1/dist/jspdf.umd.min.js'],()=>!!window.jspdf);
   const reports=all?SolarBudgetDocument.reportOptions(snapshot).map(x=>({...x,scopeIds:options.scopeIds})):[options],files=reports.map((opt,i)=>{const model=SolarBudgetDocument.model(snapshot,opt),doc=SolarBudgetDocument.pdf(snapshot,jspdf.jsPDF,opt);return {name:(all?String(i+1)+'-':'')+model.filename,bytes:new Uint8Array(doc.output('arraybuffer')),pages:doc.getNumberOfPages()};});
   if(generation!==previewGeneration)throw Error('A prévia mudou. Confira o documento e emita novamente.');
-  if(all)download('Solar-Budget-documentos'+(options.scopeIds?'-recorte':'')+'.zip',SolarBudgetDocument.zip(files));else download(files[0].name,new Blob([files[0].bytes],{type:'application/pdf'}));
-  const message=all?files.length+' PDFs validados e reunidos no ZIP.':files[0].pages+' página(s). PDF gerado com os dados da prévia.';$('report-notice').className='success no-print';$('report-notice').textContent=message;notify(message);
+  if(user?.id!==owner||session!==sessionGeneration)throw Error('A sessão mudou durante a emissão.');
+  if(!archiveService||!cloud)throw Error('Arquivo da conta indisponível. Sincronize antes de guardar os PDFs.');
+  const entry={id:E.uid(),quoteId:snapshot.data.id,status:snapshot.status==='complete'?'complete':'draft',savedAt:new Date().toISOString(),data:E.clone(snapshot.data),result:E.clone(snapshot.result),documents:[{id:E.uid(),at:new Date().toISOString(),scopeIds:options.scopeIds||null,files:files.map(f=>({name:f.name,pages:f.pages,base64:IGBudgetArchive.encode(f.bytes)}))}]};
+  await timeout(archiveService.save(entry));if(user?.id!==owner||session!==sessionGeneration)throw Error('A sessão mudou durante o salvamento.');history=archiveService.records;try{persistLocal();}catch(e){}renderHistory();
+  if(!saveOnly){
+  if(all)download('Solar-Budget-documentos'+(options.scopeIds?'-recorte':'')+'.zip',SolarBudgetDocument.zip(files));else download(files[0].name,new Blob([files[0].bytes],{type:'application/pdf'}));}
+  const message=saveOnly?files.length+' PDFs salvos na sua conta.':all?files.length+' PDFs salvos na conta e reunidos no ZIP.':files[0].pages+' página(s). PDF gerado com os dados da prévia.';$('report-notice').className='success no-print';$('report-notice').textContent=message;notify(message);
  }catch(e){$('report-notice').className='error no-print';$('report-notice').textContent='Emissão bloqueada: '+e.message;notify('PDF não gerado: '+e.message,'error');if(e.code==='PAGE_LIMIT'){$('report-scope').open=true;}}
- finally{busy=false;$('download-pdf').disabled=false;$('download-all').disabled=false;$('report-kind').disabled=false;$('preview-company').querySelector('select')?.removeAttribute('disabled');$('report-scope').inert=false;}
+ finally{busy=false;$('download-pdf').disabled=false;$('download-all').disabled=false;$('save-documents').disabled=false;$('report-kind').disabled=false;$('preview-company').querySelector('select')?.removeAttribute('disabled');$('report-scope').inert=false;}
 }
 function csv(){if(!documentSnapshot)return;const rows=[['Fornecedor','Material','Quantidade a comprar','Preço unitário','Subtotal','Unidade','Atendido','Sobra']];for(const c of documentSnapshot.result.carts)for(const l of c.lines)rows.push([c.name,l.description,amount(l.buy),amount(l.price),amount(l.total),l.unit||'kit',amount(l.covered),amount(l.surplus)]);const cell=x=>'"'+String(x??'').replace(/^[=+@-]/,"'$&").replace(/"/g,'""')+'"';download('Solar-Budget-carrinhos.csv','\uFEFF'+rows.map(r=>r.map(cell).join(';')).join('\r\n'),'text/csv;charset=utf-8');}
 document.addEventListener('change',handleChange);
@@ -236,11 +242,12 @@ document.addEventListener('click',async event=>{
  try{
   if(action==='confirm-clear-offers'){const s=data.suppliers.find(s=>s.id===sbox.dataset.supplier),valid=s.offers.filter(o=>{const i=data.items.find(i=>i.id===o.itemId);if(!i||o.rejected||o.components.length)return false;const sr=E.specReview(o,i);return !sr.conflicts.length&&!sr.missing.length&&!E.offerIssues(o).length&&E.cost({...o,confirmed:true},i).valid;});if(!valid.length){notify('Nenhuma associação sem alertas está pronta. Revise os itens.','warn');return;}if(!confirm('Você revisou as '+valid.length+' associações sem alertas de '+s.name+'? Especificações não detectadas também precisam de sua conferência.'))return;valid.forEach(o=>o.confirmed=true);touch();render();return;}
   if(action==='read-offers'){await read('offer',sbox.dataset.supplier);return;}
-  if(action==='open-history'||action==='duplicate'){
+  if(action==='stored-pdf'||action==='stored-zip'){const h=history.find(h=>h.id===b.dataset.history);if(!h)return;if(action==='stored-pdf'){const f=h.documents?.[Number(b.dataset.emission)]?.files[Number(b.dataset.file)];if(f)download(f.name,new Blob([IGBudgetArchive.decode(f.base64)],{type:'application/pdf'}));}else{const files=(h.documents||[]).flatMap((em,i)=>em.files.map((f,j)=>({name:(i+1)+'-'+(j+1)+'-'+f.name,bytes:IGBudgetArchive.decode(f.base64)})));download('Solar-Budget-PDFs-salvos.zip',SolarBudgetDocument.zip(files));}return;}
+  if(action==='open-history'||action==='duplicate'||action==='resume-history'){
    const h=history.find(h=>h.id===b.dataset.history);if(!h)return;
    if(action==='open-history'){preview(E.clone(h));return;}
    if(dirty&&!confirm('Usar esta cotação como base e trocar o rascunho atual? Exporte um backup se precisar preservá-lo.'))return;
-   data=E.clone(h.data);data.id=E.uid();data.name+=' · cópia';touch();render();return;
+   data=E.clone(h.data);if(action==='duplicate'){data.id=E.uid();data.name+=' · cópia';}touch();render();location.hash='';return;
   }
   if(action==='remove-supplier'){if(confirm('Remover este fornecedor e suas ofertas?')){const s=data.suppliers.find(s=>s.id===sbox.dataset.supplier),ids=new Set(s.offers.map(o=>o.id));data.suppliers=data.suppliers.filter(s=>s.id!==sbox.dataset.supplier);data.bundles=data.bundles.filter(id=>!ids.has(id));touch();render();}return;}
   if(action==='add-offer'){data.suppliers.find(s=>s.id===sbox.dataset.supplier).offers.push(E.offer());touch();render();return;}
@@ -264,13 +271,13 @@ $('add-item').onclick=()=>{data.items.push(E.item());touch();render();};$('add-s
 $('quote-name').onchange=()=>{data.name=$('quote-name').value.trim()||'Nova cotação';touch();};
 for(const k of ['nome','documento','contato','email','telefone','endereco','projeto'])$('client-'+k).onchange=()=>{data.client=data.client||{};data.client[k]=$('client-'+k).value.trim();touch();};
 $('cart-mode').onchange=()=>{data.cartMode=$('cart-mode').value;touch();render();};$('single-supplier').onchange=()=>{data.singleSupplierId=$('single-supplier').value;touch();};
-function settingsPage(){const show=location.hash==='#configuracoes'&&!!user;$('settings-page').hidden=!show;$('workspace').hidden=!user||show;}
+function settingsPage(){const show=location.hash==='#configuracoes'&&!!user,archive=location.hash==='#arquivos'&&!!user;$('settings-page').hidden=!show;$('archive-page').hidden=!archive;$('workspace').hidden=!user||show||archive;if(archive)renderHistory();}
 $('settings-open').onclick=()=>{location.hash='configuracoes';};$('settings-back').onclick=()=>{location.hash='';};window.addEventListener('hashchange',settingsPage);
-$('search').oninput=renderResults;$('filter').onchange=renderResults;$('history-search').oninput=renderHistory;
+$('search').oninput=renderResults;$('filter').onchange=renderResults;$('history-search').oninput=renderHistory;$('history-status').onchange=renderHistory;$('archive-retry').onclick=()=>connectArchive();
 $('save').onclick=()=>save(false);$('complete').onclick=()=>save(true);
 $('export').onclick=()=>download('Solar-Budget-backup.json',JSON.stringify({format:'solar-budget-backup-v1',draft:data,history},null,2),'application/json');
-$('restore').onchange=async()=>{try{const file=$('restore').files[0];if(!file)return;if(file.size>20*1024*1024)throw Error('Backup acima de 20 MB.');const parsed=JSON.parse(await file.text());if(parsed.format!=='solar-budget-backup-v1'||!Array.isArray(parsed.history))throw Error('Backup incompatível.');const draft=E.validate(parsed.draft),entries=parsed.history.map(h=>{if(typeof h.id!=='string'||typeof h.savedAt!=='string')throw Error('Registro inválido.');const hd=E.validate(h.data);return {...h,data:hd,result:h.result||E.calculate(hd)};});if(!confirm('Restaurar este backup, substituindo o rascunho e histórico locais? A nuvem não será apagada.'))return;localStorage.setItem(key(),JSON.stringify({draft,history:entries}));data=draft;history=entries;dirty=true;render();notify('Backup restaurado neste navegador.');}catch(e){notify('Restauração cancelada: '+e.message,'error');}finally{$('restore').value='';}};
-$('print').onclick=()=>preview();$('download-pdf').onclick=()=>pdf(false);$('download-all').onclick=()=>pdf(true);$('download-csv').onclick=csv;
+$('restore').onchange=async()=>{try{const file=$('restore').files[0];if(!file)return;if(file.size>32*1024*1024)throw Error('Backup acima de 32 MB.');const parsed=JSON.parse(await file.text());if(parsed.format!=='solar-budget-backup-v1'||!Array.isArray(parsed.history))throw Error('Backup incompatível.');const draft=E.validate(parsed.draft),entries=parsed.history.map(h=>{if(typeof h.id!=='string'||typeof h.savedAt!=='string')throw Error('Registro inválido.');const hd=E.validate(h.data);return {...h,data:hd,result:h.result||E.calculate(hd)};});if(!confirm('Restaurar este backup, substituindo o rascunho e histórico locais? A nuvem não será apagada.'))return;localStorage.setItem(key(),JSON.stringify({draft,history:entries}));data=draft;history=entries;dirty=true;render();notify('Backup restaurado neste navegador.');}catch(e){notify('Restauração cancelada: '+e.message,'error');}finally{$('restore').value='';}};
+$('print').onclick=()=>preview();$('download-pdf').onclick=()=>pdf(false);$('download-all').onclick=()=>pdf(true);$('save-documents').onclick=()=>pdf(true,true);$('download-csv').onclick=csv;
 $('report-kind').onchange=()=>{if(busy)return;documentOptions={...SolarBudgetDocument.reportOptions(documentSnapshot)[Number($('report-kind').value)],scopeIds:documentOptions.scopeIds};previewGeneration++;refreshDocument();};
 $('scope-all').onclick=()=>{if(busy)return;$('scope-items').querySelectorAll('input').forEach(x=>x.checked=true);};
 $('scope-none').onclick=()=>{if(busy)return;$('scope-items').querySelectorAll('input').forEach(x=>x.checked=false);};
