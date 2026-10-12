@@ -266,7 +266,7 @@ document.addEventListener('click',async event=>{
   if(tr.dataset.context==='review'){$('review-content').innerHTML=offerTable(review.rows,review.supplierId,'review');return;}touch();render();
  }catch(e){notify(e.message,'error');}
 });
-$('login-form').addEventListener('submit',async event=>{event.preventDefault();if(busy)return;busy=true;const b=event.submitter;b.disabled=true;try{if(!db)throw Error('Conexão indisponível. Tente novamente.');const r=await timeout(db.auth.signInWithPassword({email:$('email').value.trim(),password:$('password').value}));if(r.error)throw r.error;$('password').value='';await activate(r.data.user);}catch(e){notify(e.message,'error');}finally{busy=false;b.disabled=false;}});
+$('login-form').addEventListener('submit',async event=>{event.preventDefault();if(busy)return;busy=true;const b=event.submitter||$('login-form').querySelector('button[type=submit]');b.disabled=true;try{if(!db)throw Error('Conexão indisponível. Tente novamente.');const r=await IGLogin.signIn(db,$('email').value,$('password').value);$('password').value='';await activate(r.data.user);}catch(e){notify(e.message,'error');}finally{busy=false;b.disabled=false;}});
 $('logout').onclick=async()=>{if(busy){notify('Aguarde a operação em andamento.','warn');return;}try{const r=await db.auth.signOut();if(r.error)throw r.error;}catch(e){notify(e.message,'error');}};
 $('retry').onclick=boot;
 $('new').onclick=()=>{if(busy)return;if(dirty&&!confirm('Criar uma nova cotação? Salve o rascunho ou exporte um backup para preservar o trabalho atual.'))return;data=E.fresh();if(companyService){const c=companyService.selected('solar-budget');data.doc.companySnapshot=c;data.doc.companyId=c?.id||'';}touch();render();};

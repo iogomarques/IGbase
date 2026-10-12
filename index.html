@@ -4,7 +4,7 @@
 <meta charset="UTF-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1.0" />
 <title>IG Base</title>
-<link rel="icon" type="image/png" sizes="64x64" href="/favicon-ig-base.png?v=1.09.10">
+<link rel="icon" type="image/png" sizes="64x64" href="/favicon-ig-base.png?v=1.09.11">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@600;700;800&display=swap" rel="stylesheet">
@@ -135,8 +135,9 @@ body{background:#f6f8f7}body::before,.glow{display:none}
 .enter-link,.icon-btn{min-height:44px}.modules{gap:20px}
 @media(max-width:560px){.card{width:100%;max-width:380px}main{padding-top:32px}.modules{margin-top:28px}}
 }
+#hub-login{width:min(420px,calc(100vw - 32px));box-sizing:border-box;border:1px solid #dbe7d8;border-radius:20px;padding:28px;color:#203b29;background:#fff;box-shadow:0 24px 80px #16351f30}#hub-login::backdrop{background:#16351f66;backdrop-filter:blur(4px)}#hub-login h2{font:600 23px Poppins,"Segoe UI",sans-serif;margin:0 0 12px}#hub-login p{font-size:14px;line-height:1.6;color:#5b6c60}#hub-login label{display:grid;gap:8px;font-size:13px;margin:18px 0}#hub-login input{box-sizing:border-box;width:100%;min-height:46px;border:1px solid #dbe7d8;border-radius:10px;padding:10px 12px;font:14px Inter,"Segoe UI",sans-serif}#hub-login .login-close{float:right;border:0;background:transparent;font-size:24px;cursor:pointer;color:#5b6c60}#hub-login button[type=submit]{width:100%;margin-top:8px}#hub-login-message{color:#963c2d!important}#hub-login-message:empty{display:none}
 </style>
-<script defer src="/shared/companies.js?v=1.09.10"></script><link rel="stylesheet" href="/shared/presentation.css?v=1.09.10"><script src="/shared/account.js?v=1.09.10"></script></head>
+<script defer src="/shared/companies.js?v=1.09.11"></script><link rel="stylesheet" href="/shared/presentation.css?v=1.09.11"><script src="/shared/account.js?v=1.09.11"></script><script src="/shared/login.js?v=1.09.11"></script></head>
 <body>
   <nav class="topbar">
     <div class="topbar-brand">
@@ -219,6 +220,7 @@ body{background:#f6f8f7}body::before,.glow{display:none}
     </div>
   </div>
 
+<dialog id="hub-login" aria-labelledby="hub-login-title"><button type="button" class="login-close" id="hub-login-close" aria-label="Fechar login">×</button><h2 id="hub-login-title">Entrar no IG Base</h2><p>Entre uma vez para acessar o Solar Organization, o Solar Budget e suas empresas.</p><form id="hub-login-form"><label>E-mail ou nome de usuário<input id="hub-login-identifier" type="text" autocomplete="username" autocapitalize="none" spellcheck="false" placeholder="voce@exemplo.com ou seu usuário" required></label><label>Senha<input id="hub-login-password" type="password" autocomplete="current-password" required></label><p id="hub-login-message" role="alert" aria-live="polite"></p><button id="hub-login-submit" type="submit" class="modal-btn primary">Entrar</button></form><p>Ainda não tem conta? <a href="/solar-organization/">Criar conta</a></p></dialog>
 <script>
 (function(){
 "use strict";
@@ -237,24 +239,17 @@ function escapeHtml(s){
 }
 function usernameValido(u){ return /^[A-Za-z][A-Za-z0-9_.]{2,29}$/.test(u || ''); }
 
-if(supabaseClient)supabaseClient.auth.onAuthStateChange(function(event){if(event==='SIGNED_OUT'){sessionUser=null;currentUsername='';closeSettings();renderLoggedOut();}});
+var authGeneration=0,loginBusy=false;
+if(supabaseClient)supabaseClient.auth.onAuthStateChange(function(event){if(event==='SIGNED_OUT'){authGeneration++;sessionUser=null;currentUsername='';closeSettings();renderLoggedOut();}else if(event==='SIGNED_IN'||event==='TOKEN_REFRESHED')setTimeout(initAuth,0);});
 async function initAuth(){
-  if(!supabaseClient) return;
-  try{
-    var resp = await supabaseClient.auth.getSession();
-    var session = resp.data && resp.data.session;
-    if(session && session.user){
-      sessionUser = session.user;
-      try{
-        var r = await supabaseClient.from('perfis_usuario').select('username').eq('user_id', sessionUser.id).maybeSingle();
-        currentUsername = (r && !r.error && r.data && r.data.username) ? r.data.username : '';
-      }catch(e){ currentUsername = ''; }
-      renderLoggedIn();
-    } else {
-      renderLoggedOut();
-    }
-  }catch(e){ renderLoggedOut(); }
+  if(!supabaseClient)return;var generation=++authGeneration;
+  try{var resp=await supabaseClient.auth.getSession();if(resp.error)throw resp.error;if(generation!==authGeneration)return;var user=resp.data.session?.user;
+    if(!user){sessionUser=null;currentUsername='';renderLoggedOut();return;}
+    sessionUser=user;var username='';try{var r=await supabaseClient.from('perfis_usuario').select('username').eq('user_id',user.id).maybeSingle();if(!r.error)username=r.data?.username||'';}catch(e){}
+    if(generation!==authGeneration||sessionUser?.id!==user.id)return;currentUsername=username;renderLoggedIn();closeLogin();
+  }catch(e){if(generation===authGeneration){sessionUser=null;currentUsername='';renderLoggedOut();}}
 }
+
 function renderLoggedIn(){
   if(window.IGCompanies&&sessionUser&&supabaseClient){var central=IGCompanies.service(supabaseClient,sessionUser);central.load().catch(function(e){console.warn('Cadastro central: confira Empresas no IG Base.',e.message);});}
   var nome = IGAccount.name(currentUsername || sessionUser?.user_metadata?.username);
@@ -264,8 +259,16 @@ function renderLoggedIn(){
   if(location.hash==='#configuracoes')openSettings();
 }
 function renderLoggedOut(){
-  document.getElementById('topbar-right').innerHTML = '<a class="enter-link" href="/solar-organization/">Entrar</a>';
+  document.getElementById('topbar-right').innerHTML='<button type="button" class="enter-link" id="hub-open-login">Entrar</button>';
+  document.getElementById('hub-open-login').onclick=openLogin;
+  if(location.hash==='#entrar'||location.hash==='#configuracoes')openLogin();
 }
+function openLogin(){if(sessionUser)return;var dialog=document.getElementById('hub-login');document.getElementById('hub-login-message').textContent='';if(!dialog.open)dialog.showModal();document.getElementById('hub-login-identifier').focus();}
+function closeLogin(){var dialog=document.getElementById('hub-login');document.getElementById('hub-login-password').value='';if(dialog.open)dialog.close();if(location.hash==='#entrar')history.replaceState(null,'',location.pathname+location.search);}
+document.getElementById('hub-login-close').onclick=closeLogin;
+document.getElementById('hub-login').addEventListener('cancel',closeLogin);
+window.addEventListener('hashchange',function(){if(location.hash==='#entrar'&&!sessionUser)openLogin();});
+document.getElementById('hub-login-form').addEventListener('submit',async function(event){event.preventDefault();if(loginBusy)return;loginBusy=true;var button=document.getElementById('hub-login-submit');button.disabled=true;document.getElementById('hub-login-message').textContent='';try{await IGLogin.signIn(supabaseClient,document.getElementById('hub-login-identifier').value,document.getElementById('hub-login-password').value);await initAuth();}catch(e){document.getElementById('hub-login-message').textContent=e.message;}finally{loginBusy=false;button.disabled=false;}});
 
 function openSettings(){
   document.getElementById('settings-email').textContent = IGAccount.name(currentUsername || sessionUser?.user_metadata?.username);
@@ -315,12 +318,11 @@ document.getElementById('settings-signout').addEventListener('click', sairDaCont
    O aviso aparece uma vez por versão por navegador (localStorage compartilhado
    entre o site principal e os subsites, pois ficam no mesmo domínio).
    ============================================================ */
-var IG_BASE_VERSION = '1.09.10';
-var IG_BASE_RELEASE_ID = '1.09.10-2026-10-12';
+var IG_BASE_VERSION = '1.09.11';
+var IG_BASE_RELEASE_ID = '1.09.11-2026-10-12';
 var IG_BASE_CHANGELOG = [
-  "Minha conta com o mesmo visual no IG Base e nos subsites; nome de usuário em lugar do e-mail.",
-  "Alteração do nome de usuário centralizada nas configurações do Hub IG Base.",
-  "Editar dados do cliente ao lado do nome no Solar Organization e ícone de aba compacto."
+  "Faça login no Hub IG Base usando e-mail ou nome de usuário e sua senha.",
+  "O mesmo acesso abre o Solar Organization, o Solar Budget e Empresas automaticamente neste navegador."
 ];
 function igbMostrarChangelog(){
   var KEY = 'igbase_changelog_visto';
