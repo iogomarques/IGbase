@@ -4,7 +4,7 @@
 <meta charset="UTF-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1.0" />
 <title>Suporte — IG Base</title>
-<link rel="icon" type="image/png" sizes="64x64" href="/favicon-ig-base.png?v=1.09.10">
+<link rel="icon" type="image/png" sizes="64x64" href="/favicon-ig-base.png?v=1.09.12">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@600;700;800&display=swap" rel="stylesheet">
@@ -35,19 +35,24 @@
   .back-link:hover{ color:var(--green-deep); }
   .topbar span.brand{ font-family:'Poppins',sans-serif; font-weight:700; font-size:15.5px; color:var(--ink-soft); }
 
-  main{ max-width:520px; margin:0 auto; padding:64px 24px 40px; text-align:center; }
+  main{ max-width:620px; margin:0 auto; padding:56px 24px 32px; text-align:center; }
   main h1{ font-family:'Poppins',sans-serif; font-weight:800; font-size:clamp(24px,4vw,32px); margin:0 0 14px; }
   main > p{ color:var(--ink-soft); font-size:15px; line-height:1.6; margin:0 0 30px; }
 
   .support-card{ background:var(--panel); border:1px solid var(--panel-border); border-radius:var(--radius);
     padding:30px 26px; box-shadow:0 1px 2px rgba(31,42,34,0.05); }
-  .mailto-btn{ display:inline-flex; align-items:center; background:var(--green-deep); color:#fff !important;
-    text-decoration:none; font-weight:600; font-size:15px; padding:13px 24px; border-radius:12px; transition:background .15s; }
-  .mailto-btn svg{ margin-right:9px; }
-  .mailto-btn:hover{ background:#254f31; }
-  .support-hint{ margin-top:16px; font-size:12.5px; color:var(--gray); }
+  .support-card h2{font:600 17px Poppins,"Segoe UI",sans-serif;margin:0 0 18px}
+  .email-row{display:flex;align-items:center;gap:10px;background:#f6faf3;border:1px solid var(--panel-border);border-radius:12px;padding:10px;margin-bottom:22px}
+  #support-email{width:100%;min-width:0;border:0;background:transparent;color:var(--green-deep);font:600 16px "Segoe UI",sans-serif;text-align:center;padding:8px 0}
+  #copy-email{border:1px solid var(--panel-border);border-radius:9px;background:#fff;padding:10px 12px;color:var(--green-deep);font:600 13px "Segoe UI",sans-serif;cursor:pointer;flex:none}
+  .support-actions{display:grid;gap:12px}.support-actions a{display:flex;justify-content:center;align-items:center;min-height:48px;gap:10px;border:1px solid var(--panel-border);border-radius:12px;padding:12px 18px;text-decoration:none;font-size:14px;font-weight:600;color:var(--green-deep);background:#fff}.support-actions .primary{background:var(--green-deep);border-color:var(--green-deep);color:#fff}.support-actions a:hover,#copy-email:hover{filter:brightness(.96)}
+  .support-hint{margin:20px 0 0;font-size:13px;line-height:1.6;color:var(--ink-soft)}
+  #copy-status{font-size:13px;line-height:1.5;color:var(--green-deep);margin:16px 0 0}#copy-status:empty{display:none}
+  footer{margin-top:32px;font-size:12px;color:var(--gray)}
+  button:focus-visible,a:focus-visible,input:focus-visible{outline:2px solid var(--green-deep);outline-offset:3px}
+  @media(max-width:480px){main{padding:36px 16px 24px}.support-card{padding:24px 18px}.email-row{flex-wrap:wrap;justify-content:center}#support-email{flex-basis:100%;font-size:15px}#copy-email{width:100%}.support-actions a{padding:12px}}
 </style>
-<script src="/shared/account.js?v=1.09.10"></script><link rel="stylesheet" href="/shared/presentation.css?v=1.09.10"></head>
+<script src="/shared/account.js?v=1.09.12"></script><link rel="stylesheet" href="/shared/presentation.css?v=1.09.12"></head>
 <body>
   <nav class="topbar">
     <a class="back-link" href="/">
@@ -59,15 +64,30 @@
 
   <main>
     <h1>Suporte</h1>
-    <p>Precisa de ajuda com algum dos módulos do IG Base? Manda um e-mail pra gente que respondemos assim que possível.</p>
+    <p>Precisa de ajuda com o IG Base ou seus subsites? Envie sua mensagem para nossa equipe.</p>
 
     <div class="support-card">
-      <a id="mailto-btn" class="mailto-btn" href="mailto:suporteigbase@igbase.com.br">
-        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect width="20" height="16" x="2" y="4" rx="2"/><path d="m22 7-8.97 5.7a1.94 1.94 0 0 1-2.06 0L2 7"/></svg>
-        Enviar e-mail para o suporte
-      </a>
-      <div class="support-hint">Isso abre o seu aplicativo de e-mail padrão (Gmail, Outlook...), já com o destinatário preenchido.</div>
+      <h2 id="support-address-title">E-mail do suporte</h2>
+      <div class="email-row"><input id="support-email" aria-labelledby="support-address-title" type="text" readonly value="suporteigbase@gmail.com"><button id="copy-email" type="button">Copiar e-mail</button></div>
+      <div class="support-actions">
+        <a id="gmail-btn" class="primary" target="_blank" rel="noopener noreferrer" href="https://mail.google.com/mail/?view=cm&amp;fs=1&amp;to=suporteigbase%40gmail.com&amp;su=Suporte%20IG%20Base">Escrever no Gmail <span aria-hidden="true">↗</span></a>
+        <a id="mailto-btn" href="mailto:suporteigbase@gmail.com?subject=Suporte%20IG%20Base">Usar meu aplicativo de e-mail</a>
+      </div>
+      <p class="support-hint">O destinatário e o assunto já estarão preenchidos. Escreva sua mensagem, adicione anexos se precisar e envie pelo seu e-mail.</p>
+      <p id="copy-status" role="status" aria-live="polite"></p>
     </div>
+    <footer>IG Base · Suporte 1.09.12</footer>
   </main>
+<script>
+(function(){
+  const button=document.getElementById('copy-email'),field=document.getElementById('support-email'),status=document.getElementById('copy-status');
+  button.addEventListener('click',async function(){
+    button.disabled=true;
+    try{if(!navigator.clipboard?.writeText)throw Error('Clipboard unavailable');await navigator.clipboard.writeText(field.value);status.textContent='E-mail copiado. Cole no destinatário da sua mensagem.';}
+    catch(e){field.focus();field.select();status.textContent='Endereço selecionado. Copie e cole no destinatário da sua mensagem.';}
+    finally{button.disabled=false;}
+  });
+})();
+</script>
 </body>
 </html>
