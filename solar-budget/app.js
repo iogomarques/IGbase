@@ -29,12 +29,12 @@ async function activate(next){
   const raw=localStorage.getItem(key());if(raw){const parsed=JSON.parse(raw);data=E.validate(parsed.draft);if(!Array.isArray(parsed.history))throw Error('Histórico local inválido.');history=parsed.history.map(h=>({...h,data:E.validate(h.data)}));}
  }catch(e){$('workspace').hidden=true;notify('Não foi possível ler o armazenamento local. Seus dados não foram substituídos. '+e.message,'error');return;}
  render();
- try{companyService=IGCompanies.service(db,user);await timeout(companyService.load());if(generation!==sessionGeneration)return;const preferred=companyService.selected('solar-budget');if(preferred&&!data.doc.companySnapshot){data.doc.companySnapshot=preferred;data.doc.companyId=preferred.id;}renderCompanies();}catch(e){companyService=null;notify(e.message,'warn');}
+ try{companyService=IGCompanies.service(db,user);await timeout(companyService.load());if(generation!==sessionGeneration)return;const preferred=companyService.selected('solar-budget');if(preferred&&!data.doc.companySnapshot){data.doc.companySnapshot=preferred;data.doc.companyId=preferred.id;}renderCompanies();}catch(e){if(generation!==sessionGeneration)return;companyService=null;notify(e.message,'warn');}
  try{const profile=await timeout(db.from('perfis_usuario').select('username').eq('user_id',user.id).maybeSingle());if(generation!==sessionGeneration)return;setAccount(profile.data?.username||user.user_metadata?.username);}catch(e){}
  await connectArchive(generation);
 }
 async function connectArchive(generation=sessionGeneration){
- const owner=user?.id;if(!owner)return;
+ if(generation!==sessionGeneration)return;const owner=user?.id;if(!owner)return;
  try{const store=IGBudgetArchive.service(db,user);await timeout(store.load());if(generation!==sessionGeneration||user?.id!==owner)return;
   const candidates=E.clone(history);try{const old=await timeout(db.from('solar_budget_cotacoes').select('id,data,updated_at').eq('user_id',owner).order('updated_at',{ascending:false}));if(!old.error)for(const row of old.data||[])candidates.push(row.data);}catch(e){}
   if(generation!==sessionGeneration||user?.id!==owner)return;
