@@ -4,7 +4,7 @@
 <meta charset="UTF-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1.0" />
 <title>IG Base</title>
-<link rel="icon" type="image/png" sizes="64x64" href="/favicon-ig-base.png?v=1.10.03">
+<link rel="icon" type="image/png" sizes="64x64" href="/favicon-ig-base.png?v=1.10.04">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@600;700;800&display=swap" rel="stylesheet">
@@ -137,7 +137,7 @@ body{background:#f6f8f7}body::before,.glow{display:none}
 }
 #hub-login{width:min(420px,calc(100vw - 32px));box-sizing:border-box;border:1px solid #dbe7d8;border-radius:20px;padding:28px;color:#203b29;background:#fff;box-shadow:0 24px 80px #16351f30}#hub-login::backdrop{background:#16351f66;backdrop-filter:blur(4px)}#hub-login h2{font:600 23px Poppins,"Segoe UI",sans-serif;margin:0 0 12px}#hub-login p{font-size:14px;line-height:1.6;color:#5b6c60}#hub-login label{display:grid;gap:8px;font-size:13px;margin:18px 0}#hub-login input{box-sizing:border-box;width:100%;min-height:46px;border:1px solid #dbe7d8;border-radius:10px;padding:10px 12px;font:14px Inter,"Segoe UI",sans-serif}#hub-login .login-close{float:right;border:0;background:transparent;font-size:24px;cursor:pointer;color:#5b6c60}#hub-login button[type=submit]{width:100%;margin-top:8px}#hub-login-message{color:#963c2d!important}#hub-login-message:empty{display:none}
 </style>
-<script defer src="/shared/companies.js?v=1.10.03"></script><link rel="stylesheet" href="/shared/presentation.css?v=1.10.03"><script src="/shared/account.js?v=1.10.03"></script><script src="/shared/login.js?v=1.10.03"></script><script src="/shared/version.js?v=1.10.03"></script></head>
+<script defer src="/shared/companies.js?v=1.10.04"></script><link rel="stylesheet" href="/shared/presentation.css?v=1.10.04"><script src="/shared/account.js?v=1.10.04"></script><script src="/shared/login.js?v=1.10.04"></script><script src="/shared/version.js?v=1.10.04"></script></head>
 <body>
   <nav class="topbar">
     <div class="topbar-brand">
@@ -184,11 +184,11 @@ body{background:#f6f8f7}body::before,.glow{display:none}
       <a href="/empresas/">Empresas</a><a href="/suporte/">Suporte</a>
     </div>
     <div class="status"><span class="dot"></span>Todos os sistemas operacionais</div>
-    <div class="version" data-ig-version>IG Base v1.10.03</div>
+    <div class="version" data-ig-version>IG Base v1.10.04</div>
   </footer>
 
   <div class="modal-overlay" id="settings-overlay">
-    <div class="modal" role="dialog" aria-modal="true" aria-labelledby="settings-title">
+    <div class="modal ig-settings-surface" role="dialog" aria-modal="true" aria-labelledby="settings-title">
       <button class="modal-close" id="settings-close" aria-label="Fechar">
         <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M18 6 6 18"/><path d="m6 6 12 12"/></svg>
       </button>
@@ -210,6 +210,8 @@ body{background:#f6f8f7}body::before,.glow{display:none}
         </div>
       </section>
 
+      <section class="cfg-card"><div class="cfg-head"><span class="cfg-icon" data-cfg-icon="file"></span><div><h3 class="cfg-title">Empresa emissora dos documentos</h3><p class="cfg-sub">Cadastro compartilhado em todo o IG Base.</p></div></div><p class="cfg-text">Cadastre suas empresas no Hub. Escolha a emissora padrão nas configurações do Solar Organization ou Solar Budget, ou antes de gerar o PDF.</p><div class="cfg-actions"><a href="/empresas/" class="ig-settings-button">Cadastrar ou editar empresas no IG Base</a></div></section>
+      <section class="cfg-card"><div class="cfg-head"><span class="cfg-icon" data-cfg-icon="data"></span><div><h3 class="cfg-title">Dados</h3><p class="cfg-sub">Arquivos organizados por ferramenta.</p></div></div><p class="cfg-text">Clientes e faturas ficam no Solar Organization; cotações e PDFs, no Solar Budget. Cada ferramenta mantém seu histórico.</p><div class="cfg-actions"><a href="/solar-organization/" class="ig-settings-button">Clientes e faturas</a><a href="/solar-budget/#arquivos" class="ig-settings-button">Orçamentos e PDFs salvos</a></div></section>
       <section class="cfg-card">
         <div class="cfg-head">
           <span class="cfg-icon"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><path d="m4.93 4.93 4.24 4.24"/><path d="m14.83 9.17 4.24-4.24"/><path d="m14.83 14.83 4.24 4.24"/><path d="m9.17 14.83-4.24 4.24"/><circle cx="12" cy="12" r="4"/></svg></span>
@@ -253,7 +255,7 @@ async function initAuth(){
 function renderLoggedIn(){
   if(window.IGCompanies&&sessionUser&&supabaseClient){var central=IGCompanies.service(supabaseClient,sessionUser);central.load().catch(function(e){console.warn('Cadastro central: confira Empresas no IG Base.',e.message);});}
   var nome = IGAccount.name(currentUsername || sessionUser?.user_metadata?.username);
-  document.getElementById('topbar-right').innerHTML = '<a class="enter-link" href="/empresas/">Empresas</a>' + IGAccount.html(nome,'<button id="settings-btn" type="button">Configurações</button><button id="account-signout" type="button">Sair da conta</button>');
+  document.getElementById('topbar-right').innerHTML = '<a class="enter-link" href="/empresas/">Empresas</a>' + IGAccount.html(nome,'<button id="settings-btn" type="button">Configurações</button><a href="/#configuracoes">Configurações da conta no IG Base</a><button id="account-signout" type="button">Sair da conta</button>');
   document.getElementById('settings-btn').addEventListener('click',openSettings);
   document.getElementById('account-signout').addEventListener('click',sairDaConta);
   if(location.hash==='#configuracoes')openSettings();
@@ -274,7 +276,7 @@ function openSettings(){
   document.getElementById('settings-email').textContent = IGAccount.name(currentUsername || sessionUser?.user_metadata?.username);
   document.getElementById('settings-username').value = currentUsername;
   document.getElementById('settings-msg').innerHTML = '';
-  document.getElementById('settings-overlay').classList.add('open');
+  IGAccount.prepareSettings(document.getElementById('settings-overlay'));document.getElementById('settings-overlay').classList.add('open');document.getElementById('settings-close').focus();
 }
 function closeSettings(){ document.getElementById('settings-overlay').classList.remove('open'); if(location.hash==='#configuracoes')history.replaceState(null,'',location.pathname+location.search); }
 window.addEventListener('hashchange',function(){if(location.hash==='#configuracoes'&&sessionUser)openSettings();});
@@ -318,11 +320,11 @@ document.getElementById('settings-signout').addEventListener('click', sairDaCont
    O aviso aparece uma vez por versão por navegador (localStorage compartilhado
    entre o site principal e os subsites, pois ficam no mesmo domínio).
    ============================================================ */
-var IG_BASE_VERSION = window.IGBaseRelease?.version || '1.10.03';
-var IG_BASE_RELEASE_ID = window.IGBaseRelease?.releaseId || '1.10.03-2026-10-12';
+var IG_BASE_VERSION = window.IGBaseRelease?.version || '1.10.04';
+var IG_BASE_RELEASE_ID = window.IGBaseRelease?.releaseId || '1.10.04-2026-10-13';
 var IG_BASE_CHANGELOG = [
-  "Manutenção: logos e controles protegidos contra seleção e arraste acidentais.",
-  "Carregamento das logos otimizado e acesso entre abas revisado."
+  "Novo cliente acima da lista; menus e configurações padronizados em todo o IG Base.",
+  "Faturas e cotações conferidas, com detalhes secundários recolhidos."
 ];
 function igbMostrarChangelog(){
   var KEY = 'igbase_changelog_visto';

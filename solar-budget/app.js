@@ -22,8 +22,8 @@ async function boot(){
  }catch(e){$('loading').hidden=true;$('auth').hidden=false;notify(e.message,'error');}
 }
 async function activate(next){
- const generation=++sessionGeneration;documentSnapshot=null;for(const id of ['preview-dialog','review-dialog'])if($(id).open)$(id).close();$('document').innerHTML='';$('history').innerHTML='';$('quote-detail').innerHTML='';$('sources').innerHTML='';$('preview-company').innerHTML='';$('company-settings').innerHTML='';$('company-quote').innerHTML='';user=next;review=null;history=[];data=E.fresh();cloud=false;cloudVersions={};dirty=false;
- setAccount(user?.user_metadata?.username);$('account-menu').hidden=!user;$('budget-navigation').hidden=!user;$('account-menu').open=false;companyService=null;archiveService=null;$('archive-page').hidden=true;$('settings-page').hidden=true;$('logout').hidden=!user;$('loading').hidden=true;$('auth').hidden=!!user;$('workspace').hidden=!user;
+ const generation=++sessionGeneration;documentSnapshot=null;for(const id of ['preview-dialog','review-dialog','settings-page'])if($(id).open)$(id).close();$('document').innerHTML='';$('history').innerHTML='';$('quote-detail').innerHTML='';$('sources').innerHTML='';$('preview-company').innerHTML='';$('company-settings').innerHTML='';$('company-quote').innerHTML='';user=next;review=null;history=[];data=E.fresh();cloud=false;cloudVersions={};dirty=false;
+ setAccount(user?.user_metadata?.username);$('account-menu').hidden=!user;$('budget-navigation').hidden=!user;$('account-menu').open=false;companyService=null;archiveService=null;$('archive-page').hidden=true;$('logout').hidden=!user;$('loading').hidden=true;$('auth').hidden=!!user;$('workspace').hidden=!user;
  if(!user)return;
  try{
   const raw=localStorage.getItem(key());if(raw){const parsed=JSON.parse(raw);data=E.validate(parsed.draft);if(!Array.isArray(parsed.history))throw Error('Histórico local inválido.');history=parsed.history.map(h=>({...h,data:E.validate(h.data)}));}
@@ -31,7 +31,7 @@ async function activate(next){
  render();
  try{companyService=IGCompanies.service(db,user);await timeout(companyService.load());if(generation!==sessionGeneration)return;const preferred=companyService.selected('solar-budget');if(preferred&&!data.doc.companySnapshot){data.doc.companySnapshot=preferred;data.doc.companyId=preferred.id;}renderCompanies();}catch(e){if(generation!==sessionGeneration)return;companyService=null;notify(e.message,'warn');}
  try{const profile=await timeout(db.from('perfis_usuario').select('username').eq('user_id',user.id).maybeSingle());if(generation!==sessionGeneration)return;setAccount(profile.data?.username||user.user_metadata?.username);}catch(e){}
- await connectArchive(generation);
+ await connectArchive(generation);if(generation===sessionGeneration)settingsPage();
 }
 async function connectArchive(generation=sessionGeneration){
  if(generation!==sessionGeneration)return;const owner=user?.id;if(!owner)return;
@@ -276,8 +276,13 @@ $('add-item').onclick=()=>{data.items.push(E.item());touch();render();};$('add-s
 $('quote-name').onchange=()=>{data.name=$('quote-name').value.trim()||'Nova cotação';touch();};
 for(const k of ['nome','documento','contato','email','telefone','endereco','projeto'])$('client-'+k).onchange=()=>{data.client=data.client||{};data.client[k]=$('client-'+k).value.trim();touch();};
 $('cart-mode').onchange=()=>{data.cartMode=$('cart-mode').value;touch();render();};$('single-supplier').onchange=()=>{data.singleSupplierId=$('single-supplier').value;touch();};
-function settingsPage(){const show=location.hash==='#configuracoes'&&!!user,archive=location.hash.startsWith('#arquivos')&&!!user;$('settings-page').hidden=!show;$('archive-page').hidden=!archive;$('workspace').hidden=!user||show||archive;$('budget-navigation').hidden=!user;for(const [id,active]of [['editor-open',!archive&&!show],['archive-open',archive]]){if(active)$(id).setAttribute('aria-current','page');else $(id).removeAttribute('aria-current');}if(archive)renderHistory();}
-$('settings-open').onclick=()=>{$('account-menu').open=false;location.hash='configuracoes';};$('settings-back').onclick=()=>{location.hash='';};window.addEventListener('hashchange',settingsPage);
+let settingsReturnHash='',settingsRouting=false;
+function settingsPage(){const show=location.hash==='#configuracoes'&&!!user,archive=location.hash.startsWith('#arquivos')&&!!user,dialog=$('settings-page');if(show&&!dialog.open){IGAccount.prepareSettings(dialog);dialog.showModal();}else if(!show&&dialog.open){settingsRouting=true;dialog.close();settingsRouting=false;}$('archive-page').hidden=!archive;$('workspace').hidden=!user||archive;$('budget-navigation').hidden=!user;for(const [id,active]of [['editor-open',!archive],['archive-open',archive]]){if(active)$(id).setAttribute('aria-current','page');else $(id).removeAttribute('aria-current');}if(archive)renderHistory();}
+$('settings-open').onclick=()=>{$('account-menu').open=false;settingsReturnHash=location.hash==='#configuracoes'?'':location.hash;location.hash='configuracoes';};
+$('settings-back').onclick=()=>{location.hash=settingsReturnHash;};
+$('settings-page').addEventListener('close',()=>{if(!settingsRouting&&location.hash==='#configuracoes'){location.hash=settingsReturnHash;$('account-toggle').focus();}});
+$('settings-page').addEventListener('click',e=>{if(e.target===$('settings-page')){const r=e.target.getBoundingClientRect();if(e.clientX<r.left||e.clientX>r.right||e.clientY<r.top||e.clientY>r.bottom)e.target.close();}});
+$('settings-export').onclick=()=>{$('export').click();};$('settings-restore').onclick=()=>{$('restore').click();};window.addEventListener('hashchange',settingsPage);
 $('search').oninput=renderResults;$('filter').onchange=renderResults;$('history-search').oninput=renderHistory;$('history-status').onchange=renderHistory;$('archive-retry').onclick=()=>connectArchive();
 $('save').onclick=()=>save(false);$('complete').onclick=()=>save(true);
 $('export').onclick=()=>{$('more-options').open=false;download('Solar-Budget-backup.json',JSON.stringify({format:'solar-budget-backup-v1',draft:data,history},null,2),'application/json');};

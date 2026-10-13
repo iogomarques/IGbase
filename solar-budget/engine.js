@@ -1,7 +1,7 @@
 /* Solar Budget — shared release — pure calculation and import model; no energy billing dependencies. */
 (function(root){
 'use strict';
-const VERSION=(root.IGBaseRelease||(typeof module!=='undefined'&&module.exports?require('../shared/version.js'):null)||{version:'1.10.02'}).version, uid=()=>globalThis.crypto?.randomUUID?.() || 'sb-'+Date.now()+'-'+Math.random().toString(36).slice(2);
+const VERSION=(root.IGBaseRelease||(typeof module!=='undefined'&&module.exports?require('../shared/version.js'):null)||{version:'1.10.04'}).version, uid=()=>globalThis.crypto?.randomUUID?.() || 'sb-'+Date.now()+'-'+Math.random().toString(36).slice(2);
 const clone=x=>JSON.parse(JSON.stringify(x));
 const norm=x=>String(x??'').normalize('NFD').replace(/[\u0300-\u036f]/g,'').toLowerCase().replace(/[^a-z0-9]+/g,' ').trim();
 function num(x){
