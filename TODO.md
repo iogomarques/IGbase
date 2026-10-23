@@ -62,6 +62,14 @@ Detalhes em [docs/BACKUP_LOCAL.md](docs/BACKUP_LOCAL.md).
 - [ ] Nunca versionar `CONTAS`, faturas extraídas ou nomes de clientes: o repositório é público.
 - [ ] Commitar os documentos de transferência e `docs/BACKUP_LOCAL.md` quando o usuário autorizar.
 
+## Testes de 23/10/2026 (1.10.06)
+
+Relatório em [docs/TESTES_2026-10-23.md](docs/TESTES_2026-10-23.md). Organization, Budget, Empresas, Hub e Suporte aprovados.
+
+- [ ] Corrigir aviso "Modelos padrão atualizados" a cada login (comparação sensível à ordem das chaves do jsonb).
+- [ ] Confirmar com o usuário a regra quando o uso de saldo excede o disponível (cobra a diferença; documento mostra saldo utilizado 0).
+- [ ] Texto "contratos em PDF" no Hub sem função correspondente.
+
 ## Próxima sequência recomendada
 
 1. Abrir a pasta existente no Claude e ler os documentos na ordem de [CLAUDE.md](CLAUDE.md).
