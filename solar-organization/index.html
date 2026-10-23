@@ -4,7 +4,7 @@
 <meta charset="UTF-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1.0" />
 <title>Solar Organization | IG Base</title>
-<link rel="icon" type="image/png" sizes="64x64" href="/favicon-ig-base.png?v=1.10.07">
+<link rel="icon" type="image/png" sizes="64x64" href="/favicon-ig-base.png?v=1.10.08">
 <!-- O SDK é carregado sem bloquear a renderização da página, no início do app. -->
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -459,7 +459,7 @@
 
 @media screen{.vigencia-linha input[type=month]{width:100%;min-height:44px;padding:9px;border:1px solid var(--line);border-radius:8px;background:#fff;font:inherit}.vigencia-linha .vigencia-remover{margin-top:10px}#m-vigencias{margin-top:16px}}
 </style>
-<script src="/shared/companies.js?v=1.10.07"></script><link rel="stylesheet" href="/shared/presentation.css?v=1.10.07"><script src="/shared/account.js?v=1.10.07"></script><script src="/shared/login.js?v=1.10.07"></script><script src="/shared/version.js?v=1.10.07"></script></head>
+<script src="/shared/companies.js?v=1.10.08"></script><link rel="stylesheet" href="/shared/presentation.css?v=1.10.08"><script src="/shared/account.js?v=1.10.08"></script><script src="/shared/login.js?v=1.10.08"></script><script src="/shared/version.js?v=1.10.08"></script></head>
 <body>
 
 <div id="auth-root"><div class="auth-screen startup-screen"><div class="startup-card" aria-busy="true"><div class="startup-brand"><img width="713" height="340" draggable="false" src="/assets/logo-ig-base.png" alt="IG Base"></div><div class="startup-spinner" aria-hidden="true"></div><h1 class="startup-title">Carregando o sistema</h1><p class="startup-message" role="status" aria-live="polite">Preparando seu ambiente…</p><noscript>Ative o JavaScript no navegador para utilizar o sistema.</noscript></div></div></div>
@@ -475,7 +475,7 @@
 <footer class="app-footer" id="app-footer" style="display:none">
   <div class="footer-links"><a href="/suporte/">Suporte</a></div>
   <div class="status"><span class="dot"></span>Todos os sistemas operacionais</div>
-  <div class="version" data-ig-version>IG Base v1.10.07</div>
+  <div class="version" data-ig-version>IG Base v1.10.08</div>
 </footer>
 
 <div id="modal-root"></div>
@@ -4625,11 +4625,11 @@ async function onSignOut(){
    O aviso aparece uma vez por versão por navegador (localStorage compartilhado
    entre o site principal e os subsites, pois ficam no mesmo domínio).
    ============================================================ */
-var IG_BASE_VERSION = window.IGBaseRelease?.version || '1.10.07';
-var IG_BASE_RELEASE_ID = window.IGBaseRelease?.releaseId || '1.10.07-2026-10-23';
+var IG_BASE_VERSION = window.IGBaseRelease?.version || '1.10.08';
+var IG_BASE_RELEASE_ID = window.IGBaseRelease?.releaseId || '1.10.08-2026-10-23';
 var IG_BASE_CHANGELOG = [
-  "Solar Organization não mostra mais o aviso de modelos padrão a cada entrada.",
-  "Visual padronizado com as cores e as letras do IG Base."
+  "Solar Budget no mesmo modelo do Solar Organization: lateral, título, abas e rodapé.",
+  "Lateral do Budget com cotações salvas (padrão) ou fornecedores da cotação aberta."
 ];
 function igbMostrarChangelog(){
   var KEY = 'igbase_changelog_visto';

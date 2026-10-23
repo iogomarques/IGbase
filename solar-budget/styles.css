@@ -16,3 +16,46 @@
 @media(max-width:600px){#budget-navigation{position:relative;top:0;padding:0;margin-top:10px}.topbar .brand span{font-size:12px}.topbar .top-actions{flex-wrap:nowrap}.quote-actions{width:100%}.more-options{flex:1}.more-options>summary{text-align:center}.quote-actions>button{flex:1}.more-options .secondary-actions{right:0;width:min(260px,80vw)}.quote-title{font-size:17px}.saved-files{grid-template-columns:1fr}.saved-version{padding:14px}.quote-detail-head .return-editor{font-size:12px}.open-quote{font-size:12px}}
 @media(max-width:360px){.topbar .brand span{display:none}}
 .topbar{z-index:30}
+/* 1.10.08: Solar Budget no esqueleto do Solar Organization (lateral, topo com título e conta, abas, rodapé), com o visual do Hub. Escopo só da página do Budget. */
+body.budget-page{background:#f6f8f4}
+.budget-app{display:flex;min-height:100vh}
+.budget-sidebar{width:270px;flex:none;box-sizing:border-box;background:#eef4eb;border-right:1px solid var(--border);padding:20px 14px;position:sticky;top:0;height:100vh;overflow-y:auto;display:flex;flex-direction:column;gap:14px}
+.budget-sidebar .brand{padding:0 6px}
+#side-panel{display:flex;flex-direction:column;gap:12px;min-height:0}
+#side-panel[hidden]{display:none}
+.side-switch{display:grid;grid-template-columns:1fr 1fr;gap:4px;padding:4px;background:#fff;border:1px solid var(--border);border-radius:12px}
+.side-switch button{display:flex;justify-content:center;border:0;background:transparent;border-radius:9px;padding:9px 6px;font:600 13px -apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Helvetica,Arial,sans-serif;color:var(--muted);cursor:pointer;min-height:38px}
+.side-switch button:hover{background:#f0f6ee}.side-switch button[aria-pressed=true],.side-switch button[aria-pressed=true]:hover{background:var(--green);color:#fff;box-shadow:0 3px 10px #2f663f22}
+.side-switch button:focus-visible,.side-row:focus-visible,.side-new:focus-visible{outline:2px solid var(--green);outline-offset:2px}
+.side-search input{width:100%;box-sizing:border-box;min-height:40px;padding:8px 12px;border:1px solid var(--border);border-radius:10px;background:#fff;font-size:13px}
+.side-new{display:flex;justify-content:flex-start;font-weight:500;width:100%;min-height:42px;padding:10px 12px;border:1px solid var(--border);border-radius:10px;background:#fff;color:var(--muted);font-size:14px;text-align:left;cursor:pointer}
+.side-new:hover{color:var(--green);border-color:var(--bright)}
+.side-label{font-size:11.5px;color:var(--muted);padding:0 6px}
+.side-list{display:flex;flex-direction:column;gap:4px}
+.side-row{display:flex;justify-content:flex-start;align-items:flex-start;font-weight:400;gap:9px;width:100%;box-sizing:border-box;text-align:left;padding:10px 9px;border:1px solid transparent;border-radius:10px;background:transparent;color:var(--ink);cursor:pointer;font:inherit}
+.side-row:hover{background:#fff;border-color:transparent}
+.side-row.active{background:#fff;border-color:var(--border);box-shadow:0 1px 2px #1f2a220f,0 8px 24px #1f2a2214}
+.side-dot{width:8px;height:8px;border-radius:50%;background:#6a9a1f;flex:none;margin-top:6px}
+.side-dot.done{background:var(--green)}
+.side-meta{display:flex;flex-direction:column;gap:3px;min-width:0}
+.side-name{font-weight:600;font-size:13.5px;overflow-wrap:anywhere}
+.side-sub{font-size:11.5px;color:var(--muted);overflow-wrap:anywhere}
+.side-empty{font-size:12.5px;color:var(--muted);padding:4px 6px;margin:0}
+.budget-main{flex:1;min-width:0;display:flex;flex-direction:column}
+.budget-page .budget-topbar{position:static;min-height:0;background:transparent;border:0;backdrop-filter:none;padding:24px 32px 0;align-items:flex-start;flex-wrap:nowrap}
+.budget-heading{min-width:0}
+.budget-heading h1{font:700 24px Poppins,-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif;letter-spacing:-.01em;margin:0 0 4px;color:var(--ink);overflow-wrap:anywhere}
+.budget-heading p{margin:0;color:var(--muted);font-size:13px}
+.budget-page #budget-navigation{position:static;display:flex;gap:22px;margin:0;padding:14px 32px 0;border-bottom:1px solid var(--border);background:transparent;backdrop-filter:none}
+.budget-page #budget-navigation a{padding:9px 2px;border:0;border-bottom:2px solid transparent;border-radius:0;background:none;color:var(--muted);box-shadow:none;font-weight:500;text-decoration:none;position:relative;top:1px}
+.budget-page #budget-navigation a[aria-current=page]{background:none;color:var(--ink);border-bottom-color:var(--green);font-weight:600;box-shadow:none}
+.budget-page main{max-width:1380px;width:100%;box-sizing:border-box;margin:0;padding:24px 32px}
+.budget-footer{margin-top:auto;padding:22px 24px;border-top:1px solid var(--border);display:flex;flex-direction:column;align-items:center;gap:8px}
+.budget-footer .footer-links{display:flex;flex-wrap:wrap;justify-content:center;gap:6px 20px;font-size:12.5px}
+.budget-footer .footer-links a{color:var(--muted);text-decoration:none}
+.budget-footer .footer-links a:hover{color:var(--green)}
+.budget-footer .version{font-size:11.5px;color:#7c8479}
+.supplier.side-highlight{outline:2px solid var(--bright);outline-offset:4px;transition:outline-color .3s}
+.sr-only{position:absolute;width:1px;height:1px;padding:0;margin:-1px;overflow:hidden;clip:rect(0,0,0,0);border:0}
+@media(max-width:900px){.budget-app{flex-direction:column}.budget-sidebar{width:100%;height:auto;position:static;border-right:0;border-bottom:1px solid var(--border);padding:14px}.side-list{max-height:260px;overflow-y:auto}.budget-page .budget-topbar{padding:18px 16px 0}.budget-page #budget-navigation{padding:10px 16px 0;gap:16px;overflow-x:auto}.budget-page main{padding:18px 14px}}
+@media(max-width:600px){.budget-page .budget-topbar{flex-wrap:wrap}.budget-heading{flex-basis:100%}.budget-page .budget-topbar .top-actions{margin-left:auto}.budget-heading h1{font-size:21px}}

@@ -22,6 +22,7 @@ Site: [igbase.com.br](https://igbase.com.br). Repositório: [iogomarques/IGbase]
 - Desenvolvimento passou do ChatGPT para o Claude. Código oficial: GitHub `main`. A pasta local `SITE\publicacao` (1.10.04) é só histórico; índice em `SITE\00 - COMECE AQUI (CLAUDE)`.
 - Função confirmada pelo usuário: Hub é a base que dá acesso aos subsites; Organization lança PDF da fatura, lê e devolve a fatura de aluguel de energia (GD1/GD2, cálculo considerado correto); Budget lê lista geral e cotações de fornecedores, compara materiais e devolve carrinhos por fornecedor e análise geral. Mais subsites virão.
 - Padrão visual: **o Hub manda** (verde sustentável, tipografia, títulos/subtítulos, configurações). **Estrutura de referência: Solar Organization** (lateral, topo com título e conta, abas, conteúdo, rodapé). Budget deve seguir a estrutura do Organization; todos conectados como subsites do Hub.
+- Lateral do Budget (usuário, 23/10/2026): ter as duas listas, cotações e fornecedores, com cotações como padrão e o usuário escolhendo.
 - Conta de teste criada pelo usuário e logada no navegador do app do Claude; usar para conferir telas autenticadas.
 - Publicação automática autorizada, com exceções: ver regra 7 do [CLAUDE.md](CLAUDE.md).
 - Saldo (usuário, 23/10/2026): créditos às vezes já foram cobrados e às vezes não; o usuário informa consumo e sobra e a comparação deve ser automática. Comportamento atual mantido: cobra a diferença com aviso quando o uso excede o saldo, e a opção "saldo já cobrado" evita cobrança dupla.
@@ -43,6 +44,7 @@ Os itens abaixo resumem mensagens reais de commits, não garantias de validaçã
 | `99e09e9`, 23/10/2026 | Versão 1.10.05: correções do motor de faturamento, testes e documentação inicial |
 | 23/10/2026 (Claude) | Versão 1.10.06: etapa 1 da padronização visual — tokens do Hub em `shared/presentation.css`, Organization com verde e títulos Poppins do Hub, fonte Inter removida (textos na fonte do sistema). Sem mudança em cálculos, dados ou documentos |
 | 23/10/2026 (Claude) | Versão 1.10.07: modelos padrão não são mais regravados a cada entrada (comparação independente da ordem das chaves do jsonb); aviso só quando há mudança real; texto "contratos" removido do Hub. Sem mudança em cálculos |
+| 23/10/2026 (Claude) | Versão 1.10.08: etapa 2 da padronização — Budget no esqueleto do Organization (lateral, topo com título/subtítulo e conta, abas, rodapé). Lateral alterna entre **Cotações salvas (padrão)** e **Fornecedores da cotação aberta**; escolha lembrada no navegador. Sem mudança no motor, dados ou PDFs |
 
 Para conferir detalhes, use `git log --oneline` e `git show <commit>`. O histórico `.git` permanece na mesma pasta; não foi convertido em uma cópia nova.
 
