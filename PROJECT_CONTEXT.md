@@ -45,6 +45,7 @@ Os itens abaixo resumem mensagens reais de commits, não garantias de validaçã
 | 23/10/2026 (Claude) | Versão 1.10.06: etapa 1 da padronização visual — tokens do Hub em `shared/presentation.css`, Organization com verde e títulos Poppins do Hub, fonte Inter removida (textos na fonte do sistema). Sem mudança em cálculos, dados ou documentos |
 | 23/10/2026 (Claude) | Versão 1.10.07: modelos padrão não são mais regravados a cada entrada (comparação independente da ordem das chaves do jsonb); aviso só quando há mudança real; texto "contratos" removido do Hub. Sem mudança em cálculos |
 | 23/10/2026 (Claude) | Versão 1.10.08: etapa 2 da padronização — Budget no esqueleto do Organization (lateral, topo com título/subtítulo e conta, abas, rodapé). Lateral alterna entre **Cotações salvas (padrão)** e **Fornecedores da cotação aberta**; escolha lembrada no navegador. Sem mudança no motor, dados ou PDFs |
+| 23/10/2026 (Claude) | Versão 1.10.09: etapa 3 — rodapé único (`.ig-footer`) nas cinco páginas, topo com logo (`.ig-brand`) no Hub e no Suporte, Empresas no esqueleto do Organization com lista lateral de empresas. Status estático removido do Organization (fica só no Hub) |
 
 Para conferir detalhes, use `git log --oneline` e `git show <commit>`. O histórico `.git` permanece na mesma pasta; não foi convertido em uma cópia nova.
 

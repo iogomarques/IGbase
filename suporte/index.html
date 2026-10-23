@@ -4,7 +4,7 @@
 <meta charset="UTF-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1.0" />
 <title>Suporte — IG Base</title>
-<link rel="icon" type="image/png" sizes="64x64" href="/favicon-ig-base.png?v=1.10.08">
+<link rel="icon" type="image/png" sizes="64x64" href="/favicon-ig-base.png?v=1.10.09">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@600;700;800&display=swap" rel="stylesheet">
@@ -48,17 +48,14 @@
   .support-actions{display:grid;gap:12px}.support-actions a{display:flex;justify-content:center;align-items:center;min-height:48px;gap:10px;border:1px solid var(--panel-border);border-radius:12px;padding:12px 18px;text-decoration:none;font-size:14px;font-weight:600;color:var(--green-deep);background:#fff}.support-actions .primary{background:var(--green-deep);border-color:var(--green-deep);color:#fff}.support-actions a:hover,#copy-email:hover{filter:brightness(.96)}
   .support-hint{margin:20px 0 0;font-size:13px;line-height:1.6;color:var(--ink-soft)}
   #copy-status{font-size:13px;line-height:1.5;color:var(--green-deep);margin:16px 0 0}#copy-status:empty{display:none}
-  footer{margin-top:32px;font-size:12px;color:var(--gray)}
+  body{display:flex;flex-direction:column}main{width:100%}.ig-footer{margin-top:auto}
   button:focus-visible,a:focus-visible,input:focus-visible{outline:2px solid var(--green-deep);outline-offset:3px}
   @media(max-width:480px){main{padding:36px 16px 24px}.support-card{padding:24px 18px}.email-row{flex-wrap:wrap;justify-content:center}#support-email{flex-basis:100%;font-size:15px}#copy-email{width:100%}.support-actions a{padding:12px}}
 </style>
-<script src="/shared/account.js?v=1.10.08"></script><link rel="stylesheet" href="/shared/presentation.css?v=1.10.08"><script src="/shared/version.js?v=1.10.08"></script></head>
+<script src="/shared/account.js?v=1.10.09"></script><link rel="stylesheet" href="/shared/presentation.css?v=1.10.09"><script src="/shared/version.js?v=1.10.09"></script></head>
 <body>
   <nav class="topbar">
-    <a class="back-link" href="/">
-      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m12 19-7-7 7-7"/><path d="M19 12H5"/></svg>
-      Voltar
-    </a>
+    <a class="ig-brand" href="/" aria-label="Voltar ao IG Base"><img draggable="false" src="/Logo_IG_Base.png" alt=""><span>Suporte</span></a>
     <div data-ig-account><a href="/">IG Base</a></div>
   </nav>
 
@@ -76,8 +73,8 @@
       <p class="support-hint">O destinatário e o assunto já estarão preenchidos. Escreva sua mensagem, adicione anexos se precisar e envie pelo seu e-mail.</p>
       <p id="copy-status" role="status" aria-live="polite"></p>
     </div>
-    <footer>Suporte · <span data-ig-version>IG Base v1.10.08</span></footer>
   </main>
+  <footer class="ig-footer"><div class="footer-links"><a href="/">IG Base</a><a href="/solar-organization/">Solar Organization</a><a href="/solar-budget/">Solar Budget</a><a href="/empresas/">Empresas</a><a href="/suporte/" aria-current="page">Suporte</a></div><div class="version" data-ig-version>IG Base v1.10.09</div></footer>
 <script>
 (function(){
   const button=document.getElementById('copy-email'),field=document.getElementById('support-email'),status=document.getElementById('copy-status');
