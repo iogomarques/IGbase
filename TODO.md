@@ -66,9 +66,9 @@ Detalhes em [docs/BACKUP_LOCAL.md](docs/BACKUP_LOCAL.md).
 
 Relatório em [docs/TESTES_2026-10-23.md](docs/TESTES_2026-10-23.md). Organization, Budget, Empresas, Hub e Suporte aprovados.
 
-- [ ] Corrigir aviso "Modelos padrão atualizados" a cada login (comparação sensível à ordem das chaves do jsonb).
-- [ ] Confirmar com o usuário a regra quando o uso de saldo excede o disponível (cobra a diferença; documento mostra saldo utilizado 0).
-- [ ] Texto "contratos em PDF" no Hub sem função correspondente.
+- [x] Corrigido na 1.10.07: aviso "Modelos padrão atualizados" a cada login.
+- [x] Regra de saldo explicada pelo usuário; comportamento mantido (ver PROJECT_CONTEXT).
+- [x] Texto "contratos" removido do Hub na 1.10.07.
 
 ## Próxima sequência recomendada
 

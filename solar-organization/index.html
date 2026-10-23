@@ -4,7 +4,7 @@
 <meta charset="UTF-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1.0" />
 <title>Solar Organization | IG Base</title>
-<link rel="icon" type="image/png" sizes="64x64" href="/favicon-ig-base.png?v=1.10.06">
+<link rel="icon" type="image/png" sizes="64x64" href="/favicon-ig-base.png?v=1.10.07">
 <!-- O SDK é carregado sem bloquear a renderização da página, no início do app. -->
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -459,7 +459,7 @@
 
 @media screen{.vigencia-linha input[type=month]{width:100%;min-height:44px;padding:9px;border:1px solid var(--line);border-radius:8px;background:#fff;font:inherit}.vigencia-linha .vigencia-remover{margin-top:10px}#m-vigencias{margin-top:16px}}
 </style>
-<script src="/shared/companies.js?v=1.10.06"></script><link rel="stylesheet" href="/shared/presentation.css?v=1.10.06"><script src="/shared/account.js?v=1.10.06"></script><script src="/shared/login.js?v=1.10.06"></script><script src="/shared/version.js?v=1.10.06"></script></head>
+<script src="/shared/companies.js?v=1.10.07"></script><link rel="stylesheet" href="/shared/presentation.css?v=1.10.07"><script src="/shared/account.js?v=1.10.07"></script><script src="/shared/login.js?v=1.10.07"></script><script src="/shared/version.js?v=1.10.07"></script></head>
 <body>
 
 <div id="auth-root"><div class="auth-screen startup-screen"><div class="startup-card" aria-busy="true"><div class="startup-brand"><img width="713" height="340" draggable="false" src="/assets/logo-ig-base.png" alt="IG Base"></div><div class="startup-spinner" aria-hidden="true"></div><h1 class="startup-title">Carregando o sistema</h1><p class="startup-message" role="status" aria-live="polite">Preparando seu ambiente…</p><noscript>Ative o JavaScript no navegador para utilizar o sistema.</noscript></div></div></div>
@@ -475,7 +475,7 @@
 <footer class="app-footer" id="app-footer" style="display:none">
   <div class="footer-links"><a href="/suporte/">Suporte</a></div>
   <div class="status"><span class="dot"></span>Todos os sistemas operacionais</div>
-  <div class="version" data-ig-version>IG Base v1.10.06</div>
+  <div class="version" data-ig-version>IG Base v1.10.07</div>
 </footer>
 
 <div id="modal-root"></div>
@@ -532,6 +532,13 @@ function numeroParaFormulario(n){
   return Number(n).toLocaleString('pt-BR', {useGrouping:false, maximumSignificantDigits:21});
 }
 function copiarDados(valor){ return JSON.parse(JSON.stringify(valor)); }
+/* Assinatura de conteúdo independente da ordem das chaves: o banco (jsonb) reordena
+   as chaves ao salvar, então JSON.stringify direto acusaria diferença inexistente. */
+function assinaturaDados(valor){
+  if(Array.isArray(valor)) return '[' + valor.map(assinaturaDados).join(',') + ']';
+  if(valor && typeof valor === 'object') return '{' + Object.keys(valor).sort().filter(function(k){ return valor[k] !== undefined; }).map(function(k){ return JSON.stringify(k) + ':' + assinaturaDados(valor[k]); }).join(',') + '}';
+  return JSON.stringify(valor);
+}
 function perfilDoDocumento(d){ return d.perfilSnapshot || getProfile(d.profileId); }
 function clienteDoDocumento(d){
   return d.clienteSnapshot || state.clients.find(function(c){ return c.id === d.clientId; });
@@ -1113,7 +1120,7 @@ async function loadAll(){
     /* Corrige automaticamente os modelos padrão (GD1/GD2) desatualizados a cada login,
        sem depender do usuário clicar em "Atualizar modelos padrão". Só mostra aviso se
        algo realmente mudou, pra não incomodar em todo login sem necessidade. */
-    await sincronizarModelosPadrao(true);
+    await sincronizarModelosPadrao('login');
   }
   if(state.clients.length === 0){
     state.clients = seedClients(state.profiles);
@@ -4248,7 +4255,7 @@ async function sincronizarModelosPadrao(mostrarToast){
     var existente = state.profiles.find(function(p){ return p.isPreset && p.nome === np.nome; });
     if(existente){
       var comparavel = Object.assign({}, np, { id: existente.id });
-      var mudou = JSON.stringify(existente) !== JSON.stringify(comparavel);
+      var mudou = assinaturaDados(existente) !== assinaturaDados(comparavel);
       if(mudou){
         np.id = existente.id; /* preserva o id: clientes já vinculados continuam apontando certo */
         var idx = state.profiles.indexOf(existente);
@@ -4279,7 +4286,7 @@ async function sincronizarModelosPadrao(mostrarToast){
       if(removidos) partes.push(removidos + ' descontinuado(s) removido(s)');
       toast('Modelos padrão atualizados (' + partes.join(', ') + '). Clientes e orçamentos não foram alterados.');
     }
-  } else if(mostrarToast){
+  } else if(mostrarToast === true){
     toast('Os modelos padrão já estavam atualizados.');
   }
   if(presosEmUso.length){
@@ -4618,11 +4625,11 @@ async function onSignOut(){
    O aviso aparece uma vez por versão por navegador (localStorage compartilhado
    entre o site principal e os subsites, pois ficam no mesmo domínio).
    ============================================================ */
-var IG_BASE_VERSION = window.IGBaseRelease?.version || '1.10.06';
-var IG_BASE_RELEASE_ID = window.IGBaseRelease?.releaseId || '1.10.06-2026-10-23';
+var IG_BASE_VERSION = window.IGBaseRelease?.version || '1.10.07';
+var IG_BASE_RELEASE_ID = window.IGBaseRelease?.releaseId || '1.10.07-2026-10-23';
 var IG_BASE_CHANGELOG = [
-  "Visual padronizado: todos os subsites seguem as cores e as letras do IG Base.",
-  "Solar Organization com o verde e os títulos do Hub; cálculos e documentos sem alteração."
+  "Solar Organization não mostra mais o aviso de modelos padrão a cada entrada.",
+  "Visual padronizado com as cores e as letras do IG Base."
 ];
 function igbMostrarChangelog(){
   var KEY = 'igbase_changelog_visto';

@@ -89,3 +89,17 @@ test('faturamento bloqueia total ausente e estouro após repasse da concessioná
     assert.match(messages[0], overflow ? /limite numérico/ : /valor final válido/);
   }
 });
+
+test('modelos padrão salvos no banco (chaves reordenadas) não contam como desatualizados', () => {
+  const e = engine();
+  const jsonb = v => Array.isArray(v) ? v.map(jsonb) : (v && typeof v === 'object')
+    ? Object.fromEntries(Object.keys(v).sort((a, b) => a.length - b.length || (a < b ? -1 : a > b ? 1 : 0)).map(k => [k, jsonb(v[k])])) : v;
+  for (const preset of e.presetsPadrao()) {
+    const salvo = jsonb(JSON.parse(JSON.stringify(preset)));
+    const novo = JSON.parse(JSON.stringify(Object.assign({}, e.presetsPadrao().find(p => p.nome === preset.nome), { id: preset.id })));
+    assert.notEqual(JSON.stringify(salvo), JSON.stringify(novo), 'a ordem das chaves deve diferir no teste');
+    assert.equal(e.assinaturaDados(salvo), e.assinaturaDados(novo), preset.nome);
+    const alterado = JSON.parse(JSON.stringify(salvo)); alterado.descricao += ' (alterado)';
+    assert.notEqual(e.assinaturaDados(alterado), e.assinaturaDados(novo), 'mudança real continua detectada');
+  }
+});
