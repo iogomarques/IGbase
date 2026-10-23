@@ -4,7 +4,7 @@
 <meta charset="UTF-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1.0" />
 <title>Solar Organization | IG Base</title>
-<link rel="icon" type="image/png" sizes="64x64" href="/favicon-ig-base.png?v=1.10.04">
+<link rel="icon" type="image/png" sizes="64x64" href="/favicon-ig-base.png?v=1.10.05">
 <!-- O SDK é carregado sem bloquear a renderização da página, no início do app. -->
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -459,7 +459,7 @@
 
 @media screen{.vigencia-linha input[type=month]{width:100%;min-height:44px;padding:9px;border:1px solid var(--line);border-radius:8px;background:#fff;font:inherit}.vigencia-linha .vigencia-remover{margin-top:10px}#m-vigencias{margin-top:16px}}
 </style>
-<script src="/shared/companies.js?v=1.10.04"></script><link rel="stylesheet" href="/shared/presentation.css?v=1.10.04"><script src="/shared/account.js?v=1.10.04"></script><script src="/shared/login.js?v=1.10.04"></script><script src="/shared/version.js?v=1.10.04"></script></head>
+<script src="/shared/companies.js?v=1.10.05"></script><link rel="stylesheet" href="/shared/presentation.css?v=1.10.05"><script src="/shared/account.js?v=1.10.05"></script><script src="/shared/login.js?v=1.10.05"></script><script src="/shared/version.js?v=1.10.05"></script></head>
 <body>
 
 <div id="auth-root"><div class="auth-screen startup-screen"><div class="startup-card" aria-busy="true"><div class="startup-brand"><img width="713" height="340" draggable="false" src="/assets/logo-ig-base.png" alt="IG Base"></div><div class="startup-spinner" aria-hidden="true"></div><h1 class="startup-title">Carregando o sistema</h1><p class="startup-message" role="status" aria-live="polite">Preparando seu ambiente…</p><noscript>Ative o JavaScript no navegador para utilizar o sistema.</noscript></div></div></div>
@@ -475,7 +475,7 @@
 <footer class="app-footer" id="app-footer" style="display:none">
   <div class="footer-links"><a href="/suporte/">Suporte</a></div>
   <div class="status"><span class="dot"></span>Todos os sistemas operacionais</div>
-  <div class="version" data-ig-version>IG Base v1.10.04</div>
+  <div class="version" data-ig-version>IG Base v1.10.05</div>
 </footer>
 
 <div id="modal-root"></div>
@@ -733,7 +733,11 @@ function evalNode(node, scope){
       throw new Error("Operador desconhecido: "+node.op);
     }
     case 'Bin':{
-      var l = evalNode(node.left, scope), r = evalNode(node.right, scope);
+      var l = evalNode(node.left, scope);
+      /* Condições podem proteger operações inválidas no segundo operando. */
+      if(node.op==='&&') return l ? (evalNode(node.right,scope) ? 1 : 0) : 0;
+      if(node.op==='||') return l ? 1 : (evalNode(node.right,scope) ? 1 : 0);
+      var r = evalNode(node.right, scope);
       switch(node.op){
         case '+': return toNumOrThrow(l)+toNumOrThrow(r);
         case '-': return toNumOrThrow(l)-toNumOrThrow(r);
@@ -762,6 +766,7 @@ function evalNode(node, scope){
     }
     case 'Assign':{
       var val = evalNode(node.expr, scope);
+      if(typeof val!=='number' || !Number.isFinite(val)) throw new Error('A fórmula precisa produzir um número finito. Confira os valores e as operações.');
       scope[node.name] = val;
       return val;
     }
@@ -774,7 +779,9 @@ function runLine(line, scope){
   if(!trimmed) return null;
   var tokens = tokenize(trimmed);
   var ast = parseExprTokens(tokens);
-  return evalNode(ast, scope);
+  var value = evalNode(ast, scope);
+  if(typeof value!=='number' || !Number.isFinite(value)) throw new Error('A fórmula precisa produzir um número finito. Confira os valores e as operações.');
+  return value;
 }
 
 /* Roda um perfil inteiro (fórmulas + itens, se houver) a partir de valores de entrada. */
@@ -1845,6 +1852,10 @@ function onCalcular(){
     toast('Erro na fórmula do perfil — ' + mensagemErroAvaliacao(resultado.erro));
     return;
   }
+  if(!Number.isFinite(resultado.scope[profile.chaveTotalFinal])){
+    toast('O perfil não produziu um valor final válido. Confira a variável do total nas fórmulas do perfil.');
+    return;
+  }
 
   /* Quando o consumo do ponto principal excede a injeção do mês e esse saldo JÁ foi
      cobrado anteriormente, a diferença vira seu próprio ajuste explícito no total —
@@ -1892,6 +1903,11 @@ function onCalcular(){
       repasseFatura = valorFatura;
     }
     resultado.scope[profile.chaveTotalFinal] = (resultado.scope[profile.chaveTotalFinal] || 0) + repasseFatura;
+  }
+
+  if(!Number.isFinite(resultado.scope[profile.chaveTotalFinal])){
+    toast('O total da fatura ficou fora do limite numérico. Confira os valores e ajustes antes de calcular.');
+    return;
   }
 
   var camposVisiveis = (c.camposVisiveisPadrao && c.camposVisiveisPadrao.length) ? c.camposVisiveisPadrao.slice()
@@ -4602,11 +4618,11 @@ async function onSignOut(){
    O aviso aparece uma vez por versão por navegador (localStorage compartilhado
    entre o site principal e os subsites, pois ficam no mesmo domínio).
    ============================================================ */
-var IG_BASE_VERSION = window.IGBaseRelease?.version || '1.10.04';
-var IG_BASE_RELEASE_ID = window.IGBaseRelease?.releaseId || '1.10.04-2026-10-13';
+var IG_BASE_VERSION = window.IGBaseRelease?.version || '1.10.05';
+var IG_BASE_RELEASE_ID = window.IGBaseRelease?.releaseId || '1.10.05-2026-10-23';
 var IG_BASE_CHANGELOG = [
-  "Novo cliente acima da lista; menus e configurações padronizados em todo o IG Base.",
-  "Faturas e cotações conferidas, com detalhes secundários recolhidos."
+  "Corrigida a avaliação de condições nas fórmulas de faturamento.",
+  "Resultados numéricos inválidos são bloqueados antes da emissão de novas faturas."
 ];
 function igbMostrarChangelog(){
   var KEY = 'igbase_changelog_visto';
