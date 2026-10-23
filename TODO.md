@@ -34,7 +34,10 @@ Não há outro defeito funcional com reprodução/teste e correção pendente co
 ## Melhorias planejadas pelo usuário
 
 - [ ] Prioridade: ajustes no **faturamento**, a detalhar na próxima solicitação.
-- [ ] Ajustes visuais no site, ainda sem desenho ou escopo definidos.
+- [ ] Padronização visual (Hub manda no visual; estrutura do Organization como modelo):
+  - [x] Etapa 1 (1.10.06): cores e letras do Hub no Organization e no CSS compartilhado.
+  - [ ] Etapa 2: Budget no esqueleto do Organization (lateral com cotações salvas, topo, abas).
+  - [ ] Etapa 3: Empresas, Suporte e Hub com o mesmo topo e rodapé.
 - Sincronização adicional de rascunhos entre dispositivos não faz parte da demanda atual.
 
 ## Questões técnicas pendentes

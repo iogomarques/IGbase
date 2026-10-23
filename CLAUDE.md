@@ -2,7 +2,7 @@
 
 ## Comece aqui
 
-Continue o projeto existente nesta pasta. Não crie outro projeto, não duplique o repositório e não reconstrua a aplicação. Esta transferência é documental: não autoriza refatoração, atualização de dependências, mudança funcional, push ou deploy.
+Continue o projeto existente nesta pasta. Não crie outro projeto, não duplique o repositório e não reconstrua a aplicação. Faça as mudanças que o usuário pedir; não invente refatorações, troca de dependências ou funcionalidades não solicitadas. Publicação: ver regra 7 abaixo.
 
 Leia nesta ordem:
 
@@ -68,5 +68,5 @@ No Windows, se `python3` não existir, use `py -3 -m http.server 8000 --bind 127
 4. Não copie chaves, tokens, senhas, credenciais do Codex ou arquivos de autenticação para documentação. Não existe `.env` consumido pelo site atual; a configuração pública está no código cliente.
 5. Faça alterações pequenas no módulo solicitado. Execute os testes existentes e valide o fluxo afetado; teste mudanças compartilhadas nos cinco caminhos do site. Não descreva teste de cálculo como teste completo de login, banco ou PDFs.
 6. Para uma futura release funcional autorizada, confira `shared/version.js`, fallbacks, cache `?v=`, rodapés e changelogs das páginas. Esta migração documental não muda a versão.
-7. **Não faça push nem deploy sem nova autorização.** A autorização anterior foi usada para publicar a 1.10.05; não é autorização para publicar esta transferência ou mudanças futuras. Uma publicação exige acompanhar o Pages até o resultado final.
+7. **Publicação automática autorizada (23/10/2026).** O usuário autorizou publicar na `main` as atualizações que ele pedir, sem nova confirmação: implementar de forma completa, testar, versionar, fazer push, acompanhar o Pages até o resultado final e conferir o site no ar. **Pergunte antes** quando houver dúvida sobre o pedido ou quando a mudança envolver banco/Supabase, cálculos ou regras de cobrança do faturamento, ou risco de apagar dados. Nunca use force push. Não publique mudanças que o usuário não pediu.
 8. Registre novos alinhamentos e evidências nos documentos pertinentes. Não presuma acesso às conversas de outro bot; todo o contexto recuperável está descrito nos arquivos de transferência.

@@ -4,31 +4,31 @@
 <meta charset="UTF-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1.0" />
 <title>Solar Organization | IG Base</title>
-<link rel="icon" type="image/png" sizes="64x64" href="/favicon-ig-base.png?v=1.10.05">
+<link rel="icon" type="image/png" sizes="64x64" href="/favicon-ig-base.png?v=1.10.06">
 <!-- O SDK é carregado sem bloquear a renderização da página, no início do app. -->
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@600;700;800&display=swap" rel="stylesheet">
 <style>
   :root{
-    --bg: #F3F7F4;
+    --bg: #F6F8F4;
     --surface: #FFFFFF;
-    --surface-2: #EAF1EC;
-    --ink: #16241D;
-    --ink-soft: #5C6F63;
-    --line: #DAE6DE;
-    --accent: #1B4D3E;
-    --accent-hover: #163E32;
+    --surface-2: #EEF4EB;
+    --ink: #1F2A22;
+    --ink-soft: #5B665A;
+    --line: #DDE5DA;
+    --accent: #2F663F;
+    --accent-hover: #285A37;
     --accent-ink: #FFFFFF;
-    --accent-soft: #E3EEE8;
-    --savings: #2F9E6F;
-    --savings-soft: #E1F3E9;
+    --accent-soft: #E6F0E3;
+    --savings: #3F8F4A;
+    --savings-soft: #E6F2E2;
     --alert: #AE3A2B;
     --alert-soft: #F7E4E0;
-    --dot-single: #6FA98A;
-    --dot-multi: #1B4D3E;
+    --dot-single: #6A9A1F;
+    --dot-multi: #2F663F;
     --radius-s: 6px;
-    --serif: Georgia, 'Iowan Old Style', 'Palatino Linotype', Palatino, 'Book Antiqua', serif;
+    --serif: 'Poppins', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
     --sans: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
     --mono: ui-monospace, SFMono-Regular, Menlo, Consolas, 'Courier New', monospace;
     --shadow-lift: 0 1px 2px rgba(22,36,29,.06), 0 8px 24px rgba(22,36,29,.08);
@@ -283,11 +283,11 @@
   }
 
   /* IG BASE: CARREGAMENTO */
-  .startup-screen{ background:radial-gradient(ellipse at top,#e3eee8 0%,var(--bg) 65%); }
-  .startup-card{ width:100%;max-width:400px;padding:36px 28px;border:1px solid var(--line);border-radius:20px;background:var(--surface);box-shadow:0 18px 48px rgba(27,77,62,.08);text-align:center; }
+  .startup-screen{ background:radial-gradient(ellipse at top,#eaf1e6 0%,var(--bg) 65%); }
+  .startup-card{ width:100%;max-width:400px;padding:36px 28px;border:1px solid var(--line);border-radius:20px;background:var(--surface);box-shadow:0 18px 48px rgba(47,102,63,.08);text-align:center; }
   .startup-brand{ display:flex;justify-content:center;margin:0 0 25px; }
   .startup-brand img{ width:190px;height:auto;max-width:80%;max-height:108px;object-fit:contain; }
-  .startup-spinner{ width:42px;height:42px;border:4px solid #e3eee8;border-top-color:#2f9e6f;border-right-color:#1b4d3e;border-radius:50%;margin:0 auto 22px;animation:igb-loading-turn .9s linear infinite; }
+  .startup-spinner{ width:42px;height:42px;border:4px solid #e6f0e3;border-top-color:#3f8f4a;border-right-color:#2f663f;border-radius:50%;margin:0 auto 22px;animation:igb-loading-turn .9s linear infinite; }
   .startup-title{ margin:0 0 10px;font-size:18px;font-weight:600; }
   .startup-message{ margin:0;font-size:13px;line-height:1.6;color:var(--ink-soft); }
   .startup-card .btn-row{ justify-content:center;margin-top:22px; }
@@ -369,7 +369,7 @@
   .client-row .edit-btn{opacity:1;min-width:32px;min-height:32px}
   .brand-email{font-size:12px}
   .topbar{padding:28px 32px 0}
-  .topbar h1,.panel h2,.modal h2,.profile-card .head h3{font-family:var(--sans);letter-spacing:-.02em}
+  .topbar h1,.panel h2,.modal h2,.profile-card .head h3,.auth-card h1,.brand-text b{font-family:var(--serif);font-weight:700;letter-spacing:-.01em}
   .topbar h1{font-size:24px}
   .tabs{gap:16px;padding-top:18px;background:transparent}
   .tab-btn{min-height:44px;margin-right:10px}
@@ -459,7 +459,7 @@
 
 @media screen{.vigencia-linha input[type=month]{width:100%;min-height:44px;padding:9px;border:1px solid var(--line);border-radius:8px;background:#fff;font:inherit}.vigencia-linha .vigencia-remover{margin-top:10px}#m-vigencias{margin-top:16px}}
 </style>
-<script src="/shared/companies.js?v=1.10.05"></script><link rel="stylesheet" href="/shared/presentation.css?v=1.10.05"><script src="/shared/account.js?v=1.10.05"></script><script src="/shared/login.js?v=1.10.05"></script><script src="/shared/version.js?v=1.10.05"></script></head>
+<script src="/shared/companies.js?v=1.10.06"></script><link rel="stylesheet" href="/shared/presentation.css?v=1.10.06"><script src="/shared/account.js?v=1.10.06"></script><script src="/shared/login.js?v=1.10.06"></script><script src="/shared/version.js?v=1.10.06"></script></head>
 <body>
 
 <div id="auth-root"><div class="auth-screen startup-screen"><div class="startup-card" aria-busy="true"><div class="startup-brand"><img width="713" height="340" draggable="false" src="/assets/logo-ig-base.png" alt="IG Base"></div><div class="startup-spinner" aria-hidden="true"></div><h1 class="startup-title">Carregando o sistema</h1><p class="startup-message" role="status" aria-live="polite">Preparando seu ambiente…</p><noscript>Ative o JavaScript no navegador para utilizar o sistema.</noscript></div></div></div>
@@ -475,7 +475,7 @@
 <footer class="app-footer" id="app-footer" style="display:none">
   <div class="footer-links"><a href="/suporte/">Suporte</a></div>
   <div class="status"><span class="dot"></span>Todos os sistemas operacionais</div>
-  <div class="version" data-ig-version>IG Base v1.10.05</div>
+  <div class="version" data-ig-version>IG Base v1.10.06</div>
 </footer>
 
 <div id="modal-root"></div>
@@ -4618,11 +4618,11 @@ async function onSignOut(){
    O aviso aparece uma vez por versão por navegador (localStorage compartilhado
    entre o site principal e os subsites, pois ficam no mesmo domínio).
    ============================================================ */
-var IG_BASE_VERSION = window.IGBaseRelease?.version || '1.10.05';
-var IG_BASE_RELEASE_ID = window.IGBaseRelease?.releaseId || '1.10.05-2026-10-23';
+var IG_BASE_VERSION = window.IGBaseRelease?.version || '1.10.06';
+var IG_BASE_RELEASE_ID = window.IGBaseRelease?.releaseId || '1.10.06-2026-10-23';
 var IG_BASE_CHANGELOG = [
-  "Corrigida a avaliação de condições nas fórmulas de faturamento.",
-  "Resultados numéricos inválidos são bloqueados antes da emissão de novas faturas."
+  "Visual padronizado: todos os subsites seguem as cores e as letras do IG Base.",
+  "Solar Organization com o verde e os títulos do Hub; cálculos e documentos sem alteração."
 ];
 function igbMostrarChangelog(){
   var KEY = 'igbase_changelog_visto';

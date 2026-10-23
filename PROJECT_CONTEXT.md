@@ -17,6 +17,14 @@ Site: [igbase.com.br](https://igbase.com.br). Repositório: [iogomarques/IGbase]
 - Respeitar instruções anteriores efetivamente disponíveis, registrar os alinhamentos nos arquivos e ser transparente sobre o que foi ou não testado.
 - O usuário pediu a migração ao **Claude Code**. Nesta etapa autorizou apenas preparação/documentação na mesma pasta; proibiu mudanças funcionais, refatorações, push e deploy sem autorização.
 
+## Alinhamentos no Claude (23/10/2026)
+
+- Desenvolvimento passou do ChatGPT para o Claude. Código oficial: GitHub `main`. A pasta local `SITE\publicacao` (1.10.04) é só histórico; índice em `SITE\00 - COMECE AQUI (CLAUDE)`.
+- Função confirmada pelo usuário: Hub é a base que dá acesso aos subsites; Organization lança PDF da fatura, lê e devolve a fatura de aluguel de energia (GD1/GD2, cálculo considerado correto); Budget lê lista geral e cotações de fornecedores, compara materiais e devolve carrinhos por fornecedor e análise geral. Mais subsites virão.
+- Padrão visual: **o Hub manda** (verde sustentável, tipografia, títulos/subtítulos, configurações). **Estrutura de referência: Solar Organization** (lateral, topo com título e conta, abas, conteúdo, rodapé). Budget deve seguir a estrutura do Organization; todos conectados como subsites do Hub.
+- Conta de teste criada pelo usuário e logada no navegador do app do Claude; usar para conferir telas autenticadas.
+- Publicação automática autorizada, com exceções: ver regra 7 do [CLAUDE.md](CLAUDE.md).
+
 ## Histórico observável
 
 Os itens abaixo resumem mensagens reais de commits, não garantias de validação completa de cada funcionalidade:
@@ -32,6 +40,7 @@ Os itens abaixo resumem mensagens reais de commits, não garantias de validaçã
 | `ed10200`, `1abe126`, `9ed37b6`, 12/10/2026 | Conta/username no Hub, login compartilhado e suporte por Gmail |
 | `528e4c2`, `b7d5990`, `74d3e02`, 12–13/10/2026 | Versão comum, manutenção das interfaces/sessões e versão recebida 1.10.04 |
 | `99e09e9`, 23/10/2026 | Versão 1.10.05: correções do motor de faturamento, testes e documentação inicial |
+| 23/10/2026 (Claude) | Versão 1.10.06: etapa 1 da padronização visual — tokens do Hub em `shared/presentation.css`, Organization com verde e títulos Poppins do Hub, fonte Inter removida (textos na fonte do sistema). Sem mudança em cálculos, dados ou documentos |
 
 Para conferir detalhes, use `git log --oneline` e `git show <commit>`. O histórico `.git` permanece na mesma pasta; não foi convertido em uma cópia nova.
 
