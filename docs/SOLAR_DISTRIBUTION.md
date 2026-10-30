@@ -49,3 +49,7 @@ Rascunho não salvo fica no navegador (`igbase:solar-distribution:v1:<userId>`) 
 - **Prioritária**: unidades marcadas como prioritárias (coluna "Prioritária" no rateio ou caixa na ficha da unidade) recebem primeiro o suficiente para todo o consumo; o resto é dividido proporcionalmente entre as demais. Se nem as prioritárias couberem, elas dividem a energia entre si. O modo fica salvo junto com cada rateio do histórico.
 - **Potência da placa**: depende do projeto, então é um campo por usina, 620 W por padrão (planilha). Vazio = a sugestão de ampliação mostra só os kWp. Na falta total do sistema, as placas só aparecem se todas as usinas usam a mesma placa.
 - Ao lançar faturas com uma única usina cadastrada, unidades sem vínculo pelo rateio cadastrado (ex.: unidade nova, ainda com 0%) são ligadas a ela automaticamente.
+
+## Teste oficial no site publicado (30/10/2026, 1.10.13, conta de teste)
+
+Usuário selecionou os 6 PDFs reais de exemplo no navegador do app; todos lidos. Aplicadas as faturas, 33,3 kWp × 115 = 3.829 kWh. Rateio homogêneo: 7 / 20 / 35 / 20 / 18% (100%); consumo 4.266 kWh, falta 437 kWh (~3,8 kWp, 7 placas de 620 W). Modo prioritário com uma unidade marcada: 7% → 8%, total 100%. Formulário PDF gerado (download no computador do usuário; conteúdo não aberto por Claude). Rateio salvo na conta, página recarregada: usina, 5 unidades e histórico voltaram. Console sem erros.
