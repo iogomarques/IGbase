@@ -55,4 +55,11 @@ test('várias usinas: o que uma não cobre passa para a próxima',()=>{const d=E
 
 test('alerta quando as usinas não atendem o consumo total',()=>{const d=cenario();d.unidades[0].consumoMedio=2000;const r=E.calcular(d);assert.ok(r.deficit>0);assert.match(r.alertas.map(a=>a.texto).join(' '),/não atendem/);});
 
-test('geração real substitui a estimativa quando escolhida',()=>{const d=cenario();d.usinas[0].geracaoReal=1500;assert.equal(E.energiaUsina(d.usinas[0]).bruta,1000);d.usinas[0].usarGeracaoReal=true;assert.equal(E.energiaUsina(d.usinas[0]).bruta,1500);});
+test('fonte da geração: estimada por padrão; monitoramento ou fatura quando escolhidos',()=>{const d=cenario(),u=d.usinas[0];u.geracaoReal=1500;u.injecaoFatura=1200;assert.equal(E.energiaUsina(u).bruta,1000);assert.equal(E.energiaUsina(u).fonte,'estimada');
+ for(const f of ['apsystems','solaredge','outro']){u.fonteGeracao=f;assert.equal(E.energiaUsina(u).bruta,1500);assert.equal(E.energiaUsina(u).origem,'real');}
+ u.fonteGeracao='fatura';assert.equal(E.energiaUsina(u).bruta,1200);
+ const antigo=E.usina('Antiga');delete antigo.fonteGeracao;Object.assign(antigo,{kwp:10,usarGeracaoReal:true,geracaoReal:900});assert.equal(E.energiaUsina(antigo).bruta,900);});
+
+test('não compensado acima do mínimo da fase sugere ampliação',()=>{const d=cenario(),un=d.unidades[0];un.minimo=50;un.naoCompensado=165;const a=E.calcular(d).alertas.find(x=>x.unidadeId===un.id&&x.ampliacao);
+ assert.ok(a);assert.equal(a.ampliacao.kwh,115);assert.equal(a.ampliacao.kwp,1);assert.equal(a.ampliacao.placas,2);assert.match(a.texto,/ampliação/);
+ un.naoCompensado=50;assert.equal(E.calcular(d).alertas.some(x=>x.unidadeId===un.id&&x.ampliacao),false);});

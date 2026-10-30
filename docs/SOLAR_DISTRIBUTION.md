@@ -5,12 +5,12 @@ Subsite `/solar-distribution/`, publicado na versão 1.10.10 (30/10/2026). Organ
 ## Regras definidas pelo usuário
 
 - **Fonte da verdade:** as faturas e a planilha de exemplo do usuário (dados reais ficam só no computador, nunca no repositório).
-- **Geração base:** potência (kWp) × fator 115 kWh/kWp/mês, como na planilha. Opcional: usar a geração real do mês (lida da fatura da geradora ou informada).
+- **Geração base:** potência (kWp) × fator 115 kWh/kWp/mês, como na planilha (padrão). Opcional, escolhido por usina em "Fonte da geração": geração real do monitoramento (APsystems, SolarEdge ou outro), informada à mão, ou a energia injetada lida na fatura da geradora (`injecaoFatura`, guardada à parte). Dados antigos com `usarGeracaoReal` continuam valendo como "outro monitoramento". Confirmado pelo sócio do usuário em 30/10/2026.
 - **Método:** proporcional ao **consumo médio (consumo total)** de cada unidade, mais o ajuste manual em pontos percentuais.
 - **Porcentagens inteiras**, fechando 100% pelo método dos maiores restos.
 - **Geradora:** opção de reservar uma parte para a própria geradora; padrão 0%.
 - **Várias usinas:** uma unidade pode receber de várias. As usinas atendem na ordem da lateral. Cada usina atende primeiro as unidades que só podem receber dela; a energia que sobra vai para as que também recebem de usinas seguintes, e o que faltar passa para a próxima usina. Se sobrar energia, ela é dividida na mesma proporção, para fechar 100%.
-- **Mínimo não compensado:** 30 kWh (monofásico), 50 (bifásico), 100 (trifásico), lido do "Tipo de fornecimento" e editável. Na fatura, "CONSUMO NÃO COMPENSADO" acima do mínimo significa que a geração não cobriu o consumo, e o site avisa.
+- **Mínimo não compensado:** 30 kWh (monofásico), 50 (bifásico), 100 (trifásico), lido do "Tipo de fornecimento" e editável. Na fatura, "CONSUMO NÃO COMPENSADO" acima do mínimo significa que a geração não cobriu o consumo, e o site avisa. Nesse caso aparece a **sugestão de ampliação**: kWh acima do mínimo ÷ 115 = kWp a ampliar, convertido em placas de 620 W, ou aumentar a porcentagem da unidade (confirmado pelo sócio em 30/10/2026: não compensado acima de 30/50/100 = geração menor que o consumo).
 
 ## O que as faturas da Equatorial trazem (confirmado nos exemplos)
 
