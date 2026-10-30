@@ -1,0 +1,21 @@
+/* Solar Distribution: complementos do modelo comum (layout em /solar-budget/styles.css e /shared/presentation.css). */
+.dist-toolbar{display:flex;align-items:center;justify-content:space-between;gap:12px;flex-wrap:wrap}
+.dist-toolbar .storage-note{margin:0}
+.dist-toolbar .actions{margin:0}
+.dist-alerts{list-style:none;padding:0;margin:14px 0 0;display:grid;gap:8px}
+.dist-alerts li{padding:10px 12px;border-radius:10px;border:1px solid var(--border);background:#fff;font-size:13px;line-height:1.45}
+.dist-alerts li.erro{background:#fff4f2;border-color:#efcfc8;color:#7d2a1d}
+.dist-alerts li.aviso{background:#fffaf0;border-color:#eadcb6;color:#5c4710}
+.dist-alerts li.info{background:#f3f7f2}
+.dist-info summary{cursor:pointer;font-size:13px;font-weight:600;margin-top:12px}
+.dist-table th,.dist-table td{vertical-align:top;white-space:nowrap}
+.dist-table td.material-cell{white-space:normal;min-width:170px}
+.dist-ajuste{width:72px;min-height:36px;padding:6px 8px;border:1px solid var(--border);border-radius:8px;text-align:right}
+.pill.ok{background:#e6f0e3;color:var(--green)}
+.pill.bad{background:#fbe9e5;color:#993725}
+.empty-state h2{margin-top:0}
+.dist-links{display:grid;grid-template-columns:repeat(auto-fill,minmax(230px,1fr));gap:8px 18px;margin-top:8px}
+.dist-links .check{display:flex;align-items:center;gap:8px}
+.dist-page>.panel{margin-bottom:18px}
+.bad{color:#993725}
+@media(max-width:600px){.dist-toolbar .actions{width:100%}.dist-toolbar .actions button{flex:1}}

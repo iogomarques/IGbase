@@ -23,6 +23,8 @@ Site: [igbase.com.br](https://igbase.com.br). Repositório: [iogomarques/IGbase]
 - Função confirmada pelo usuário: Hub é a base que dá acesso aos subsites; Organization lança PDF da fatura, lê e devolve a fatura de aluguel de energia (GD1/GD2, cálculo considerado correto); Budget lê lista geral e cotações de fornecedores, compara materiais e devolve carrinhos por fornecedor e análise geral. Mais subsites virão.
 - Padrão visual: **o Hub manda** (verde sustentável, tipografia, títulos/subtítulos, configurações). **Estrutura de referência: Solar Organization** (lateral, topo com título e conta, abas, conteúdo, rodapé). Budget deve seguir a estrutura do Organization; todos conectados como subsites do Hub.
 - Lateral do Budget (usuário, 23/10/2026): ter as duas listas, cotações e fornecedores, com cotações como padrão e o usuário escolhendo.
+- Solar Distribution (usuário, 30/10/2026): rateio proporcional ao consumo total (consumo médio), ajuste manual, porcentagens inteiras fechando 100%, geradora 0% por padrão (com opção), várias usinas em cascata. A verdade são as faturas e a planilha de exemplo; o usuário avisa quando algo mudar. Venda do produto não é prioridade.
+- Pasta local reorganizada em 30/10/2026: `SITE\\00` a `04` por subsite, `90 - HISTÓRICO`, `99 - PODE APAGAR`.
 - Conta de teste criada pelo usuário e logada no navegador do app do Claude; usar para conferir telas autenticadas.
 - Publicação automática autorizada, com exceções: ver regra 7 do [CLAUDE.md](CLAUDE.md).
 - Saldo (usuário, 23/10/2026): créditos às vezes já foram cobrados e às vezes não; o usuário informa consumo e sobra e a comparação deve ser automática. Comportamento atual mantido: cobra a diferença com aviso quando o uso excede o saldo, e a opção "saldo já cobrado" evita cobrança dupla.
@@ -46,6 +48,7 @@ Os itens abaixo resumem mensagens reais de commits, não garantias de validaçã
 | 23/10/2026 (Claude) | Versão 1.10.07: modelos padrão não são mais regravados a cada entrada (comparação independente da ordem das chaves do jsonb); aviso só quando há mudança real; texto "contratos" removido do Hub. Sem mudança em cálculos |
 | 23/10/2026 (Claude) | Versão 1.10.08: etapa 2 da padronização — Budget no esqueleto do Organization (lateral, topo com título/subtítulo e conta, abas, rodapé). Lateral alterna entre **Cotações salvas (padrão)** e **Fornecedores da cotação aberta**; escolha lembrada no navegador. Sem mudança no motor, dados ou PDFs |
 | 23/10/2026 (Claude) | Versão 1.10.09: etapa 3 — rodapé único (`.ig-footer`) nas cinco páginas, topo com logo (`.ig-brand`) no Hub e no Suporte, Empresas no esqueleto do Organization com lista lateral de empresas. Status estático removido do Organization (fica só no Hub) |
+| 30/10/2026 (Claude) | Versão 1.10.10: novo subsite **Solar Distribution** (rateio dos créditos de energia entre usinas e unidades). Ver [docs/SOLAR_DISTRIBUTION.md](docs/SOLAR_DISTRIBUTION.md). Hub com terceiro cartão; rodapé com o novo link |
 
 Para conferir detalhes, use `git log --oneline` e `git show <commit>`. O histórico `.git` permanece na mesma pasta; não foi convertido em uma cópia nova.
 

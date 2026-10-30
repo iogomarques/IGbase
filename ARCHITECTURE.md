@@ -29,6 +29,12 @@ Descrição da base 1.10.05, em 23/10/2026. Estrutura real, sem proposta de reor
 │   ├── archive.js
 │   ├── library.js
 │   └── styles.css
+├── solar-distribution/
+│   ├── index.html
+│   ├── engine.js
+│   ├── store.js
+│   ├── app.js
+│   └── styles.css
 ├── empresas/
 │   ├── index.html
 │   └── app.js
@@ -88,6 +94,10 @@ Scripts de módulos são deferidos na ordem declarada em `solar-budget/index.htm
 
 Fluxo: autenticar → restaurar rascunho local → carregar empresas e arquivo da conta → importar/conferir necessidades e ofertas → calcular seleção → salvar versão → preparar prévia a partir de snapshot → gerar e guardar PDFs na conta → oferecer download/ZIP. O texto-fonte importado fica registrado para revisão. Seleção automática é por material, com frete/desconto somados depois.
 
+## Solar Distribution
+
+Rateio de créditos entre usinas e unidades. Motor puro em `engine.js` (`SolarDistribution`, também CommonJS), gravação em `configuracoes_documento.data.solarDistribution` por `store.js` (`IGDistributionStore`, com verificação de `updated_at`), tela em `app.js`. Detalhes e regras em [docs/SOLAR_DISTRIBUTION.md](docs/SOLAR_DISTRIBUTION.md).
+
 ## Conta, empresas e suporte
 
 `shared/login.js` usa `email_por_username` quando o identificador não é e-mail; Supabase Auth autentica com senha. Cadastro, confirmação OTP e gravação de username estão no Organization. Hub gerencia username e consulta `username_disponivel`. Não foi encontrado um fluxo completo de recuperação de senha, embora haja textos remetendo à recuperação.
@@ -105,6 +115,8 @@ Fluxo: autenticar → restaurar rascunho local → carregar empresas e arquivo d
 | Faturas/resultados Organization | `orcamentos.data` |
 | Configuração e empresas | `configuracoes_documento.data`, incluindo `empresasIGBase`, `empresasSelecionadas`, `migracaoEmpresasV1` |
 | Versões/PDFs Budget | `configuracoes_documento.data.solarBudgetArquivo`, versão 1 |
+| Usinas, unidades e rateios (Distribution) | `configuracoes_documento.data.solarDistribution`, versão 1 |
+| Rascunho Distribution | `localStorage`, `igbase:solar-distribution:v1:<userId>` |
 | Arquivo Budget legado | Tentativa de leitura em `solar_budget_cotacoes`, não o destino principal de gravação |
 | Rascunho Organization | `localStorage`, `usinas:rascunho:<clientId>` |
 | Rascunho Budget | `localStorage`, `igbase:solar-budget:v1:<userId>` |

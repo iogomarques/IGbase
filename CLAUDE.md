@@ -28,6 +28,7 @@ Prioridade definida pelo usuário: **faturamento**; haverá ajustes visuais post
 - `index.html`: Hub, login e configurações da conta.
 - `solar-organization/index.html`: aplicação de faturamento, com estilos, motor de fórmulas, estado, eventos e exportações no mesmo arquivo. Preserve essa organização ao fazer correções pontuais.
 - `solar-budget/`: módulos separados, expostos por globais e carregados em ordem pela página; alguns também exportam CommonJS para uso em Node.
+- `solar-distribution/`: rateio de créditos entre usinas e unidades (motor `engine.js`, gravação `store.js`, tela `app.js`). Regras em `docs/SOLAR_DISTRIBUTION.md`.
 - `shared/`: conta, login, empresas, apresentação e versão comuns.
 - `empresas/`, `suporte/`, `assets/`, `CNAME` e imagens da raiz fazem parte do site existente.
 - Preserve estilo do arquivo tocado: Organization usa predominantemente funções/`var` e delegação por `data-action`; Budget usa IIFE, `const`/`let`, globais e atributos `data-*`. Não acrescente imports de bundler ou uma etapa de build sem novo escopo.
@@ -53,7 +54,7 @@ Na raiz do projeto:
 
 ```sh
 git status --short
-node --test tests/faturamento.test.cjs
+node --test tests/faturamento.test.cjs tests/distribuicao.test.cjs
 git diff --check
 python3 -m http.server 8000 --bind 127.0.0.1
 ```

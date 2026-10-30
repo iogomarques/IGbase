@@ -1,0 +1,59 @@
+<!doctype html>
+<html lang="pt-BR"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<meta name="description" content="Organize o rateio dos créditos de energia solar entre usinas e unidades no IG Base.">
+<title>Solar Distribution | IG Base</title>
+<link rel="icon" type="image/png" sizes="64x64" href="/favicon-ig-base.png?v=1.10.10">
+<link rel="stylesheet" href="/solar-budget/styles.css?v=1.10.10">
+<link rel="stylesheet" href="styles.css?v=1.10.10">
+<script defer src="engine.js?v=1.10.10"></script>
+<script defer src="store.js?v=1.10.10"></script>
+<script defer src="app.js?v=1.10.10"></script>
+<link rel="stylesheet" href="/shared/presentation.css?v=1.10.10">
+<script src="/shared/account.js?v=1.10.10"></script>
+<script src="/shared/version.js?v=1.10.10"></script>
+</head>
+<body class="budget-page distribution-page"><div class="budget-app">
+<aside class="budget-sidebar" aria-label="Usinas e unidades">
+ <a href="/" class="brand" aria-label="Retornar ao IG Base"><img draggable="false" src="/Logo_IG_Base.png" alt="IG Base"></a>
+ <div id="side-panel" hidden>
+  <div class="side-switch" role="group" aria-label="Mostrar na lateral">
+   <button type="button" data-side-mode="usinas" aria-pressed="true">Usinas</button>
+   <button type="button" data-side-mode="unidades" aria-pressed="false">Unidades</button>
+  </div>
+  <label class="side-search"><span class="sr-only">Buscar na lista</span><input id="side-search" type="search" placeholder="Buscar usina" autocomplete="off"></label>
+  <button type="button" id="side-new" class="side-new">+ Nova usina</button>
+  <div class="side-label" id="side-label">Usinas geradoras</div>
+  <div id="side-list" class="side-list"></div>
+ </div>
+</aside>
+<div class="budget-main">
+ <header class="topbar budget-topbar">
+  <div class="budget-heading"><h1 id="dist-title">Solar Distribution</h1><p id="dist-subtitle">Rateio dos créditos de energia entre usinas e unidades.</p></div>
+  <div id="dist-account"></div>
+ </header>
+ <nav id="budget-navigation" class="budget-navigation budget-tabs" aria-label="Áreas do Solar Distribution" hidden>
+  <a href="#rateio" data-tab="rateio">Rateio</a>
+  <a href="#faturas" data-tab="faturas">Lançar faturas</a>
+  <a href="#usinas" data-tab="usinas">Usinas</a>
+  <a href="#unidades" data-tab="unidades">Unidades</a>
+  <a href="#historico" data-tab="historico">Histórico</a>
+ </nav>
+ <main>
+  <div id="notice" role="status" aria-live="polite"></div>
+  <section id="loading" class="panel center"><div class="spinner"></div><h2>Conectando ao IG Base</h2><p>Preparando suas usinas e unidades…</p></section>
+  <section id="auth" class="panel" hidden><h2>Entre com sua conta IG Base</h2><p>Faça login no Hub para usar todos os subsites com a mesma conta.</p><p><a href="/#entrar">Entrar pelo IG Base</a></p><button id="retry" class="ghost">Tentar novamente</button></section>
+  <div id="workspace" hidden>
+   <section class="panel toolbar dist-toolbar">
+    <p class="storage-note" id="storage-note">Dados salvos na sua conta IG Base.</p>
+    <div class="actions"><button id="save" class="primary">Salvar na conta</button></div>
+   </section>
+   <section data-page="rateio" class="dist-page"></section>
+   <section data-page="faturas" class="dist-page" hidden></section>
+   <section data-page="usinas" class="dist-page" hidden></section>
+   <section data-page="unidades" class="dist-page" hidden></section>
+   <section data-page="historico" class="dist-page" hidden></section>
+  </div>
+ </main>
+ <footer class="budget-footer ig-footer"><div class="footer-links"><a href="/">IG Base</a><a href="/solar-organization/">Solar Organization</a><a href="/solar-budget/">Solar Budget</a><a href="/solar-distribution/" aria-current="page">Solar Distribution</a><a href="/empresas/">Empresas</a><a href="/suporte/">Suporte</a></div><div class="version" data-ig-version>IG Base v1.10.10</div></footer>
+</div></div>
+</body></html>

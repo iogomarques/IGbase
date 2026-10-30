@@ -70,6 +70,12 @@ Relatório em [docs/TESTES_2026-10-23.md](docs/TESTES_2026-10-23.md). Organizati
 - [x] Regra de saldo explicada pelo usuário; comportamento mantido (ver PROJECT_CONTEXT).
 - [x] Texto "contratos" removido do Hub na 1.10.07.
 
+## Solar Distribution (1.10.10)
+
+- [x] Primeira versão publicada: faturas, rateio sugerido, ajuste, cascata entre usinas, formulário PDF, histórico.
+- [ ] Usuário testar com dados reais e trazer ajustes.
+- [ ] Confirmar se a geração base deve continuar kWp × 115 ou passar a usar a geração real por padrão.
+
 ## Próxima sequência recomendada
 
 1. Abrir a pasta existente no Claude e ler os documentos na ordem de [CLAUDE.md](CLAUDE.md).
