@@ -50,6 +50,7 @@ Os itens abaixo resumem mensagens reais de commits, não garantias de validaçã
 | 23/10/2026 (Claude) | Versão 1.10.09: etapa 3 — rodapé único (`.ig-footer`) nas cinco páginas, topo com logo (`.ig-brand`) no Hub e no Suporte, Empresas no esqueleto do Organization com lista lateral de empresas. Status estático removido do Organization (fica só no Hub) |
 | 30/10/2026 (Claude) | Versão 1.10.10: novo subsite **Solar Distribution** (rateio dos créditos de energia entre usinas e unidades). Ver [docs/SOLAR_DISTRIBUTION.md](docs/SOLAR_DISTRIBUTION.md). Hub com terceiro cartão; rodapé com o novo link |
 | 30/10/2026 (Claude) | Versão 1.10.11: Solar Distribution com escolha da fonte da geração (estimada kWp × 115, APsystems, SolarEdge, outro monitoramento ou energia injetada na fatura) e sugestão de ampliação quando o não compensado passa do mínimo da fase. Respostas do sócio do usuário |
+| 30/10/2026 (Claude) | Versão 1.10.12: Solar Distribution desconta da geração o consumo da geradora acima do mínimo dela (como a planilha, "geração − consumo da geradora"); ampliação calculada com o fator de cada usina. Conferido contra as faturas e a planilha de exemplo: 7/35/20/18/20% (planilha 7,1/34,8/19,7/17,8/20,5% antes dos ajustes) |
 
 Para conferir detalhes, use `git log --oneline` e `git show <commit>`. O histórico `.git` permanece na mesma pasta; não foi convertido em uma cópia nova.
 

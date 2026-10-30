@@ -50,7 +50,7 @@ function round2(v){return Math.round(v*100)/100;}
 
 /* ---------- Modelo ---------- */
 function fresh(){return {version:VERSION,usinas:[],unidades:[],rateios:[]};}
-function usina(nome='Nova usina'){return {id:uid(),nome,uc:'',titular:'',documento:'',kwp:null,fator:115,geracaoReal:null,fonteGeracao:'estimada',injecaoFatura:null,consumoGeradora:null,reservaGeradora:0,leituraAtual:null,saldo:null,rateioCadastrado:[],ajustes:{},fatura:null};}
+function usina(nome='Nova usina'){return {id:uid(),nome,uc:'',titular:'',documento:'',kwp:null,fator:115,geracaoReal:null,fonteGeracao:'estimada',injecaoFatura:null,consumoGeradora:null,minimoGeradora:null,reservaGeradora:0,leituraAtual:null,saldo:null,rateioCadastrado:[],ajustes:{},fatura:null};}
 function unidade(nome='Nova unidade'){return {id:uid(),nome,uc:'',titular:'',documento:'',fases:'TRI',minimo:100,consumoMedio:null,consumoMes:null,saldo:null,naoCompensado:null,leituraAtual:null,valorFatura:null,usinas:[],fatura:null};}
 function validate(d){if(!d||typeof d!=='object')throw Error('Dados do Solar Distribution inválidos.');if(d.version!==VERSION)throw Error('Versão de dados do Solar Distribution incompatível.');for(const k of ['usinas','unidades','rateios'])if(!Array.isArray(d[k]))throw Error('Dados do Solar Distribution incompletos.');for(const u of d.usinas)if(typeof u.id!=='string')throw Error('Usina inválida.');for(const u of d.unidades)if(typeof u.id!=='string'||!Array.isArray(u.usinas))throw Error('Unidade inválida.');return d;}
 
@@ -59,7 +59,10 @@ const FONTES={estimada:'estimada (kWp × fator)',apsystems:'APsystems',solaredge
 /* Energia de uma usina para as unidades no mês. Padrão: potência × fator (115). Opcional: geração real
    do monitoramento (APsystems, SolarEdge ou outro) ou a energia injetada lida na fatura da geradora. */
 function fonteGeracao(u){if(FONTES[u.fonteGeracao])return u.fonteGeracao;return u.usarGeracaoReal?'outro':'estimada';}
-function energiaUsina(u){const fonte=fonteGeracao(u),real=fonte!=='estimada';const bruta=fonte==='fatura'?num(u.injecaoFatura):real?num(u.geracaoReal):(num(u.kwp)!==null?num(u.kwp)*(num(u.fator)??115):null);if(bruta===null)return {bruta:null,reserva:0,disponivel:null,origem:real?'real':'estimada',fonte};const reserva=Math.max(0,Math.min(100,Math.round(num(u.reservaGeradora)||0)));return {bruta,reserva,disponivel:bruta*(100-reserva)/100,origem:real?'real':'estimada',fonte};}
+function energiaUsina(u){const fonte=fonteGeracao(u),real=fonte!=='estimada';const bruta=fonte==='fatura'?num(u.injecaoFatura):real?num(u.geracaoReal):(num(u.kwp)!==null?num(u.kwp)*(num(u.fator)??115):null);if(bruta===null)return {bruta:null,consumoGeradora:0,liquida:null,reserva:0,disponivel:null,origem:real?'real':'estimada',fonte};const reserva=Math.max(0,Math.min(100,Math.round(num(u.reservaGeradora)||0))),consumoGeradora=Math.max(0,(num(u.consumoGeradora)||0)-(num(u.minimoGeradora)||0)),liquida=Math.max(0,bruta-consumoGeradora);return {bruta,consumoGeradora,liquida,reserva,disponivel:liquida*(100-reserva)/100,origem:real?'real':'estimada',fonte};}
+/* Como na planilha: geração para rateio = geração − consumo do mês da própria geradora (Lei 14.300, art. 1º: excedente = injetada − consumida).
+   Só abate o que passa do mínimo da geradora (30/50/100): abaixo dele a concessionária cobra o mínimo e não usa crédito (Lei 14.300, art. 16). */
+function fatorUsina(u){const f=num(u&&u.fator);return f!==null&&f>0?f:115;}
 
 /* Arredonda para inteiros somando exatamente "total" (maiores restos). */
 function inteiros(pesos,total){const soma=pesos.reduce((a,b)=>a+b,0);if(!(soma>0))return pesos.map(()=>0);const raw=pesos.map(p=>p*total/soma),base=raw.map(Math.floor);let falta=total-base.reduce((a,b)=>a+b,0);const ordem=raw.map((r,i)=>[r-base[i],i]).sort((a,b)=>b[0]-a[0]||a[1]-b[1]);for(let k=0;k<falta;k++)base[ordem[k%ordem.length][1]]++;return base;}
@@ -98,22 +101,22 @@ function calcular(d,sugestao){
   const alvo=100-r.energia.reserva,ok=Object.keys(finais).length===0||soma===alvo,negativos=Object.entries(finais).filter(([,v])=>v<0);
   if(Object.keys(finais).length&&!ok)alertas.push({tipo:'erro',usinaId:us.id,texto:us.nome+': os percentuais somam '+soma+'%. Ajuste até fechar '+alvo+'%'+(r.energia.reserva?' (a geradora fica com '+r.energia.reserva+'%)':'')+'.'});
   if(negativos.length)alertas.push({tipo:'erro',usinaId:us.id,texto:us.nome+': há percentual negativo.'});
-  for(const [id,v] of Object.entries(finais)){const c=r.energia.disponivel===null?null:(r.energia.bruta*v/100);if(c!==null){porUnidade[id].credito+=c;porUnidade[id].origens.push({usinaId:us.id,percentual:v,credito:c});}}
+  for(const [id,v] of Object.entries(finais)){const c=r.energia.disponivel===null?null:(r.energia.liquida*v/100);if(c!==null){porUnidade[id].credito+=c;porUnidade[id].origens.push({usinaId:us.id,percentual:v,credito:c});}}
   porUsina.push({usinaId:us.id,energia:r.energia,sugerido:r.percentuais,final:finais,soma,alvo,ok:ok&&!negativos.length});}
  const unidades=d.unidades.map(un=>{const p=porUnidade[un.id],consumo=num(un.consumoMedio),minimo=num(un.minimo)??100,saldo=num(un.saldo)??0;
   const uso=consumo===null?null:Math.max(0,consumo-minimo),projetado=uso===null?null:saldo+p.credito-uso,cobertura=consumo?p.credito/consumo:null,meses=uso&&projetado>0?projetado/uso:null;
   if(!un.usinas.length)alertas.push({tipo:'aviso',unidadeId:un.id,texto:un.nome+' não está ligada a nenhuma usina.'});
   else if(uso!==null&&projetado<0)alertas.push({tipo:'aviso',unidadeId:un.id,texto:un.nome+': faltam cerca de '+fmt(-projetado,0)+' kWh no mês, mesmo usando o saldo. Ligue mais uma usina ou aumente a porcentagem.'});
-  if(num(un.naoCompensado)!==null&&num(un.naoCompensado)>minimo+0.5){const falta=num(un.naoCompensado)-minimo,kwp=falta/115;alertas.push({tipo:'aviso',unidadeId:un.id,ampliacao:{kwh:falta,kwp,placas:Math.ceil(kwp/0.62)},texto:un.nome+': o não compensado da última fatura ('+fmt(num(un.naoCompensado),0)+' kWh) passou do mínimo de '+fmt(minimo,0)+' kWh. A geração não cobriu '+fmt(falta,0)+' kWh do consumo. Sugestão de ampliação: cerca de '+fmt(kwp,1)+' kWp ('+Math.ceil(kwp/0.62)+' placas de 620 W), ou aumentar a porcentagem desta unidade.'});}
+  if(num(un.naoCompensado)!==null&&num(un.naoCompensado)>minimo+0.5){const falta=num(un.naoCompensado)-minimo,kwp=falta/fatorUsina(d.usinas.find(u=>u.id===un.usinas[0]));alertas.push({tipo:'aviso',unidadeId:un.id,ampliacao:{kwh:falta,kwp,placas:Math.ceil(kwp/0.62)},texto:un.nome+': o não compensado da última fatura ('+fmt(num(un.naoCompensado),0)+' kWh) passou do mínimo de '+fmt(minimo,0)+' kWh. A geração não cobriu '+fmt(falta,0)+' kWh do consumo. Sugestão de ampliação: cerca de '+fmt(kwp,1)+' kWp ('+Math.ceil(kwp/0.62)+' placas de 620 W), ou aumentar a porcentagem desta unidade.'});}
   for(const o of p.origens){const us=d.usinas.find(u=>u.id===o.usinaId);if(us&&us.documento&&un.documento&&ucKey(us.documento)!==ucKey(un.documento))alertas.push({tipo:'aviso',unidadeId:un.id,texto:un.nome+': CPF/CNPJ diferente do titular da usina '+us.nome+'. No autoconsumo remoto a titularidade precisa ser a mesma.'});
    if(us&&us.leituraAtual&&un.leituraAtual){const du=Number(un.leituraAtual.slice(8,10)),dg=Number(us.leituraAtual.slice(8,10));if(du<=dg)alertas.push({tipo:'info',unidadeId:un.id,texto:un.nome+' é lida antes ou no mesmo dia da usina '+us.nome+' (dia '+du+' × dia '+dg+'): o crédito entra na fatura seguinte.'});}}
   return {id:un.id,credito:p.credito,origens:p.origens,consumo,uso,saldo,projetado,cobertura,meses};});
  const totalConsumo=d.unidades.reduce((a,u)=>a+(num(u.consumoMedio)||0),0),totalEnergia=sugestao.usinas.reduce((a,r)=>a+(r.energia.disponivel||0),0);
- const deficit=totalConsumo-totalEnergia;
- if(d.unidades.length&&d.usinas.length&&deficit>0.5)alertas.push({tipo:'aviso',texto:'As usinas não atendem o consumo total: faltam '+fmt(deficit,0)+' kWh/mês, cerca de '+fmt(deficit/115,1)+' kWp ou '+Math.ceil(deficit/115/0.62)+' placas de 620 W.'});
+ const deficit=totalConsumo-totalEnergia,fatores=d.usinas.map(fatorUsina),fatorMedio=fatores.length?fatores.reduce((a,b)=>a+b,0)/fatores.length:115;
+ if(d.unidades.length&&d.usinas.length&&deficit>0.5)alertas.push({tipo:'aviso',texto:'As usinas não atendem o consumo total: faltam '+fmt(deficit,0)+' kWh/mês, cerca de '+fmt(deficit/fatorMedio,1)+' kWp ou '+Math.ceil(deficit/fatorMedio/0.62)+' placas de 620 W.'});
  const ok=porUsina.every(u=>u.ok)&&!alertas.some(a=>a.tipo==='erro');
  return {usinas:porUsina,unidades,alertas,totalConsumo,totalEnergia,deficit,ok};}
 
-const api={VERSION,MINIMO_FASES,FONTES,fonteGeracao,num,ucKey,ucFormat,linesFromItems,parseInvoice,fresh,usina,unidade,validate,energiaUsina,inteiros,sugerir,calcular,fmt,round2,clone,uid};
+const api={VERSION,MINIMO_FASES,FONTES,fonteGeracao,fatorUsina,num,ucKey,ucFormat,linesFromItems,parseInvoice,fresh,usina,unidade,validate,energiaUsina,inteiros,sugerir,calcular,fmt,round2,clone,uid};
 root.SolarDistribution=api;if(typeof module!=='undefined'&&module.exports)module.exports=api;
 })(globalThis);

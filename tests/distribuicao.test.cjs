@@ -61,5 +61,13 @@ test('fonte da geração: estimada por padrão; monitoramento ou fatura quando e
  const antigo=E.usina('Antiga');delete antigo.fonteGeracao;Object.assign(antigo,{kwp:10,usarGeracaoReal:true,geracaoReal:900});assert.equal(E.energiaUsina(antigo).bruta,900);});
 
 test('não compensado acima do mínimo da fase sugere ampliação',()=>{const d=cenario(),un=d.unidades[0];un.minimo=50;un.naoCompensado=165;const a=E.calcular(d).alertas.find(x=>x.unidadeId===un.id&&x.ampliacao);
- assert.ok(a);assert.equal(a.ampliacao.kwh,115);assert.equal(a.ampliacao.kwp,1);assert.equal(a.ampliacao.placas,2);assert.match(a.texto,/ampliação/);
+ assert.ok(a);assert.equal(a.ampliacao.kwh,115);assert.equal(a.ampliacao.kwp,1.15);assert.equal(a.ampliacao.placas,2);assert.match(a.texto,/ampliação/);
  un.naoCompensado=50;assert.equal(E.calcular(d).alertas.some(x=>x.unidadeId===un.id&&x.ampliacao),false);});
+
+test('consumo da geradora acima do mínimo sai da geração para rateio (planilha: geração − consumo da geradora)',()=>{const d=cenario(),u=d.usinas[0];
+ u.consumoGeradora=64;u.minimoGeradora=100;assert.equal(E.energiaUsina(u).liquida,1000);
+ u.consumoGeradora=300;assert.equal(E.energiaUsina(u).liquida,800);const r=E.calcular(d);assert.equal(Math.round(r.unidades[0].credito),240);
+ u.minimoGeradora=null;assert.equal(E.energiaUsina(u).liquida,700);});
+
+test('fator editável muda a geração e a sugestão de ampliação',()=>{const d=cenario(),u=d.usinas[0];u.fator=130;assert.equal(E.energiaUsina(u).bruta,1300);
+ const un=d.unidades[0];un.naoCompensado=160;const a=E.calcular(d).alertas.find(x=>x.ampliacao);assert.equal(a.ampliacao.kwp,1);});

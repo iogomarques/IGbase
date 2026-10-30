@@ -6,6 +6,7 @@ Subsite `/solar-distribution/`, publicado na versão 1.10.10 (30/10/2026). Organ
 
 - **Fonte da verdade:** as faturas e a planilha de exemplo do usuário (dados reais ficam só no computador, nunca no repositório).
 - **Geração base:** potência (kWp) × fator 115 kWh/kWp/mês, como na planilha (padrão). Opcional, escolhido por usina em "Fonte da geração": geração real do monitoramento (APsystems, SolarEdge ou outro), informada à mão, ou a energia injetada lida na fatura da geradora (`injecaoFatura`, guardada à parte). Dados antigos com `usarGeracaoReal` continuam valendo como "outro monitoramento". Confirmado pelo sócio do usuário em 30/10/2026.
+- **Geração para rateio** (planilha, "GERAÇÃO PARA RATEIO" = geração − consumo da geradora): da geração sai o consumo do mês da própria geradora que passar do mínimo dela (30/50/100). Abaixo do mínimo a concessionária cobra o mínimo e não usa crédito (Lei 14.300/2022, art. 16 §1º; excedente = injetada − consumida, art. 1º). Ex.: geradora de exemplo consumiu 64 kWh, mínimo trifásico 100 → nada é descontado (planilha tem 0). O fator (115) é editável por usina: 95, 120, 130 etc., e a sugestão de ampliação usa o fator da usina (a do sistema usa a média dos fatores).
 - **Método:** proporcional ao **consumo médio (consumo total)** de cada unidade, mais o ajuste manual em pontos percentuais.
 - **Porcentagens inteiras**, fechando 100% pelo método dos maiores restos.
 - **Geradora:** opção de reservar uma parte para a própria geradora; padrão 0%.
