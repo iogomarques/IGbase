@@ -52,6 +52,7 @@ Os itens abaixo resumem mensagens reais de commits, não garantias de validaçã
 | 30/10/2026 (Claude) | Versão 1.10.11: Solar Distribution com escolha da fonte da geração (estimada kWp × 115, APsystems, SolarEdge, outro monitoramento ou energia injetada na fatura) e sugestão de ampliação quando o não compensado passa do mínimo da fase. Respostas do sócio do usuário |
 | 30/10/2026 (Claude) | Versão 1.10.12: Solar Distribution desconta da geração o consumo da geradora acima do mínimo dela (como a planilha, "geração − consumo da geradora"); ampliação calculada com o fator de cada usina. Conferido contra as faturas e a planilha de exemplo: 7/35/20/18/20% (planilha 7,1/34,8/19,7/17,8/20,5% antes dos ajustes) |
 | 30/10/2026 (Claude) | Versão 1.10.13: Solar Distribution com modo de distribuição homogênea ou prioritária (escolha do usuário) e potência da placa por usina, opcional |
+| 30/10/2026 (Claude) | Versão 1.10.14: Solar Distribution no padrão do Organization (lateral com filtros/ordenação/limpar, lápis de edição, etapas); tela de carregamento do Organization também no Budget, Empresas e Distribution. Pedido do usuário: subsites iguais ao padrão |
 
 Para conferir detalhes, use `git log --oneline` e `git show <commit>`. O histórico `.git` permanece na mesma pasta; não foi convertido em uma cópia nova.
 

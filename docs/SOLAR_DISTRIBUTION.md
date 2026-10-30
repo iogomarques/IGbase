@@ -53,3 +53,10 @@ Rascunho não salvo fica no navegador (`igbase:solar-distribution:v1:<userId>`) 
 ## Teste oficial no site publicado (30/10/2026, 1.10.13, conta de teste)
 
 Usuário selecionou os 6 PDFs reais de exemplo no navegador do app; todos lidos. Aplicadas as faturas, 33,3 kWp × 115 = 3.829 kWh. Rateio homogêneo: 7 / 20 / 35 / 20 / 18% (100%); consumo 4.266 kWh, falta 437 kWh (~3,8 kWp, 7 placas de 620 W). Modo prioritário com uma unidade marcada: 7% → 8%, total 100%. Formulário PDF gerado (download no computador do usuário; conteúdo não aberto por Claude). Rateio salvo na conta, página recarregada: usina, 5 unidades e histórico voltaram. Console sem erros.
+
+## Estrutura igual aos outros subsites (1.10.14)
+
+- Lateral como no Solar Organization: busca, filtros (unidades: tipo de ligação, situação — não compensado acima do mínimo, sem usina, prioritárias), ordenação e "Limpar filtros". Filtros só mudam a lista exibida; a ordem do rateio continua a ordem das usinas.
+- Clique no item da lateral leva ao rateio (usina ou linha da unidade, destacada); o lápis abre a ficha para editar, como "Editar cliente" no Organization. Unidade com não compensado acima do mínimo tem o ponto em laranja.
+- Etapas no topo de "Lançar faturas": 1 Faturas · 2 Conferência · 3 Rateio · 4 Formulário (como "Lançamento do mês").
+- Tela de carregamento comum (`.ig-startup` em `shared/presentation.css`) igual à do Organization, usada no Distribution, Budget e Empresas.

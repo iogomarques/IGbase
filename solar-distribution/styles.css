@@ -22,3 +22,24 @@
 .dist-modo{display:flex;flex-wrap:wrap;gap:6px 16px;align-items:flex-end;margin-bottom:14px}
 .dist-modo label{max-width:340px;flex:1 1 260px}
 .dist-modo .hint{flex:2 1 300px;margin:0}
+/* Lateral no padrão do Solar Organization: filtros, item com lápis de edição */
+.side-filters{display:flex;flex-direction:column;gap:6px;margin:0 0 4px}
+.side-filters .filter-label{display:block;font-size:12px;font-weight:600;color:var(--ink,#1f2a22)}
+.side-filters select{width:100%;min-width:0;height:38px;padding:8px 9px;border:1px solid var(--border);border-radius:10px;background:#fff;font-size:13px}
+.side-filters .side-clear{justify-content:center;font-size:12px;min-height:36px}
+.side-item{position:relative;display:flex;align-items:flex-start}
+.side-item .side-row{padding-right:40px}
+.side-item .edit-btn{position:absolute;right:6px;top:8px;opacity:0;background:none;border:none;cursor:pointer;padding:5px;color:var(--muted);border-radius:8px;min-height:0;box-shadow:none}
+.side-item:hover .edit-btn,.side-item:focus-within .edit-btn{opacity:1}
+.side-item .edit-btn:hover{background:#eef4ec;color:var(--green)}
+@media (hover:none){.side-item .edit-btn{opacity:1;min-width:32px;min-height:32px}}
+.side-dot.side-alerta{background:#c98a1b}
+/* Etapas, como "Lançamento do mês" no Solar Organization */
+.launch-heading{display:flex;align-items:flex-start;justify-content:space-between;gap:16px;flex-wrap:wrap;margin:0 0 14px}
+.launch-heading h2{margin:0}
+.launch-steps{display:flex;gap:16px;flex-wrap:wrap;list-style:none;margin:3px 0 0;padding:0;color:var(--muted);font-size:12px}
+.launch-steps li{display:flex;align-items:center;gap:7px}
+.launch-steps span{display:grid;place-items:center;width:25px;height:25px;border-radius:50%;background:#eaf3e6;color:var(--green);font-weight:700}
+.dist-flash{animation:dist-flash 1.6s ease-out}
+@keyframes dist-flash{0%,35%{box-shadow:0 0 0 3px #3f8f4a66;background:#f3f9f0}100%{box-shadow:none}}
+@media(prefers-reduced-motion:reduce){.dist-flash{animation:none}}
