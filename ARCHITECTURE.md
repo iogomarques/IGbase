@@ -139,3 +139,7 @@ O SQL disponível declara RLS para três tabelas. O estado real de permissões d
 | Google Fonts | Inter e Poppins |
 
 Fontes incluem jsDelivr, unpkg e cdnjs, conforme o carregador de cada fluxo; não pressupor fallback em todas as páginas. As bibliotecas são baixadas pelo navegador, não instaladas por npm. APsystems é uma fonte de consulta manual de geração mencionada na interface, não uma API integrada encontrada no código. Gmail é um link de composição; Pix gera payload e QR, não inicia pagamento nem concilia recebimento automaticamente.
+
+## Como usar (1.10.15)
+
+`shared/como-usar.js` guarda o passo a passo de cada sistema (texto fixo, sem dados do usuário) e expõe `window.IGHelp.open(area)`. `shared/account.js` coloca o botão **Como usar** no topo do menu Minha conta (em `IGAccount.html`) e carrega o arquivo só no primeiro clique; o Solar Budget tem o botão direto no HTML do menu. Estilos em `shared/presentation.css` (`.ig-help`, `.help-*`). Ao mudar um fluxo de tela, atualize o texto correspondente nesse arquivo.
