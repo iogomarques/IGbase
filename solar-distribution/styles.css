@@ -19,3 +19,6 @@
 .dist-page>.panel{margin-bottom:18px}
 .bad{color:#993725}
 @media(max-width:600px){.dist-toolbar .actions{width:100%}.dist-toolbar .actions button{flex:1}}
+.dist-modo{display:flex;flex-wrap:wrap;gap:6px 16px;align-items:flex-end;margin-bottom:14px}
+.dist-modo label{max-width:340px;flex:1 1 260px}
+.dist-modo .hint{flex:2 1 300px;margin:0}

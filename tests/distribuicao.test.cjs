@@ -71,3 +71,13 @@ test('consumo da geradora acima do mínimo sai da geração para rateio (planilh
 
 test('fator editável muda a geração e a sugestão de ampliação',()=>{const d=cenario(),u=d.usinas[0];u.fator=130;assert.equal(E.energiaUsina(u).bruta,1300);
  const un=d.unidades[0];un.naoCompensado=160;const a=E.calcular(d).alertas.find(x=>x.ampliacao);assert.equal(a.ampliacao.kwp,1);});
+
+test('modo homogêneo (padrão) × prioritário quando falta energia',()=>{const d=cenario();const [a,b,c,e]=d.unidades;a.consumoMedio=1000;a.prioritaria=true;
+ assert.equal(E.modo(d),'homogenea');let r=E.calcular(d),f=r.usinas[0].final;assert.equal(f[a.id],59);assert.equal(r.usinas[0].soma,100);
+ d.modo='prioritaria';r=E.calcular(d);f=r.usinas[0].final;assert.equal(f[a.id],100);assert.equal(f[b.id],0);assert.equal(r.usinas[0].soma,100);
+ a.consumoMedio=600;r=E.calcular(d);f=r.usinas[0].final;assert.equal(f[a.id],60);assert.equal(f[b.id]+f[c.id]+f[e.id],40);assert.equal(f[b.id],f[c.id]);assert.ok(f[e.id]<f[b.id]);});
+
+test('placa opcional: vazio mostra só kWp; outra potência muda a quantidade',()=>{const d=cenario(),u=d.usinas[0],un=d.unidades[0];un.naoCompensado=130;
+ let a=E.calcular(d).alertas.find(x=>x.ampliacao);assert.equal(a.ampliacao.placaW,620);assert.equal(a.ampliacao.placas,2);
+ u.placaW=550;a=E.calcular(d).alertas.find(x=>x.ampliacao);assert.equal(a.ampliacao.placas,2);u.placaW=null;a=E.calcular(d).alertas.find(x=>x.ampliacao);assert.equal(a.ampliacao.placas,null);assert.doesNotMatch(a.texto,/placas/);
+ delete u.placaW;assert.equal(E.placaUsina(u),620);});

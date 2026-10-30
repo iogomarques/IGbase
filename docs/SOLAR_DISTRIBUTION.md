@@ -42,3 +42,10 @@ Rascunho não salvo fica no navegador (`igbase:solar-distribution:v1:<userId>`) 
 - Suíte Node: 11 testes do Solar Distribution e 7 de faturamento.
 - Teste completo no navegador com Supabase simulado e as 6 faturas reais de exemplo (localmente): leitura de todas, ligação automática à usina pelo rateio cadastrado, rateio 22/21/38/19% para 4 unidades com 33,3 kWp, ajuste bloqueando 103% e liberando 100%, formulário PDF, histórico após recarregar, celular sem rolagem lateral.
 - Pendente: teste com a conta de teste no site publicado; confirmar com o usuário os pontos em aberto da primeira versão.
+
+## Modos de distribuição e placa (usuário, 30/10/2026)
+
+- **Homogênea** (padrão, como a planilha): toda a energia na proporção do consumo médio.
+- **Prioritária**: unidades marcadas como prioritárias (coluna "Prioritária" no rateio ou caixa na ficha da unidade) recebem primeiro o suficiente para todo o consumo; o resto é dividido proporcionalmente entre as demais. Se nem as prioritárias couberem, elas dividem a energia entre si. O modo fica salvo junto com cada rateio do histórico.
+- **Potência da placa**: depende do projeto, então é um campo por usina, 620 W por padrão (planilha). Vazio = a sugestão de ampliação mostra só os kWp. Na falta total do sistema, as placas só aparecem se todas as usinas usam a mesma placa.
+- Ao lançar faturas com uma única usina cadastrada, unidades sem vínculo pelo rateio cadastrado (ex.: unidade nova, ainda com 0%) são ligadas a ela automaticamente.
