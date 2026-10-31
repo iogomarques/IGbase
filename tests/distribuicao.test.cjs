@@ -110,3 +110,8 @@ CONSUMO NÃO COMPENSADO kWh 182,35 1,0 182,35`);
 test('saldo que vence em 30/60 dias gera aviso',()=>{const d=cenario(),un=d.unidades[1];un.saldoExpira30=120;un.saldoExpira60=80;const a=E.calcular(d).alertas.find(x=>x.unidadeId===un.id&&/vencem/.test(x.texto));assert.ok(a);assert.match(a.texto,/200 kWh/);
  un.saldoExpira30=0;un.saldoExpira60=null;assert.equal(E.calcular(d).alertas.some(x=>x.unidadeId===un.id&&/vencem/.test(x.texto)),false);
  const f=E.parseInvoice(fatura());assert.equal(f.scee.saldoExpira30,0);});
+
+test('dois clientes na mesma conta: a falta é avisada por sistema, sem somar os dois',()=>{const d=cenario();d.unidades[0].consumoMedio=2000;
+ const b=E.usina('Outro cliente');Object.assign(b,{kwp:10,fator:100});d.usinas.push(b);const x=E.unidade('Casa sobrando');Object.assign(x,{consumoMedio:200,minimo:30,saldo:0,usinas:[b.id]});d.unidades.push(x);
+ const r=E.calcular(d);assert.equal(r.sistemas.length,2);const al=r.alertas.filter(a=>/não atendem/.test(a.texto));assert.equal(al.length,1);assert.match(al[0].texto,/^Sistema Usina A:/);assert.match(al[0].texto,/faltam 1\.700 kWh/);
+ assert.equal(Math.round(r.deficit),1700);});
