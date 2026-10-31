@@ -71,3 +71,11 @@ Exemplos em `IG SOLAR\ARQUIVOS IG\RATEIO SILAS` (pastas GERADORA 01 e 02 = fonte
 - **Leitura**: UC ao lado do CEP, "CADASTRO / RATEIO GERAÇÃO" quebrado em duas linhas e SCEE com duas geradoras agora são lidos; a unidade é ligada a todas as geradoras que aparecem. As ligações seguem o cadastro atual da Equatorial: confira e ajuste para o plano novo.
 - **Várias usinas**: o cálculo começa pela usina que atende menos unidades (a geradora 2, só a casa do pai, entrega 100%) e a outra cobre o que falta proporcionalmente.
 - Resultado no navegador simulado (plano das pastas): geradora 2 → casa do pai 100%; geradora 1 → apartamento 46%, casa do pai 31%, chácara 23%; falta ~256 kWh/mês.
+
+## Respostas do Ivoney (sócio, 31/10/2026) e versão 1.10.20
+
+- A geradora envia o **excedente** às beneficiadas; as porcentagens seguem o **consumo médio de cada fatura** incluída no rateio (já era assim; confirma a base "consumo total", sem tirar o mínimo).
+- **Geração**: vem das unidades geradoras — é informada a geração esperada de cada UFV. O campo virou "Geração esperada da UFV (kWh/mês)", até 3 meses com média.
+- **Formulário**: é a etapa final, onde se imprime ou gera o arquivo para a distribuidora. Agora segue o modelo da aba RATEIO da planilha (cabeçalho Equatorial, identificação da UC com classe, endereço, bairro, CEP, cidade, e-mail, telefone e celular; inclusão/alteração/exclusão; compensação normal/consórcio; lista UC · CNPJ/CPF · %; IMPORTANTE; assinatura) e abre em outra aba para conferir/imprimir; se o navegador bloquear, baixa. Classe, endereço, bairro, CEP e cidade vêm da fatura da geradora; e-mail e telefones são informados na usina. CEP da Equatorial corrigido para 74805-180 (a planilha tem "704805-18"); a citação da REN 482/2012 foi mantida como no modelo.
+- **Saldo**: meses de saldo = saldo ÷ consumo médio; a tabela mostra "saldo dura ~N meses · novo rateio em mês/ano".
+- Ainda em aberto: mínimo da geradora e período (3 ou 13 meses) para injeção/consumo da geradora; saldo não reduz a porcentagem sozinho.

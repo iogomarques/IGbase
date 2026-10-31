@@ -29,6 +29,10 @@ function parseInvoice(text){
  m=/(\d{2}\/\d{2}\/\d{4})\s+(\d{2}\/\d{2}\/\d{4})\s+(\d{1,3})\s+(\d{2}\/\d{2}\/\d{4})/.exec(t);if(m){out.leituraAnterior=dateIso(m[1]);out.leituraAtual=dateIso(m[2]);out.dias=Number(m[3]);out.proximaLeitura=dateIso(m[4]);
   const after=t.slice(m.index+m[0].length).split('\n').map(s=>s.trim()).filter(Boolean);if(after[0]&&!/CNPJ|CPF/.test(after[0]))out.titular=after[0];}
  m=/CNPJ\/CPF:\s*([\d.\/-]+)/.exec(t);if(m)out.documento=m[1];
+ /* Dados do formulário de rateio (modelo da planilha): classe, endereço, bairro, CEP e cidade da UC. */
+ m=/Classifica[çc][ãa]o:\s*([^\n]+)/i.exec(t);if(m)out.classe=m[1].trim();
+ {const ls=t.split('\n'),i=ls.findIndex(l=>/CNPJ\/CPF:/.test(l)),j=ls.findIndex((l,k)=>k>i&&/^\s*CEP:/.test(l));if(i>=0&&j>i&&j-i<=6){const end=ls.slice(i+1,j).map(l=>l.replace(/\s*NOTA FISCAL.*$/i,'').trim()).filter(Boolean);if(end.length>=2){out.bairro=end.pop();out.endereco=end.join(' ');}else if(end.length)out.endereco=end[0];}}
+ m=/CEP:\s*(\d{5})-?(\d{3})\s+(.+?)\s+([A-Z]{2})\s+BRASIL/.exec(t);if(m){out.cep=m[1]+'-'+m[2];out.cidade=m[3].trim();out.uf=m[4];}
  m=new RegExp('\\b('+MESES.join('|')+')\\/(\\d{4})\\s+R\\$\\**\\s*([\\d.,]+)').exec(t);if(m){out.referencia=m[1]+'/'+m[2];out.valorFatura=num(m[3]);}
  m=/ENERGIA ATIVA\s*-\s*KWH[^\n]*?\s([\d.,]+)\s+([\d.,]+)\s+[\d.,]+\s+([\d.,]+)/i.exec(t);if(m)out.consumoMes=num(m[3]);
  m=/ENERGIA GERA[ÇC][ÃA]O\s*-\s*KWH[^\n]*?\s([\d.,]+)\s+([\d.,]+)\s+[\d.,]+\s+([\d.,]+)/i.exec(t);if(m)out.geracaoMedida=num(m[3]);
@@ -61,7 +65,7 @@ function round2(v){return Math.round(v*100)/100;}
 
 /* ---------- Modelo ---------- */
 function fresh(){return {version:VERSION,modo:'homogenea',usinas:[],unidades:[],rateios:[]};}
-function usina(nome='Nova usina'){return {id:uid(),nome,uc:'',titular:'',documento:'',kwp:null,fator:115,geracaoReal:null,geracaoMeses:[null,null,null],monitoramento:'APsystems',fonteGeracao:'media3',injecaoFatura:null,injecao3:null,consumoRede3:null,meses3:null,placaW:620,consumoGeradora:null,minimoGeradora:null,reservaGeradora:0,leituraAtual:null,saldo:null,rateioCadastrado:[],ajustes:{},fatura:null};}
+function usina(nome='Nova usina'){return {id:uid(),nome,uc:'',titular:'',documento:'',kwp:null,fator:115,geracaoReal:null,geracaoMeses:[null,null,null],monitoramento:'APsystems',fonteGeracao:'media3',injecaoFatura:null,injecao3:null,consumoRede3:null,meses3:null,placaW:620,consumoGeradora:null,minimoGeradora:null,reservaGeradora:0,leituraAtual:null,classe:'',endereco:'',bairro:'',cep:'',cidade:'',email:'',telefone:'',celular:'',tipoSolicitacao:'alteracao',compensacao:'normal',saldo:null,rateioCadastrado:[],ajustes:{},fatura:null};}
 function unidade(nome='Nova unidade'){return {id:uid(),nome,uc:'',titular:'',documento:'',fases:'TRI',minimo:100,consumoMedio:null,consumoMes:null,saldo:null,naoCompensado:null,leituraAtual:null,valorFatura:null,prioritaria:false,usinas:[],fatura:null};}
 function validate(d){if(!d||typeof d!=='object')throw Error('Dados do Solar Distribution inválidos.');if(d.version!==VERSION)throw Error('Versão de dados do Solar Distribution incompatível.');for(const k of ['usinas','unidades','rateios'])if(!Array.isArray(d[k]))throw Error('Dados do Solar Distribution incompletos.');for(const u of d.usinas)if(typeof u.id!=='string')throw Error('Usina inválida.');for(const u of d.unidades)if(typeof u.id!=='string'||!Array.isArray(u.usinas))throw Error('Unidade inválida.');return d;}
 
@@ -136,7 +140,7 @@ function calcular(d,sugestao){
   for(const [id,v] of Object.entries(finais)){const c=r.energia.disponivel===null?null:(r.energia.liquida*v/100);if(c!==null){porUnidade[id].credito+=c;porUnidade[id].origens.push({usinaId:us.id,percentual:v,credito:c});}}
   porUsina.push({usinaId:us.id,energia:r.energia,sugerido:r.percentuais,final:finais,soma,alvo,ok:ok&&!negativos.length});}
  const unidades=d.unidades.map(un=>{const p=porUnidade[un.id],consumo=num(un.consumoMedio),minimo=num(un.minimo)??100,saldo=num(un.saldo)??0;
-  const uso=consumo===null?null:Math.max(0,consumo-minimo),projetado=uso===null?null:saldo+p.credito-uso,cobertura=consumo?p.credito/consumo:null,meses=uso&&projetado>0?projetado/uso:null;
+  const uso=consumo===null?null:Math.max(0,consumo-minimo),projetado=uso===null?null:saldo+p.credito-uso,cobertura=consumo?p.credito/consumo:null,meses=saldo>0&&consumo>0?saldo/consumo:null;
   const venc=(num(un.saldoExpira30)||0)+(num(un.saldoExpira60)||0);if(venc>0.5)alertas.push({tipo:'aviso',unidadeId:un.id,texto:un.nome+': '+fmt(venc,0)+' kWh de saldo vencem nos próximos 60 dias'+(num(un.saldoExpira30)>0.5?' ('+fmt(num(un.saldoExpira30),0)+' kWh em 30 dias)':'')+'. Use esse saldo antes: a porcentagem desta unidade pode baixar por um tempo.'});
   if(!un.usinas.length)alertas.push({tipo:'aviso',unidadeId:un.id,texto:un.nome+' não está ligada a nenhuma usina.'});
   else if(uso!==null&&projetado<0)alertas.push({tipo:'aviso',unidadeId:un.id,texto:un.nome+': faltam cerca de '+fmt(-projetado,0)+' kWh no mês, mesmo usando o saldo. Ligue mais uma usina ou aumente a porcentagem.'});

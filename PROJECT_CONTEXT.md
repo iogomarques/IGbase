@@ -27,6 +27,7 @@ Site: [igbase.com.br](https://igbase.com.br). Repositório: [iogomarques/IGbase]
 - Pasta local reorganizada em 30/10/2026: `SITE\\00` a `04` por subsite, `90 - HISTÓRICO`, `99 - PODE APAGAR`.
 - **Solar Distribution é beta** (usuário, 31/10/2026): ainda não é usado de verdade; mudanças de cálculo nele podem ser publicadas sem pedir antes, sempre explicando o que mudou. Organization (faturamento real) continua com a regra de perguntar.
 - Pasta `IG SOLAR` (empresa toda) liberada em 31/10/2026; exemplos em `ARQUIVOS IG\RATEIO SILAS`. Pastas GERADORA 01/02 são fonte; planilhas de fora estão em análise e podem ter erros (usar como referência, não corrigir).
+- Ivoney (pai e sócio do Iogo) respondeu dúvidas do Solar Distribution em 31/10/2026: porcentagens pelo consumo médio de cada fatura, só o excedente da geradora vai para as beneficiadas, geração esperada informada por UFV, formulário como etapa final, saldo ÷ consumo médio para saber quando cadastrar novo rateio.
 - Regra geral (usuário, 31/10/2026): geração considerada = média dos últimos 3 meses (90 dias), ou do tempo de existência da usina.
 - Conta de teste criada pelo usuário e logada no navegador do app do Claude; usar para conferir telas autenticadas.
 - Publicação automática autorizada, com exceções: ver regra 7 do [CLAUDE.md](CLAUDE.md).
@@ -61,6 +62,7 @@ Os itens abaixo resumem mensagens reais de commits, não garantias de validaçã
 | 31/10/2026 (Claude) | Versão 1.10.17: Solar Distribution (beta) mostra diferença para o rateio atual, data para revisar (como "MÊS PARA MUDAR" da planilha) e aviso de saldo que vence em 30/60 dias |
 | 31/10/2026 (Claude) | Versão 1.10.18: correção relatada pelo usuário — escolher faturas em mais de uma vez apagava as anteriores; agora soma na lista e ignora a mesma fatura repetida (mesma UC e mês) |
 | 31/10/2026 (Claude) | Versão 1.10.19: falta de energia avisada por sistema (usinas e unidades ligadas entre si). No teste oficial com a conta de teste, os sistemas Pedro Amaro e Silas apareciam somados (815 kWh); agora Silas = 256 kWh. Teste oficial do caso Silas no site publicado conferiu: geradora 1 = 319 kWh, geradora 2 = 236 kWh; casa do pai 100% da 2; da 1: apartamento 46%, casa do pai 31%, chácara 23% |
+| 31/10/2026 (Claude) | Versão 1.10.20: respostas do Ivoney (sócio) — geração esperada por UFV, formulário no modelo da Equatorial aberto na etapa final, saldo ÷ consumo médio = meses até o novo rateio |
 
 Para conferir detalhes, use `git log --oneline` e `git show <commit>`. O histórico `.git` permanece na mesma pasta; não foi convertido em uma cópia nova.
 
