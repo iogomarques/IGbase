@@ -59,3 +59,4 @@
 .side-filters-box[open]>summary::before{transform:rotate(90deg)}
 .side-filters-body{display:flex;flex-direction:column;gap:6px;padding-top:4px}
 @media(min-width:901px){.side-filters-box>summary{color:var(--muted)}}
+.dist-meses-rev{max-width:200px;flex:0 1 200px}

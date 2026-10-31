@@ -123,3 +123,9 @@ test('saldo dura saldo ÷ (consumo médio − mínimo) meses; fatura traz classe
  un.saldo=0;assert.equal(E.calcular(d).unidades.find(x=>x.id===un.id).meses,null);
  const f=E.parseInvoice(fatura().replace('CNPJ/CPF: 000.000.001-91','CNPJ/CPF: 000.000.001-91\nRUA 03, Q. 8, L. 1, S/N\nSETOR SANTO ANTONIO\nCEP: 76520000 NOVA CRIXAS GO BRASIL NOTA FISCAL Nº 1'));
  assert.equal(f.classe,'B B1 RESIDENCIAL');assert.equal(f.endereco,'RUA 03, Q. 8, L. 1, S/N');assert.equal(f.bairro,'SETOR SANTO ANTONIO');assert.equal(f.cep,'76520-000');assert.equal(f.cidade,'NOVA CRIXAS');});
+
+test('duas formas: sem saldo (padrão) segue o consumo; com saldo, o saldo dividido pelos meses até refazer sai da necessidade',()=>{const d=cenario();const [a,b,c,e]=d.unidades;a.saldo=900;
+ assert.equal(E.usaSaldo(d),false);let f=E.calcular(d).usinas[0].final;assert.deepEqual([a,b,c,e].map(u=>f[u.id]),[30,30,30,10]);
+ d.considerarSaldo=true;d.mesesRevisao=3;assert.equal(E.necessidade(a,d),0);assert.equal(E.necessidade(b,d),300);
+ f=E.calcular(d).usinas[0].final;assert.equal(f[a.id],0);assert.equal(f[b.id]+f[c.id]+f[e.id],100);
+ d.mesesRevisao=9;assert.equal(E.necessidade(a,d),200);});

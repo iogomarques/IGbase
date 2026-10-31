@@ -95,3 +95,12 @@ O usuário explicou que "o mínimo não é considerado" quer dizer: **o mínimo 
 - **Média de 3 meses:** mantida (geração esperada e histórico da fatura da geradora; com menos meses, a média dos que existirem).
 - **Saldo (1.10.25, usuário):** meses de saldo = saldo ÷ (consumo médio − mínimo), a parte que realmente usa crédito. Chácara do Silas: 1.283 ÷ 99 ≈ 13 meses.
 - Silas: a compensar 234 (apartamento) + 386 (casa do pai) + 99 (chácara) = 720 kWh; sobra geradora 1 = 319, geradora 2 = 236. Rateio: geradora 2 → casa do pai 100%; geradora 1 → apartamento 48%, casa do pai 31%, chácara 21%. Faltam ~166 kWh/mês.
+
+## Duas formas de calcular: com ou sem o saldo (31/10/2026, versão 1.10.26)
+
+Pedido do usuário: o usuário decide em "Saldo das unidades", na aba Rateio.
+
+- **Não considerar (padrão):** a necessidade de cada unidade é consumo médio − mínimo. O saldo guardado não muda a porcentagem; serve para deixar o rateio muito tempo (ex.: um ano) sem mexer.
+- **Considerar o saldo:** informa-se em quantos meses o rateio será refeito (padrão 3). Necessidade = consumo médio − mínimo − saldo ÷ meses (nunca abaixo de zero). A energia vai para quem não tem saldo; o rateio deve ser refeito nesse prazo.
+- Silas com saldo (3 meses): chácara 0% (saldo de 1.283 kWh cobre); geradora 1 → apartamento 61%, casa do pai 39%; geradora 2 → casa do pai 100%. Sem saldo: 48% / 31% / 21%.
+- O histórico guarda qual forma foi usada em cada rateio salvo.
