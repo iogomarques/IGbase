@@ -50,7 +50,7 @@
     'Em "Mais opções" há o backup da cotação (exportar e restaurar em JSON).']}]},
   {id:'distribution',nome:'Solar Distribution',link:'/solar-distribution/',intro:'Monta o rateio dos créditos de energia entre a usina geradora e as unidades, a partir das faturas da Equatorial, e gera o formulário de rateio.',grupos:[
    {titulo:'Passo a passo',passos:[
-    ['Envie as faturas','Em "Lançar faturas", clique em "Escolher faturas (PDF)" e selecione de uma vez a fatura da usina geradora e as faturas das unidades.'],
+    ['Envie as faturas','Em "Lançar faturas", clique em "Escolher faturas (PDF)" e selecione a fatura da usina geradora e as faturas das unidades. Dá para escolher em várias vezes (uma pasta por geradora, por exemplo): as faturas somam na lista, e a mesma fatura repetida entra uma vez só.'],
     ['Confira a leitura','O site mostra o que leu de cada PDF: UC, tipo de ligação, consumo médio, saldo, não compensado, data de leitura e rateio atual. Confira se cada um está como unidade ou usina geradora e clique em "Aplicar faturas marcadas".'],
     ['Complete a usina','Clique no lápis da usina na lateral. Em "Geração dos últimos 3 meses" coloque a geração do monitoramento (APsystems, SolarEdge ou outro); se a usina tiver menos de 3 meses, preencha só os meses que existirem. O site usa a média. Sem meses, ele estima pela potência em kWp × fator (115 por padrão; mude se o projeto usar 95, 120, 130…).'],
     ['Consumo da geradora','A fatura da geradora já traz a energia injetada e o consumo da rede dos últimos 3 meses. O site desconta o que a própria geradora consome (na hora e da rede, acima do mínimo) e só a sobra entra no rateio.'],
