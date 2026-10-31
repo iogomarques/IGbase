@@ -29,6 +29,7 @@ Site: [igbase.com.br](https://igbase.com.br). Repositório: [iogomarques/IGbase]
 - Pasta `IG SOLAR` (empresa toda) liberada em 31/10/2026; exemplos em `ARQUIVOS IG\RATEIO SILAS`. Pastas GERADORA 01/02 são fonte; planilhas de fora estão em análise e podem ter erros (usar como referência, não corrigir).
 - Ivoney (pai e sócio do Iogo) respondeu dúvidas do Solar Distribution em 31/10/2026: porcentagens pelo consumo médio de cada fatura, só o excedente da geradora vai para as beneficiadas, geração esperada informada por UFV, formulário como etapa final, saldo ÷ consumo médio para saber quando cadastrar novo rateio.
 - Regra geral (usuário, 31/10/2026): geração considerada = média dos últimos 3 meses (90 dias), ou do tempo de existência da usina.
+- A conta de teste é só para testes do Claude (usuário, 31/10/2026). O site tem que funcionar para qualquer pessoa que entrar: testar sempre também o caminho de um usuário novo, com a conta vazia. A referência à REN 482/2012 no formulário fica como no modelo do Ivoney.
 - Conta de teste criada pelo usuário e logada no navegador do app do Claude; usar para conferir telas autenticadas.
 - Publicação automática autorizada, com exceções: ver regra 7 do [CLAUDE.md](CLAUDE.md).
 - Saldo (usuário, 23/10/2026): créditos às vezes já foram cobrados e às vezes não; o usuário informa consumo e sobra e a comparação deve ser automática. Comportamento atual mantido: cobra a diferença com aviso quando o uso excede o saldo, e a opção "saldo já cobrado" evita cobrança dupla.
@@ -64,6 +65,7 @@ Os itens abaixo resumem mensagens reais de commits, não garantias de validaçã
 | 31/10/2026 (Claude) | Versão 1.10.19: falta de energia avisada por sistema (usinas e unidades ligadas entre si). No teste oficial com a conta de teste, os sistemas Pedro Amaro e Silas apareciam somados (815 kWh); agora Silas = 256 kWh. Teste oficial do caso Silas no site publicado conferiu: geradora 1 = 319 kWh, geradora 2 = 236 kWh; casa do pai 100% da 2; da 1: apartamento 46%, casa do pai 31%, chácara 23% |
 | 31/10/2026 (Claude) | Versão 1.10.20: respostas do Ivoney (sócio) — geração esperada por UFV, formulário no modelo da Equatorial aberto na etapa final, saldo ÷ consumo médio = meses até o novo rateio |
 | 31/10/2026 (Claude) | Versão 1.10.21: o formulário abre numa prévia dentro da página (o navegador do app bloqueava a nova aba), com Baixar PDF e Abrir em outra aba |
+| 31/10/2026 (Claude) | Versão 1.10.22: teste completo como usuário novo (conta vazia), no computador e no celular: faturas em duas escolhas, rateio, salvar, recarregar, histórico e formulário, sem erros. No celular os filtros da lateral ficam recolhidos |
 
 Para conferir detalhes, use `git log --oneline` e `git show <commit>`. O histórico `.git` permanece na mesma pasta; não foi convertido em uma cópia nova.
 
