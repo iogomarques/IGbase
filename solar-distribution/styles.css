@@ -43,3 +43,7 @@
 .dist-flash{animation:dist-flash 1.6s ease-out}
 @keyframes dist-flash{0%,35%{box-shadow:0 0 0 3px #3f8f4a66;background:#f3f9f0}100%{box-shadow:none}}
 @media(prefers-reduced-motion:reduce){.dist-flash{animation:none}}
+.dist-meses{grid-column:1/-1;border:1px solid var(--border);border-radius:12px;padding:12px 14px;margin:0;display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:12px}
+.dist-meses legend{font-weight:600;font-size:13px;padding:0 6px}
+.dist-meses .hint{grid-column:1/-1;margin:0}
+@media(max-width:700px){.dist-meses{grid-template-columns:1fr}}

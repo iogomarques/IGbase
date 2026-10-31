@@ -23,6 +23,8 @@ function linesFromItems(items){const rows=[];for(const it of items||[]){const st
 function parseInvoice(text){
  const t=String(text||'').replace(/\r/g,''),avisos=[],out={uc:null,titular:null,documento:null,fases:null,minimo:null,leituraAnterior:null,leituraAtual:null,dias:null,proximaLeitura:null,referencia:null,valorFatura:null,consumoMes:null,consumoMedio:null,historico:[],naoCompensado:null,geracaoMedida:null,scee:null,rateioCadastrado:[]};
  let m=/RAMAL:\s*\d+%\s*([\d.]+-\d{2})/.exec(t)||/\n([\d]{1,3}(?:\.\d{3}){2,4}-\d{2})\s*\n/.exec(t);if(m)out.uc=ucFormat(m[1]);
+ /* Algumas faturas trazem a UC ao lado do CEP ou do nome da Equatorial: pega a primeira numeração no formato da UC que não seja o CPF/CNPJ. */
+ if(!out.uc){const doc=(/CNPJ\/CPF:\s*([\d.\/-]+)/.exec(t)||[])[1];for(const x of t.matchAll(/(^|[^\d.\/:])(\d{1,3}(?:\.\d{3}){2,4}-\d{2})(?![\d])/g)){if(x[2]===doc||/CPF:\s*$/.test(t.slice(Math.max(0,x.index-12),x.index+x[1].length)))continue;out.uc=ucFormat(x[2]);break;}}
  m=/Tipo de fornecimento:\s*(MONOF|BIF|TRIF)/i.exec(t);if(m){const f=m[1].toUpperCase();out.fases=f.startsWith('MONO')?'MONO':f.startsWith('BI')?'BI':'TRI';out.minimo=MINIMO_FASES[out.fases];}
  m=/(\d{2}\/\d{2}\/\d{4})\s+(\d{2}\/\d{2}\/\d{4})\s+(\d{1,3})\s+(\d{2}\/\d{2}\/\d{4})/.exec(t);if(m){out.leituraAnterior=dateIso(m[1]);out.leituraAtual=dateIso(m[2]);out.dias=Number(m[3]);out.proximaLeitura=dateIso(m[4]);
   const after=t.slice(m.index+m[0].length).split('\n').map(s=>s.trim()).filter(Boolean);if(after[0]&&!/CNPJ|CPF/.test(after[0]))out.titular=after[0];}
@@ -30,15 +32,24 @@ function parseInvoice(text){
  m=new RegExp('\\b('+MESES.join('|')+')\\/(\\d{4})\\s+R\\$\\**\\s*([\\d.,]+)').exec(t);if(m){out.referencia=m[1]+'/'+m[2];out.valorFatura=num(m[3]);}
  m=/ENERGIA ATIVA\s*-\s*KWH[^\n]*?\s([\d.,]+)\s+([\d.,]+)\s+[\d.,]+\s+([\d.,]+)/i.exec(t);if(m)out.consumoMes=num(m[3]);
  m=/ENERGIA GERA[ÇC][ÃA]O\s*-\s*KWH[^\n]*?\s([\d.,]+)\s+([\d.,]+)\s+[\d.,]+\s+([\d.,]+)/i.exec(t);if(m)out.geracaoMedida=num(m[3]);
- const sc=/INFORMA[ÇC][ÕO]ES DO SCEE:([^\n]*)/i.exec(t);
+ /* O bloco do SCEE e o cadastro do rateio às vezes quebram de linha: lê com as linhas juntas. */
+ const flat=t.replace(/\n+/g,' ');const sc=/INFORMA[ÇC][ÕO]ES DO SCEE:(.*?)(?=PER[ÍI]ODO DE REFER|PIS\/PASEP|FORNECIMENTO ICMS|$)/i.exec(flat);
  if(sc){const s=sc[1],N='(\\d{1,3}(?:\\.\\d{3})*,\\d+|\\d+(?:,\\d+)?)',g=(re)=>{const x=new RegExp(re+N,'i').exec(s);return x?num(x[x.length-1]):null;};const ciclo=new RegExp('GERA[ÇC][ÃA]O CICLO\\s*\\((\\d{1,2})\\/(\\d{4})\\)\\s*KWH:\\s*UC\\s*(\\d+)\\s*:\\s*'+N,'i').exec(s);
-  out.scee={cicloGeracao:ciclo?String(ciclo[1]).padStart(2,'0')+'/'+ciclo[2]:null,ucGeradora:ciclo?ucFormat(ciclo[3]):null,geracaoCiclo:ciclo?num(ciclo[4]):null,excedenteRecebido:g('EXCEDENTE RECEBIDO KWH:\\s*(?:UC\\s*\\d+\\s*:\\s*)?'),creditoRecebido:g('CR[ÉE]DITO RECEBIDO KWH\\s*'),saldo:g('SALDO KWH:\\s*'),saldoExpira30:g('SALDO A EXPIRAR EM 30 DIAS KWH:\\s*')};}
- const rc=/CADASTRO RATEIO GERA[ÇC][ÃA]O:([^\n]*)/i.exec(t);if(rc){const re=/UC\s*(\d+)\s*=\s*(\d+(?:[.,]\d+)?)\s*%/gi;let x;while((x=re.exec(rc[1])))out.rateioCadastrado.push({uc:ucFormat(x[1]),percentual:num(x[2])});}
+  const lista=(rot)=>{const x=new RegExp(rot+'\\s*(?:\\(\\d{1,2}\\/\\d{4}\\)\\s*)?KWH:\\s*((?:UC\\s*\\d+\\s*:\\s*[\\d.,]+,?\\s*)+)','i').exec(s);return x?[...x[1].matchAll(/UC\s*(\d+)\s*:\s*(\d{1,3}(?:\.\d{3})*,\d+|\d+(?:,\d+)?)/gi)].map(y=>({uc:ucFormat(y[1]),kwh:num(y[2])})):[];};
+  const ger=lista('GERA[ÇC][ÃA]O CICLO'),exc=lista('EXCEDENTE RECEBIDO');
+  out.scee={geradoras:ger.map(g=>({uc:g.uc,geracaoCiclo:g.kwh,excedenteRecebido:(exc.find(e=>ucKey(e.uc)===ucKey(g.uc))||{}).kwh??null})),cicloGeracao:ciclo?String(ciclo[1]).padStart(2,'0')+'/'+ciclo[2]:null,ucGeradora:ciclo?ucFormat(ciclo[3]):null,geracaoCiclo:ciclo?num(ciclo[4]):null,excedenteRecebido:g('EXCEDENTE RECEBIDO KWH:\\s*(?:UC\\s*\\d+\\s*:\\s*)?'),creditoRecebido:g('CR[ÉE]DITO RECEBIDO KWH\\s*'),saldo:g('SALDO KWH:\\s*'),saldoExpira30:g('SALDO A EXPIRAR EM 30 DIAS KWH:\\s*')};}
+ const rc=/CADASTRO\s+RATEIO\s+GERA[ÇC][ÃA]O:(.*?)(?=PER[ÍI]ODO DE REFER|PIS\/PASEP|FORNECIMENTO ICMS|$)/i.exec(flat);if(rc){const re=/UC\s*(\d+)\s*=\s*(\d+(?:[.,]\d+)?)\s*%/gi;let x;while((x=re.exec(rc[1])))out.rateioCadastrado.push({uc:ucFormat(x[1]),percentual:num(x[2])});}
  let nc=0,found=false;for(const x of t.matchAll(/CONSUMO (?:N[ÃA]O COMPENSADO(?: S\/ DESC\.)?|BR C\/ DESC\.[^\n]*?) kWh\s+([\d.,]+)/gi)){const v=num(x[1]);if(v!==null){nc+=v;found=true;}}
  if(!found&&!sc){const x=/\nCONSUMO kWh kWh\s+([\d.,]+)/i.exec(t);if(x){nc=num(x[1]);found=nc!==null;}}
  out.naoCompensado=found?Math.round(nc*100)/100:null;
  for(const x of t.matchAll(/(?:^|\s)([\d.]*\d,\d{2})\s+(\d{2})\s+(LIDA|M[ÉE]DIA|M[ÍI]NIMO)\b/gm))out.historico.push({consumo:num(x[1]),dias:Number(x[2]),tipo:x[3].toUpperCase().replace('É','E').replace('Í','I')});
- out.ehGeradora=out.geracaoMedida!==null;const hist=out.ehGeradora?[]:out.historico.filter(h=>h.tipo!=='MINIMO').map(h=>h.consumo).filter(v=>v!==null);if(hist.length)out.consumoMedio=Math.round(hist.reduce((a,b)=>a+b,0)/hist.length*100)/100;
+ out.ehGeradora=out.geracaoMedida!==null;
+ /* Geradora: o histórico da Equatorial alterna, mês a mês, consumo da rede e energia injetada ("geração"); as duas
+    primeiras linhas são as médias impressas. Guarda os meses (mais recente primeiro) e a média dos últimos 3 meses
+    (ou dos meses que existirem), regra do IG Base para a geração. */
+ if(out.ehGeradora){const i=t.search(/M[ÊE]S\/ANO\s+CONSUMO FATURADO/i);if(i>=0){const vals=[];for(const ln of t.slice(i).split('\n').slice(1)){if(/^\s*TOTAL\b/i.test(ln))break;const x=/(\d[\d.]*,\d{2})(?:\s+\d{1,2}\s+(?:LIDA|M[ÉE]DIA|M[ÍI]NIMO))?\s*$/i.exec(ln);if(x)vals.push(num(x[1]));}
+  if(vals.length>=4){const meses=[];for(let k=2;k+1<vals.length;k+=2)meses.push({consumo:vals[k],injecao:vals[k+1]});out.historicoGeradora=meses.slice(0,13);out.mediaConsumoImpressa=vals[0];out.mediaInjecaoImpressa=vals[1];
+   const ult=meses.slice(0,3),med=k=>round2(ult.reduce((a,m)=>a+m[k],0)/ult.length);out.injecao3=med('injecao');out.consumoRede3=med('consumo');out.meses3=ult.length;}}}const hist=out.ehGeradora?[]:out.historico.filter(h=>h.tipo!=='MINIMO').map(h=>h.consumo).filter(v=>v!==null);if(hist.length)out.consumoMedio=Math.round(hist.reduce((a,b)=>a+b,0)/hist.length*100)/100;
  if(!out.uc)avisos.push('UC não encontrada. Informe o número da unidade.');
  if(!out.fases)avisos.push('Tipo de fornecimento não encontrado. Confira o mínimo (30, 50 ou 100 kWh).');
  if(out.consumoMedio===null&&!out.ehGeradora)avisos.push('Média de consumo não encontrada. Informe o consumo médio.');
@@ -50,17 +61,26 @@ function round2(v){return Math.round(v*100)/100;}
 
 /* ---------- Modelo ---------- */
 function fresh(){return {version:VERSION,modo:'homogenea',usinas:[],unidades:[],rateios:[]};}
-function usina(nome='Nova usina'){return {id:uid(),nome,uc:'',titular:'',documento:'',kwp:null,fator:115,geracaoReal:null,fonteGeracao:'estimada',injecaoFatura:null,placaW:620,consumoGeradora:null,minimoGeradora:null,reservaGeradora:0,leituraAtual:null,saldo:null,rateioCadastrado:[],ajustes:{},fatura:null};}
+function usina(nome='Nova usina'){return {id:uid(),nome,uc:'',titular:'',documento:'',kwp:null,fator:115,geracaoReal:null,geracaoMeses:[null,null,null],monitoramento:'APsystems',fonteGeracao:'media3',injecaoFatura:null,injecao3:null,consumoRede3:null,meses3:null,placaW:620,consumoGeradora:null,minimoGeradora:null,reservaGeradora:0,leituraAtual:null,saldo:null,rateioCadastrado:[],ajustes:{},fatura:null};}
 function unidade(nome='Nova unidade'){return {id:uid(),nome,uc:'',titular:'',documento:'',fases:'TRI',minimo:100,consumoMedio:null,consumoMes:null,saldo:null,naoCompensado:null,leituraAtual:null,valorFatura:null,prioritaria:false,usinas:[],fatura:null};}
 function validate(d){if(!d||typeof d!=='object')throw Error('Dados do Solar Distribution inválidos.');if(d.version!==VERSION)throw Error('Versão de dados do Solar Distribution incompatível.');for(const k of ['usinas','unidades','rateios'])if(!Array.isArray(d[k]))throw Error('Dados do Solar Distribution incompletos.');for(const u of d.usinas)if(typeof u.id!=='string')throw Error('Usina inválida.');for(const u of d.unidades)if(typeof u.id!=='string'||!Array.isArray(u.usinas))throw Error('Unidade inválida.');return d;}
 
 /* Energia de uma usina disponível para as unidades no mês. */
-const FONTES={estimada:'estimada (kWp × fator)',apsystems:'APsystems',solaredge:'SolarEdge',outro:'outro monitoramento',fatura:'energia injetada na fatura'};
+const FONTES={media3:'média dos últimos 3 meses',estimada:'estimada (kWp × fator)',fatura:'injetada na rede, média de 3 meses da fatura'};
+const MONITORAMENTOS=['APsystems','SolarEdge','Outro'];
+/* Regra do IG Base: a geração considerada é a média dos últimos 3 meses (90 dias), ou dos meses que a usina tiver. */
+function mesesGeracao(u){const a=Array.isArray(u.geracaoMeses)?u.geracaoMeses.map(num).filter(v=>v!==null&&v>=0):[];if(a.length)return a.slice(0,3);const r=num(u.geracaoReal);return r!==null?[r]:[];}
 /* Energia de uma usina para as unidades no mês. Padrão: potência × fator (115). Opcional: geração real
    do monitoramento (APsystems, SolarEdge ou outro) ou a energia injetada lida na fatura da geradora. */
-function fonteGeracao(u){if(FONTES[u.fonteGeracao])return u.fonteGeracao;return u.usarGeracaoReal?'outro':'estimada';}
-function energiaUsina(u){const fonte=fonteGeracao(u),real=fonte!=='estimada';const bruta=fonte==='fatura'?num(u.injecaoFatura):real?num(u.geracaoReal):(num(u.kwp)!==null?num(u.kwp)*(num(u.fator)??115):null);if(bruta===null)return {bruta:null,consumoGeradora:0,liquida:null,reserva:0,disponivel:null,origem:real?'real':'estimada',fonte};const reserva=Math.max(0,Math.min(100,Math.round(num(u.reservaGeradora)||0))),consumoGeradora=Math.max(0,(num(u.consumoGeradora)||0)-(num(u.minimoGeradora)||0)),liquida=Math.max(0,bruta-consumoGeradora);return {bruta,consumoGeradora,liquida,reserva,disponivel:liquida*(100-reserva)/100,origem:real?'real':'estimada',fonte};}
-/* Como na planilha: geração para rateio = geração − consumo do mês da própria geradora (Lei 14.300, art. 1º: excedente = injetada − consumida).
+function fonteGeracao(u){if(FONTES[u.fonteGeracao])return u.fonteGeracao;return ['apsystems','solaredge','outro'].includes(u.fonteGeracao)||u.usarGeracaoReal?'media3':'estimada';}
+function energiaUsina(u){let fonte=fonteGeracao(u),bruta=null,meses=0;const est=()=>num(u.kwp)!==null?num(u.kwp)*(num(u.fator)??115):null;
+ if(fonte==='media3'){const v=mesesGeracao(u);meses=v.length;if(meses)bruta=v.reduce((a,b)=>a+b,0)/meses;else{fonte='estimada';bruta=est();}}
+ else if(fonte==='fatura'){bruta=num(u.injecao3)??num(u.injecaoFatura);meses=num(u.injecao3)!==null?(num(u.meses3)||3):1;}
+ else bruta=est();
+ const real=fonte!=='estimada';if(bruta===null)return {bruta:null,autoconsumo:0,rede:0,consumoGeradora:0,liquida:null,reserva:0,disponivel:null,origem:real?'real':'estimada',fonte};const reserva=Math.max(0,Math.min(100,Math.round(num(u.reservaGeradora)||0))),inj=num(u.injecao3)??num(u.injecaoFatura),autoconsumo=fonte!=='fatura'&&inj!==null?Math.max(0,bruta-inj):0,rede=Math.max(0,(num(u.consumoGeradora)||0)-(num(u.minimoGeradora)||0)),consumoGeradora=autoconsumo+rede,liquida=Math.max(0,bruta-consumoGeradora);return {bruta,autoconsumo,rede,consumoGeradora,liquida,reserva,disponivel:liquida*(100-reserva)/100,origem:real?'real':'estimada',fonte,meses};}
+/* Como na planilha (v7: consumo na geração = produção − injeção + consumo da rede): geração para rateio = produção − o que a própria
+   geradora consome. Esse consumo tem duas partes: o que ela usa na hora (produção − energia injetada, quando a fatura informa a injeção)
+   e o consumo da rede acima do mínimo dela. Confere com as faturas: excedente = injetada − créditos usados pela geradora (Lei 14.300, art. 1º).
    Só abate o que passa do mínimo da geradora (30/50/100): abaixo dele a concessionária cobra o mínimo e não usa crédito (Lei 14.300, art. 16). */
 /* Placas para uma ampliação: só quando a potência da placa (W) do projeto foi informada; vazio = só kWp. */
 function placaUsina(u){if(u&&u.placaW===undefined)return 620;const w=num(u&&u.placaW);return w!==null&&w>0?w:null;}
@@ -72,7 +92,7 @@ function inteiros(pesos,total){const soma=pesos.reduce((a,b)=>a+b,0);if(!(soma>0
 
 /* Rateio sugerido.
    - Base: consumo médio (consumo total) de cada unidade, como na planilha.
-   - Cada usina, na ordem cadastrada, atende primeiro as unidades que só podem receber dela;
+   - Cada usina (começando pelas que atendem menos unidades) atende primeiro as unidades que só podem receber dela;
      a energia que sobra vai para as unidades que também estão ligadas a usinas seguintes.
    - O que uma usina não cobre passa para a próxima usina ligada à unidade.
    - Se a energia passa da necessidade, a sobra é dividida na mesma proporção (o total fecha 100%).
@@ -84,12 +104,15 @@ function modo(d){return d&&d.modo==='prioritaria'?'prioritaria':'homogenea';}
 function sugerir(d){
  const usinas=d.usinas,unidades=d.unidades,restante={},resultado=[],alertas=[];
  for(const un of unidades)restante[un.id]=Math.max(0,num(un.consumoMedio)??0);
- usinas.forEach((us,idx)=>{
+ /* Ordem de cálculo: primeiro as usinas que atendem menos unidades (ex.: usina que só atende uma casa entrega 100% a ela e o
+    que faltar fica para as outras); empate segue a ordem da lateral. A exibição continua na ordem da lateral. */
+ const nLig=us=>unidades.filter(un=>un.usinas.includes(us.id)).length,ordem=usinas.map((us,i)=>({us,i})).sort((a,b)=>nLig(a.us)-nLig(b.us)||a.i-b.i).map(x=>x.us);
+ ordem.forEach((us,idx)=>{
   const en=energiaUsina(us),ligadas=unidades.filter(un=>un.usinas.includes(us.id));
   const r={usinaId:us.id,energia:en,percentuais:{},creditos:{},semEnergia:en.disponivel===null};
   if(!ligadas.length){resultado.push(r);return;}
   if(en.disponivel===null){alertas.push({tipo:'erro',usinaId:us.id,texto:'Informe a potência (kWp) ou a geração real da usina '+us.nome+'.'});resultado.push(r);return;}
-  const ultima=un=>!usinas.slice(idx+1).some(o=>un.usinas.includes(o.id));
+  const ultima=un=>!ordem.slice(idx+1).some(o=>un.usinas.includes(o.id));
   const exclusivas=ligadas.filter(ultima),compartilhadas=ligadas.filter(un=>!ultima(un));
   let energia=en.disponivel;const credito={};ligadas.forEach(un=>credito[un.id]=0);
   const distribuir=(grupo)=>{const need=grupo.reduce((a,un)=>a+restante[un.id],0);if(!(need>0)||!(energia>0))return;const dar=Math.min(energia,need);for(const un of grupo){const parte=dar*restante[un.id]/need;credito[un.id]+=parte;restante[un.id]-=parte;}energia-=dar;};
@@ -98,6 +121,7 @@ function sugerir(d){
   if(energia>1e-9){const pesos=ligadas.map(un=>Math.max(0,num(un.consumoMedio)??0)),tot=pesos.reduce((a,b)=>a+b,0);ligadas.forEach((un,i)=>{credito[un.id]+=tot>0?energia*pesos[i]/tot:energia/ligadas.length;});energia=0;}
   const alvo=100-en.reserva,pesos=ligadas.map(un=>credito[un.id]),ints=inteiros(pesos,alvo);
   ligadas.forEach((un,i)=>{r.percentuais[un.id]=ints[i];});resultado.push(r);});
+ resultado.sort((a,b)=>usinas.findIndex(u=>u.id===a.usinaId)-usinas.findIndex(u=>u.id===b.usinaId));
  return {usinas:resultado,alertas};}
 
 /* Aplica ajustes manuais (pontos percentuais por unidade) e calcula projeções e alertas. */
@@ -125,6 +149,6 @@ function calcular(d,sugestao){
  const ok=porUsina.every(u=>u.ok)&&!alertas.some(a=>a.tipo==='erro');
  return {usinas:porUsina,unidades,alertas,totalConsumo,totalEnergia,deficit,ok};}
 
-const api={VERSION,MINIMO_FASES,FONTES,MODOS,modo,placaUsina,fonteGeracao,fatorUsina,num,ucKey,ucFormat,linesFromItems,parseInvoice,fresh,usina,unidade,validate,energiaUsina,inteiros,sugerir,calcular,fmt,round2,clone,uid};
+const api={VERSION,MINIMO_FASES,FONTES,MONITORAMENTOS,mesesGeracao,MODOS,modo,placaUsina,fonteGeracao,fatorUsina,num,ucKey,ucFormat,linesFromItems,parseInvoice,fresh,usina,unidade,validate,energiaUsina,inteiros,sugerir,calcular,fmt,round2,clone,uid};
 root.SolarDistribution=api;if(typeof module!=='undefined'&&module.exports)module.exports=api;
 })(globalThis);

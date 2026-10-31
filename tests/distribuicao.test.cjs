@@ -22,7 +22,7 @@ ${o.extra||''}`;
 test('fatura de unidade: campos usados no rateio',()=>{const f=E.parseInvoice(fatura());
  assert.equal(f.uc,'9.999.001.012-11');assert.equal(f.fases,'MONO');assert.equal(f.minimo,30);assert.equal(f.leituraAtual,'2026-08-31');assert.equal(f.referencia,'SET/2026');assert.equal(f.valorFatura,50);
  assert.equal(f.consumoMes,700);assert.equal(f.consumoMedio,700);assert.equal(f.naoCompensado,30);assert.equal(f.ehGeradora,false);
- assert.deepEqual(f.scee,{cicloGeracao:'08/2026',ucGeradora:'9.990.000.012-99',geracaoCiclo:2000,excedenteRecebido:600,creditoRecebido:700,saldo:1234.56,saldoExpira30:0});
+ assert.deepEqual(f.scee,{geradoras:[{uc:'9.990.000.012-99',geracaoCiclo:2000,excedenteRecebido:600}],cicloGeracao:'08/2026',ucGeradora:'9.990.000.012-99',geracaoCiclo:2000,excedenteRecebido:600,creditoRecebido:700,saldo:1234.56,saldoExpira30:0});
  assert.deepEqual(f.rateioCadastrado,[{uc:'9.990.000.012-99',percentual:30}]);assert.deepEqual(f.avisos,[]);});
 
 test('fatura da geradora: geração medida e sem média de consumo',()=>{const f=E.parseInvoice(fatura({fases:'TRIFÁSICO',extra:'99999999-9 ENERGIA GERAÇÃO - KWH ÚNICO 5000 8000 1,000000 3000'}));
@@ -46,19 +46,30 @@ test('ajuste manual precisa fechar 100%',()=>{const d=cenario(),[u1,u2]=d.unidad
 
 test('reserva da geradora: padrão 0%, opcional',()=>{const d=cenario();assert.equal(E.calcular(d).usinas[0].alvo,100);d.usinas[0].reservaGeradora=10;const r=E.calcular(d);assert.equal(r.usinas[0].alvo,90);assert.equal(r.usinas[0].soma,90);assert.equal(r.ok,true);});
 
-test('várias usinas: o que uma não cobre passa para a próxima',()=>{const d=E.fresh(),a=E.usina('A'),b=E.usina('B');Object.assign(a,{kwp:10,fator:100});Object.assign(b,{kwp:10,fator:100});d.usinas.push(a,b);
+test('várias usinas: a que atende só uma unidade entrega 100% a ela e a outra cobre o resto (caso Silas)',()=>{const d=E.fresh(),a=E.usina('A'),b=E.usina('B');Object.assign(a,{kwp:10,fator:100});Object.assign(b,{kwp:10,fator:100});d.usinas.push(a,b);
  const mk=(n,c,us)=>{const x=E.unidade(n);Object.assign(x,{consumoMedio:c,minimo:30,saldo:0,usinas:us});d.unidades.push(x);return x;};
- const x1=mk('X1',300,[a.id]),x2=mk('X2',300,[a.id]),big=mk('Grande',1200,[a.id,b.id]);
- const r=E.calcular(d),ra=r.usinas[0].final,rb=r.usinas[1].final;
- assert.equal(ra[x1.id],30);assert.equal(ra[x2.id],30);assert.equal(ra[big.id],40);assert.equal(rb[big.id],100);
- const g=r.unidades.find(u=>u.id===big.id);assert.equal(Math.round(g.credito),1400);});
+ const x1=mk('X1',300,[a.id]),x2=mk('X2',300,[a.id]),big=mk('Grande',2000,[a.id,b.id]);
+ let r=E.calcular(d),ra=r.usinas[0].final,rb=r.usinas[1].final;assert.equal(r.usinas[0].usinaId,a.id);
+ assert.equal(rb[big.id],100);assert.ok(ra[big.id]>0);assert.equal(ra[x1.id],ra[x2.id]);assert.equal(ra[x1.id]+ra[x2.id]+ra[big.id],100);
+ d.usinas.reverse();r=E.calcular(d);const rb2=r.usinas.find(u=>u.usinaId===b.id).final,ra2=r.usinas.find(u=>u.usinaId===a.id).final;assert.equal(rb2[big.id],100);assert.equal(ra2[big.id],ra[big.id]);});
+
+test('geradora que consome na hora: só a sobra entra no rateio (produção − injeção + consumo da rede acima do mínimo)',()=>{const u=E.usina('G1');Object.assign(u,{geracaoMeses:[1200],injecao3:634.33,consumoGeradora:345.67,minimoGeradora:30});
+ const en=E.energiaUsina(u);assert.equal(Math.round(en.autoconsumo),566);assert.equal(Math.round(en.rede),316);assert.equal(Math.round(en.liquida),319);
+ u.injecao3=null;u.injecaoFatura=null;assert.equal(Math.round(E.energiaUsina(u).liquida),884);});
 
 test('alerta quando as usinas não atendem o consumo total',()=>{const d=cenario();d.unidades[0].consumoMedio=2000;const r=E.calcular(d);assert.ok(r.deficit>0);assert.match(r.alertas.map(a=>a.texto).join(' '),/não atendem/);});
 
-test('fonte da geração: estimada por padrão; monitoramento ou fatura quando escolhidos',()=>{const d=cenario(),u=d.usinas[0];u.geracaoReal=1500;u.injecaoFatura=1200;assert.equal(E.energiaUsina(u).bruta,1000);assert.equal(E.energiaUsina(u).fonte,'estimada');
- for(const f of ['apsystems','solaredge','outro']){u.fonteGeracao=f;assert.equal(E.energiaUsina(u).bruta,1500);assert.equal(E.energiaUsina(u).origem,'real');}
- u.fonteGeracao='fatura';assert.equal(E.energiaUsina(u).bruta,1200);
- const antigo=E.usina('Antiga');delete antigo.fonteGeracao;Object.assign(antigo,{kwp:10,usarGeracaoReal:true,geracaoReal:900});assert.equal(E.energiaUsina(antigo).bruta,900);});
+test('geração: média dos últimos 3 meses (ou dos meses existentes); sem meses usa potência × fator',()=>{const d=cenario(),u=d.usinas[0];
+ assert.equal(E.fonteGeracao(u),'media3');assert.equal(E.energiaUsina(u).bruta,1000);assert.equal(E.energiaUsina(u).fonte,'estimada');
+ u.geracaoMeses=[1200,null,null];assert.equal(E.energiaUsina(u).bruta,1200);assert.equal(E.energiaUsina(u).meses,1);
+ u.geracaoMeses=[1200,1100,1300];assert.equal(E.energiaUsina(u).bruta,1200);assert.equal(E.energiaUsina(u).meses,3);assert.equal(E.energiaUsina(u).origem,'real');
+ u.fonteGeracao='estimada';assert.equal(E.energiaUsina(u).bruta,1000);
+ u.fonteGeracao='fatura';u.injecaoFatura=639;assert.equal(E.energiaUsina(u).bruta,639);u.injecao3=634.33;u.meses3=3;assert.equal(E.energiaUsina(u).bruta,634.33);
+ const antigo=E.usina('Antiga');delete antigo.geracaoMeses;Object.assign(antigo,{kwp:10,fonteGeracao:'solaredge',geracaoReal:900});assert.equal(E.energiaUsina(antigo).bruta,900);
+ const velho=E.usina('Velha');delete velho.fonteGeracao;delete velho.geracaoMeses;Object.assign(velho,{kwp:10,usarGeracaoReal:true,geracaoReal:800});assert.equal(E.energiaUsina(velho).bruta,800);});
+
+test('fatura da geradora: meses de consumo da rede e injeção, média dos últimos 3',()=>{const f=E.parseInvoice(fatura({extra:'99999999-9 ENERGIA GERAÇÃO - KWH ÚNICO 5000 5639 1,000000 639'}).replace('MÊS/ANO CONSUMO FATURADO(kWh) DIAS FATURAMENTO\n700,00 30 LIDA\n600,00 31 MÉDIA\n800,00 30 LIDA','MÊS/ANO CONSUMO FATURADO(kWh) DIAS FATURAMENTO\n329,92\n669,92\n400,00\n639,00 31 LIDA\n303,00\n697,00 29 LIDA\n334,00 31 LIDA\n567,00\n365,00\n571,00 31 LIDA\nTOTAL 10,00'));
+ assert.equal(f.ehGeradora,true);assert.equal(f.historicoGeradora.length,4);assert.deepEqual(f.historicoGeradora[2],{consumo:334,injecao:567});assert.equal(f.injecao3,634.33);assert.equal(f.consumoRede3,345.67);assert.equal(f.meses3,3);assert.equal(f.mediaInjecaoImpressa,669.92);});
 
 test('não compensado acima do mínimo da fase sugere ampliação',()=>{const d=cenario(),un=d.unidades[0];un.minimo=50;un.naoCompensado=165;const a=E.calcular(d).alertas.find(x=>x.unidadeId===un.id&&x.ampliacao);
  assert.ok(a);assert.equal(a.ampliacao.kwh,115);assert.equal(a.ampliacao.kwp,1.15);assert.equal(a.ampliacao.placas,2);assert.match(a.texto,/ampliação/);
@@ -81,3 +92,17 @@ test('placa opcional: vazio mostra só kWp; outra potência muda a quantidade',(
  let a=E.calcular(d).alertas.find(x=>x.ampliacao);assert.equal(a.ampliacao.placaW,620);assert.equal(a.ampliacao.placas,2);
  u.placaW=550;a=E.calcular(d).alertas.find(x=>x.ampliacao);assert.equal(a.ampliacao.placas,2);u.placaW=null;a=E.calcular(d).alertas.find(x=>x.ampliacao);assert.equal(a.ampliacao.placas,null);assert.doesNotMatch(a.texto,/placas/);
  delete u.placaW;assert.equal(E.placaUsina(u),620);});
+
+test('fatura com UC ao lado do CEP, rateio quebrado em duas linhas e duas geradoras no SCEE',()=>{const f=E.parseInvoice(`Tipo de fornecimento: MONOFÁSICO
+04/08/2026 02/09/2026 29 02/10/2026
+FULANO DE TESTE
+CNPJ/CPF: 000.000.001-91
+CEP: 74000000 GOIANIA GO BRASIL 999.888.012-77
+PERDAS DE TRANSFORMAÇÃO / RAMAL: 0%
+SET/2026 R$*********100,00 10/10/2026
+INFORMAÇÕES DO SCEE: GERAÇÃO CICLO (9/2026) KWH: UC 000999000001299 : 269,00, UC 000888000001288 : 188,00, EXCEDENTE RECEBIDO KWH: UC 000999000001299 : 134,50, UC 000888000001288 : 178,60, CRÉDITO RECEBIDO KWH 313,10, SALDO KWH: 0,00, CADASTRO
+RATEIO GERAÇÃO: UC 000888000001288 = 95%
+PERÍODO DE REFERÊNCIA DA APURAÇÃO
+CONSUMO NÃO COMPENSADO kWh 182,35 1,0 182,35`);
+ assert.equal(f.uc,'999.888.012-77');assert.deepEqual(f.rateioCadastrado,[{uc:'8.880.000.012-88',percentual:95}]);
+ assert.deepEqual(f.scee.geradoras,[{uc:'9.990.000.012-99',geracaoCiclo:269,excedenteRecebido:134.5},{uc:'8.880.000.012-88',geracaoCiclo:188,excedenteRecebido:178.6}]);});

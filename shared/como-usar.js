@@ -52,7 +52,8 @@
    {titulo:'Passo a passo',passos:[
     ['Envie as faturas','Em "Lançar faturas", clique em "Escolher faturas (PDF)" e selecione de uma vez a fatura da usina geradora e as faturas das unidades.'],
     ['Confira a leitura','O site mostra o que leu de cada PDF: UC, tipo de ligação, consumo médio, saldo, não compensado, data de leitura e rateio atual. Confira se cada um está como unidade ou usina geradora e clique em "Aplicar faturas marcadas".'],
-    ['Complete a usina','Clique no lápis da usina na lateral. Informe a potência em kWp (não vem na fatura). O fator padrão é 115 kWh por kWp; mude se o projeto usar outro (95, 120, 130…). Em "Fonte da geração" você pode usar a geração real do APsystems, SolarEdge ou outro monitoramento.'],
+    ['Complete a usina','Clique no lápis da usina na lateral. Em "Geração dos últimos 3 meses" coloque a geração do monitoramento (APsystems, SolarEdge ou outro); se a usina tiver menos de 3 meses, preencha só os meses que existirem. O site usa a média. Sem meses, ele estima pela potência em kWp × fator (115 por padrão; mude se o projeto usar 95, 120, 130…).'],
+    ['Consumo da geradora','A fatura da geradora já traz a energia injetada e o consumo da rede dos últimos 3 meses. O site desconta o que a própria geradora consome (na hora e da rede, acima do mínimo) e só a sobra entra no rateio.'],
     ['Confira as unidades','No modo "Unidades" da lateral, confira consumo médio, ligação (mínimo de 30, 50 ou 100 kWh) e saldo, e quais usinas atendem cada unidade.'],
     ['Escolha o modo','Na aba Rateio, escolha "Homogênea" (proporcional ao consumo, como a planilha) ou "Prioritária" (unidades marcadas são atendidas primeiro).'],
     ['Ajuste e feche 100%','Veja o sugerido e, se precisar, ajuste em pontos (+ ou −) na coluna Ajuste. Cada usina precisa fechar 100%.'],
@@ -62,7 +63,9 @@
     'Não compensado acima do mínimo: faltou crédito naquela unidade; aumente a porcentagem dela ou amplie a usina.',
     'Unidade lida antes da geradora: o crédito entra na fatura do mês seguinte.',
     'CPF/CNPJ diferente: no autoconsumo remoto, a usina e as unidades precisam ter o mesmo titular.',
-    'A alteração do rateio na Equatorial vale a partir do ciclo seguinte ao pedido.']}]},
+    'A alteração do rateio na Equatorial vale a partir do ciclo seguinte ao pedido.',
+    'Unidade atendida por duas usinas (ex.: uma casa que recebe 100% de uma e parte da outra): marque as duas em "Usinas que mandam energia". A usina que atende só essa casa entrega 100% a ela e a outra cobre o que faltar.',
+    'Depois de lançar as faturas, confira as ligações: o site liga pelas porcentagens que estão cadastradas hoje na Equatorial, e o plano novo pode ser diferente.']}]},
   {id:'empresas',nome:'Empresas',link:'/empresas/',intro:'Cadastro da empresa que aparece nos documentos do Solar Organization e do Solar Budget.',grupos:[
    {titulo:'Passo a passo',passos:[
     ['Nova empresa','Clique em "+ Cadastrar empresa".'],
