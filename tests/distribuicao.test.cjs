@@ -81,14 +81,14 @@ test('consumo da geradora acima do mínimo sai da geração para rateio',()=>{co
 
 test('o mínimo da unidade nunca é compensado: mínimo 100 e consumo 200 → precisa de 100; o rateio segue essa necessidade',()=>{const un=E.unidade('X');Object.assign(un,{consumoMedio:200,minimo:100});assert.equal(E.necessidade(un),100);
  un.consumoMedio=80;assert.equal(E.necessidade(un),0);un.consumoMedio=null;assert.equal(E.necessidade(un),0);
- const d=cenario();d.unidades.forEach(x=>x.minimo=100);const r=E.calcular(d),f=Object.values(r.usinas[0].final);assert.deepEqual([...f].sort((a,b)=>a-b),[0,33,33,34]);assert.equal(f[3],0);assert.equal(Math.round(r.totalConsumo),600);});
+ const d=cenario();d.unidades.forEach(x=>x.minimo=100);const r=E.calcular(d),f=Object.values(r.usinas[0].final);assert.deepEqual([...f].sort((a,b)=>a-b),[1,33,33,33]);assert.equal(f[3],1);assert.equal(Math.round(r.totalConsumo),600);});
 
 test('fator editável muda a geração e a sugestão de ampliação',()=>{const d=cenario(),u=d.usinas[0];u.fator=130;assert.equal(E.energiaUsina(u).bruta,1300);
  const un=d.unidades[0];un.minimo=30;un.naoCompensado=160;const a=E.calcular(d).alertas.find(x=>x.ampliacao);assert.equal(a.ampliacao.kwp,1);});
 
 test('modo homogêneo (padrão) × prioritário quando falta energia',()=>{const d=cenario();const [a,b,c,e]=d.unidades;a.consumoMedio=1000;a.prioritaria=true;
  assert.equal(E.modo(d),'homogenea');let r=E.calcular(d),f=r.usinas[0].final;assert.equal(f[a.id],59);assert.equal(r.usinas[0].soma,100);
- d.modo='prioritaria';r=E.calcular(d);f=r.usinas[0].final;assert.equal(f[a.id],100);assert.equal(f[b.id],0);assert.equal(r.usinas[0].soma,100);
+ d.modo='prioritaria';r=E.calcular(d);f=r.usinas[0].final;assert.equal(f[a.id],97);assert.equal(f[b.id],1);assert.equal(r.usinas[0].soma,100);
  a.consumoMedio=600;r=E.calcular(d);f=r.usinas[0].final;assert.equal(f[a.id],60);assert.equal(f[b.id]+f[c.id]+f[e.id],40);assert.equal(f[b.id],f[c.id]);assert.ok(f[e.id]<f[b.id]);});
 
 test('placa opcional: vazio mostra só kWp; outra potência muda a quantidade',()=>{const d=cenario(),u=d.usinas[0],un=d.unidades[0];un.minimo=30;un.naoCompensado=130;
@@ -124,8 +124,14 @@ test('saldo dura saldo ÷ (consumo médio − mínimo) meses; fatura traz classe
  const f=E.parseInvoice(fatura().replace('CNPJ/CPF: 000.000.001-91','CNPJ/CPF: 000.000.001-91\nRUA 03, Q. 8, L. 1, S/N\nSETOR SANTO ANTONIO\nCEP: 76520000 NOVA CRIXAS GO BRASIL NOTA FISCAL Nº 1'));
  assert.equal(f.classe,'B B1 RESIDENCIAL');assert.equal(f.endereco,'RUA 03, Q. 8, L. 1, S/N');assert.equal(f.bairro,'SETOR SANTO ANTONIO');assert.equal(f.cep,'76520-000');assert.equal(f.cidade,'NOVA CRIXAS');});
 
-test('duas formas: sem saldo (padrão) segue o consumo; com saldo, o saldo dividido pelos meses até refazer sai da necessidade',()=>{const d=cenario();const [a,b,c,e]=d.unidades;a.saldo=900;
- assert.equal(E.usaSaldo(d),false);let f=E.calcular(d).usinas[0].final;assert.deepEqual([a,b,c,e].map(u=>f[u.id]),[30,30,30,10]);
- d.considerarSaldo=true;d.mesesRevisao=3;assert.equal(E.necessidade(a,d),0);assert.equal(E.necessidade(b,d),300);
- f=E.calcular(d).usinas[0].final;assert.equal(f[a.id],0);assert.equal(f[b.id]+f[c.id]+f[e.id],100);
- d.mesesRevisao=9;assert.equal(E.necessidade(a,d),200);});
+test('com saldo: unidade com saldo para mais de 3 meses fica com 1%; as demais pelo consumo; sempre inteiros (exemplo do usuário 49/49/1/1)',()=>{const d=cenario();const [a,b,c,e]=d.unidades;
+ [a,b,c,e].forEach(u=>{u.consumoMedio=2500;u.minimo=0;});d.usinas[0].kwp=100;c.saldo=8000;e.saldo=7600;
+ let f=E.calcular(d).usinas[0].final;assert.deepEqual([a,b,c,e].map(u=>f[u.id]),[25,25,25,25]);
+ d.considerarSaldo=true;assert.equal(E.coberta(c,d),true);assert.equal(E.coberta(e,d),true);
+ f=E.calcular(d).usinas[0].final;assert.deepEqual([a,b,c,e].map(u=>f[u.id]),[49,49,1,1]);assert.ok(Object.values(f).every(Number.isInteger));
+ e.saldo=7000;assert.equal(E.coberta(e,d),false);f=E.calcular(d).usinas[0].final;assert.equal(f[c.id],1);assert.equal(f[e.id],f[a.id]);});
+
+test('mínimo de 1% para toda unidade, em qualquer modo; ajuste abaixo de 1% é erro',()=>{const d=cenario();const [a,b,c,e]=d.unidades;e.consumoMedio=0;
+ let r=E.calcular(d);assert.equal(r.usinas[0].final[e.id],1);assert.equal(r.usinas[0].soma,100);
+ d.modo='prioritaria';a.prioritaria=true;a.consumoMedio=5000;r=E.calcular(d);assert.ok(Object.values(r.usinas[0].final).every(v=>v>=1));assert.equal(r.usinas[0].soma,100);
+ d.modo='homogenea';a.prioritaria=false;a.consumoMedio=300;e.consumoMedio=100;d.usinas[0].ajustes={[e.id]:-10,[a.id]:10};r=E.calcular(d);assert.equal(r.ok,false);assert.match(r.alertas.map(x=>x.texto).join(' '),/pelo menos 1%/);});

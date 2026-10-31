@@ -71,6 +71,7 @@ Os itens abaixo resumem mensagens reais de commits, não garantias de validaçã
 | 31/10/2026 (Claude) | Versão 1.10.24: correção do entendimento — o mínimo nunca é compensado: base do rateio = consumo médio − mínimo de cada unidade; geradora desconta o consumo acima do mínimo dela. Silas: apartamento 48%, casa do pai 31%, chácara 21% na geradora 1; casa do pai 100% na 2; faltam 166 kWh |
 | 31/10/2026 (Claude) | Versão 1.10.25: meses de saldo = saldo ÷ (consumo médio − mínimo), a pedido do usuário |
 | 31/10/2026 (Claude) | Versão 1.10.26: duas formas de calcular o rateio, à escolha do usuário — sem considerar o saldo (padrão) ou considerando o saldo dividido pelos meses até refazer o rateio |
+| 31/10/2026 (Claude) | Versão 1.10.27: mínimo de 1% por unidade em todos os modos (regra da Equatorial, inteiros); com o saldo, quem tem saldo para mais de 3 meses fica com 1% e as demais recebem pelo consumo |
 
 Para conferir detalhes, use `git log --oneline` e `git show <commit>`. O histórico `.git` permanece na mesma pasta; não foi convertido em uma cópia nova.
 

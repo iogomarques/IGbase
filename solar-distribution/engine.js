@@ -90,17 +90,27 @@ function placaUsina(u){if(u&&u.placaW===undefined)return 620;const w=num(u&&u.pl
 function ampliacaoTexto(kwp,w){return 'cerca de '+fmt(kwp,1)+' kWp'+(w?' ('+Math.ceil(kwp*1000/w)+' placas de '+fmt(w,0)+' W)':'');}
 /* O mínimo (30/50/100 kWh) nunca é compensado: cada unidade só precisa de crédito para o que passa dele.
    Ex.: mínimo 100 e consumo médio 200 → a unidade precisa de 100 (usuário, 31/10/2026). É a base do rateio. */
-function necessidade(un,d){const c=num(un.consumoMedio);if(c===null)return 0;const m=num(un.minimo)??MINIMO_FASES[un.fases]??0,base=Math.max(0,c-m);
- if(!usaSaldo(d))return base;const saldo=Math.max(0,num(un.saldo)||0);return Math.max(0,base-saldo/mesesRevisao(d));}
+function necessidadeBase(un){const c=num(un.consumoMedio);if(c===null)return 0;const m=num(un.minimo)??MINIMO_FASES[un.fases]??0;return Math.max(0,c-m);}
+function necessidade(un,d){return coberta(un,d)?0:necessidadeBase(un);}
+/* Com o saldo: a unidade cujo saldo cobre 3 meses (90 dias) do que ela usa fica com 1% (o mínimo da Equatorial);
+   as demais, mesmo com algum saldo, recebem normalmente pelo consumo − mínimo (usuário, 31/10/2026). */
+function coberta(un,d){if(!usaSaldo(d))return false;const saldo=Math.max(0,num(un.saldo)||0);if(!(saldo>0))return false;const uso=necessidadeBase(un);return uso<=0||saldo>=uso*mesesRevisao(d);}
 /* Duas formas de calcular, à escolha do usuário (31/10/2026):
    - sem considerar o saldo (padrão): pelo consumo menos o mínimo; o rateio pode ficar sem mexer por muito tempo;
-   - considerando o saldo: o saldo de cada unidade é dividido pelos meses até refazer o rateio e sai da necessidade dela;
-     a energia vai para quem não tem saldo, e o rateio precisa ser refeito nesse prazo. */
+   - considerando o saldo: quem tem saldo para mais de 3 meses fica com 1%; refazer o rateio em 3 meses. */
 function usaSaldo(d){return !!(d&&d.considerarSaldo);}
-function mesesRevisao(d){const n=Math.round(num(d&&d.mesesRevisao)||3);return Math.max(1,Math.min(60,n));}
+function mesesRevisao(d){return 3;}
 function fatorUsina(u){const f=num(u&&u.fator);return f!==null&&f>0?f:115;}
 
 /* Arredonda para inteiros somando exatamente "total" (maiores restos). */
+/* A Equatorial exige no mínimo 1% para cada unidade do rateio, sempre em números inteiros. As fixadas (saldo para
+   3 meses) e as que dariam menos de 1% ficam com 1%; o restante é dividido em inteiros na proporção das demais. */
+function inteirosMin(pesos,total,fixos,reserva){const n=pesos.length;if(!n)return [];if(total<n)return inteiros(pesos,total);const fix=fixos?fixos.slice():pesos.map(()=>false);
+ for(let volta=0;volta<=n;volta++){const livres=pesos.map((p,i)=>i).filter(i=>!fix[i]);if(!livres.length)return reserva?inteirosMin(reserva,total,null,null):pesos.map(()=>Math.floor(total/n)+(0));
+  const resto=total-(n-livres.length),tot=livres.reduce((a,i)=>a+Math.max(0,pesos[i]),0);if(!(tot>0)){const igual=inteiros(livres.map(()=>1),resto),out=pesos.map(()=>1);livres.forEach((i,k)=>out[i]=igual[k]);return out;}
+  const baixos=livres.filter(i=>Math.max(0,pesos[i])*resto/tot<1);if(!baixos.length||baixos.length===livres.length&&volta>0){const q=inteiros(livres.map(i=>Math.max(0,pesos[i])),resto),out=pesos.map(()=>1);livres.forEach((i,k)=>out[i]=Math.max(1,q[k]));const dif=out.reduce((a,b)=>a+b,0)-total;if(dif>0){let k=dif;for(const i of [...livres].sort((a,b)=>out[b]-out[a])){while(k>0&&out[i]>1){out[i]--;k--;}}}return out;}
+  baixos.forEach(i=>fix[i]=true);}
+ return inteiros(pesos,total);}
 function inteiros(pesos,total){const soma=pesos.reduce((a,b)=>a+b,0);if(!(soma>0))return pesos.map(()=>0);const raw=pesos.map(p=>p*total/soma),base=raw.map(Math.floor);let falta=total-base.reduce((a,b)=>a+b,0);const ordem=raw.map((r,i)=>[r-base[i],i]).sort((a,b)=>b[0]-a[0]||a[1]-b[1]);for(let k=0;k<falta;k++)base[ordem[k%ordem.length][1]]++;return base;}
 
 /* Rateio sugerido.
@@ -132,7 +142,7 @@ function sugerir(d){
   if(modo(d)==='prioritaria'){const p=g=>g.filter(un=>un.prioritaria),n=g=>g.filter(un=>!un.prioritaria);distribuir(p(exclusivas));distribuir(p(compartilhadas));distribuir(n(exclusivas));distribuir(n(compartilhadas));}
   else{distribuir(exclusivas);distribuir(compartilhadas);}
   if(energia>1e-9){const pesos=ligadas.map(un=>necessidade(un,d)),tot=pesos.reduce((a,b)=>a+b,0);ligadas.forEach((un,i)=>{credito[un.id]+=tot>0?energia*pesos[i]/tot:energia/ligadas.length;});energia=0;}
-  const alvo=100-en.reserva,pesos=ligadas.map(un=>credito[un.id]),ints=inteiros(pesos,alvo);
+  const alvo=100-en.reserva,pesos=ligadas.map(un=>credito[un.id]),ints=inteirosMin(pesos,alvo,ligadas.map(un=>coberta(un,d)),ligadas.map(necessidadeBase));
   ligadas.forEach((un,i)=>{r.percentuais[un.id]=ints[i];});resultado.push(r);});
  resultado.sort((a,b)=>usinas.findIndex(u=>u.id===a.usinaId)-usinas.findIndex(u=>u.id===b.usinaId));
  return {usinas:resultado,alertas};}
@@ -143,9 +153,9 @@ function calcular(d,sugestao){
  for(const un of d.unidades)porUnidade[un.id]={credito:0,origens:[]};
  for(const r of sugestao.usinas){const us=d.usinas.find(u=>u.id===r.usinaId);const aj=us.ajustes||{},finais={};let soma=0;
   for(const [id,p] of Object.entries(r.percentuais)){const v=Math.round(p+(num(aj[id])||0));finais[id]=v;soma+=v;}
-  const alvo=100-r.energia.reserva,ok=Object.keys(finais).length===0||soma===alvo,negativos=Object.entries(finais).filter(([,v])=>v<0);
+  const alvo=100-r.energia.reserva,ok=Object.keys(finais).length===0||soma===alvo,negativos=Object.entries(finais).filter(([,v])=>v<1);
   if(Object.keys(finais).length&&!ok)alertas.push({tipo:'erro',usinaId:us.id,texto:us.nome+': os percentuais somam '+soma+'%. Ajuste até fechar '+alvo+'%'+(r.energia.reserva?' (a geradora fica com '+r.energia.reserva+'%)':'')+'.'});
-  if(negativos.length)alertas.push({tipo:'erro',usinaId:us.id,texto:us.nome+': há percentual negativo.'});
+  if(negativos.length)alertas.push({tipo:'erro',usinaId:us.id,texto:us.nome+': cada unidade precisa de pelo menos 1% (regra da Equatorial). Ajuste até nenhuma ficar abaixo de 1%.'});
   for(const [id,v] of Object.entries(finais)){const c=r.energia.disponivel===null?null:(r.energia.liquida*v/100);if(c!==null){porUnidade[id].credito+=c;porUnidade[id].origens.push({usinaId:us.id,percentual:v,credito:c});}}
   porUsina.push({usinaId:us.id,energia:r.energia,sugerido:r.percentuais,final:finais,soma,alvo,ok:ok&&!negativos.length});}
  const unidades=d.unidades.map(un=>{const p=porUnidade[un.id],consumo=num(un.consumoMedio),minimo=num(un.minimo)??100,saldo=num(un.saldo)??0;
@@ -170,6 +180,6 @@ function calcular(d,sugestao){
  const ok=porUsina.every(u=>u.ok)&&!alertas.some(a=>a.tipo==='erro');
  return {usinas:porUsina,unidades,alertas,totalConsumo,totalEnergia,deficit,sistemas,ok};}
 
-const api={VERSION,MINIMO_FASES,necessidade,usaSaldo,mesesRevisao,FONTES,MONITORAMENTOS,mesesGeracao,MODOS,modo,placaUsina,fonteGeracao,fatorUsina,num,ucKey,ucFormat,linesFromItems,parseInvoice,fresh,usina,unidade,validate,energiaUsina,inteiros,sugerir,calcular,fmt,round2,clone,uid};
+const api={VERSION,MINIMO_FASES,necessidade,necessidadeBase,coberta,inteirosMin,usaSaldo,mesesRevisao,FONTES,MONITORAMENTOS,mesesGeracao,MODOS,modo,placaUsina,fonteGeracao,fatorUsina,num,ucKey,ucFormat,linesFromItems,parseInvoice,fresh,usina,unidade,validate,energiaUsina,inteiros,sugerir,calcular,fmt,round2,clone,uid};
 root.SolarDistribution=api;if(typeof module!=='undefined'&&module.exports)module.exports=api;
 })(globalThis);

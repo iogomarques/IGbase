@@ -104,3 +104,11 @@ Pedido do usuário: o usuário decide em "Saldo das unidades", na aba Rateio.
 - **Considerar o saldo:** informa-se em quantos meses o rateio será refeito (padrão 3). Necessidade = consumo médio − mínimo − saldo ÷ meses (nunca abaixo de zero). A energia vai para quem não tem saldo; o rateio deve ser refeito nesse prazo.
 - Silas com saldo (3 meses): chácara 0% (saldo de 1.283 kWh cobre); geradora 1 → apartamento 61%, casa do pai 39%; geradora 2 → casa do pai 100%. Sem saldo: 48% / 31% / 21%.
 - O histórico guarda qual forma foi usada em cada rateio salvo.
+
+## Mínimo de 1% e saldo de 3 meses (31/10/2026, versão 1.10.27)
+
+Regras explicadas pelo usuário:
+- **A Equatorial exige no mínimo 1%** para cada unidade do rateio, sempre em números inteiros (nada de 0% ou 0,1%). Vale em todos os modos (homogêneo, prioritário, com ou sem saldo). Quem daria menos de 1% fica com 1% e o restante é dividido em inteiros entre as demais; ajuste manual abaixo de 1% é erro.
+- **Com o saldo:** prazo fixo de 3 meses (90 dias). A unidade cujo saldo cobre 3 meses do que ela usa (consumo − mínimo) fica com 1%; as demais, mesmo com algum saldo, recebem normalmente pelo consumo − mínimo. O campo de meses saiu da tela.
+- Exemplo do usuário (usina de 10.000 kWh, 4 unidades de 2.500 kWh, 2 com saldo para mais de 3 meses): 49% / 49% / 1% / 1%.
+- Silas com saldo: geradora 1 → apartamento 60%, casa do pai 39%, chácara 1%; geradora 2 → casa do pai 100%.
