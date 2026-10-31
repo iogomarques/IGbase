@@ -60,3 +60,14 @@ Usuário selecionou os 6 PDFs reais de exemplo no navegador do app; todos lidos.
 - Clique no item da lateral leva ao rateio (usina ou linha da unidade, destacada); o lápis abre a ficha para editar, como "Editar cliente" no Organization. Unidade com não compensado acima do mínimo tem o ponto em laranja.
 - Etapas no topo de "Lançar faturas": 1 Faturas · 2 Conferência · 3 Rateio · 4 Formulário (como "Lançamento do mês").
 - Tela de carregamento comum (`.ig-startup` em `shared/presentation.css`) igual à do Organization, usada no Distribution, Budget e Empresas.
+
+## Caso Silas, média de 3 meses e consumo da geradora (31/10/2026, 1.10.16)
+
+Exemplos em `IG SOLAR\ARQUIVOS IG\RATEIO SILAS` (pastas GERADORA 01 e 02 = fonte; planilhas de fora = em análise, não 100%).
+
+- Plano do usuário: geradora 1 (loja, UC 3.187.902.012-59) atende apartamento, chácara e casa do pai; geradora 2 (casa, UC 2.965.543.012-72) dá 100% à casa do pai. Produção média informada: geradora 1 = 1.200 kWh, geradora 2 = 890 kWh.
+- **Regra do IG Base**: geração = média dos últimos 3 meses (90 dias), ou dos meses que a usina tiver. Campo "Geração dos últimos 3 meses" na usina; sem meses, usa kWp × fator.
+- **Consumo da geradora** (planilha v7: consumo na geração = produção − injeção + consumo da rede): geração para rateio = produção − (produção − injetada) − consumo da rede acima do mínimo. A fatura da geradora traz o histórico mês a mês (consumo da rede e injeção alternados; as duas primeiras linhas são as médias impressas); o site guarda os últimos 3 meses. Conferido com setembro: loja injetou 639, consumiu 400 (mín. 30) → 269 de excedente, igual ao "GERAÇÃO CICLO" nas faturas das unidades. Com a média de 3 meses: loja 319 kWh, casa 236 kWh para o rateio. Sem esse desconto, 1.200/890 dariam sobra de ~533 kWh, o contrário das faturas.
+- **Leitura**: UC ao lado do CEP, "CADASTRO / RATEIO GERAÇÃO" quebrado em duas linhas e SCEE com duas geradoras agora são lidos; a unidade é ligada a todas as geradoras que aparecem. As ligações seguem o cadastro atual da Equatorial: confira e ajuste para o plano novo.
+- **Várias usinas**: o cálculo começa pela usina que atende menos unidades (a geradora 2, só a casa do pai, entrega 100%) e a outra cobre o que falta proporcionalmente.
+- Resultado no navegador simulado (plano das pastas): geradora 2 → casa do pai 100%; geradora 1 → apartamento 46%, casa do pai 31%, chácara 23%; falta ~256 kWh/mês.

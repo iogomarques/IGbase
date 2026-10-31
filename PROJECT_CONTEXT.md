@@ -25,6 +25,9 @@ Site: [igbase.com.br](https://igbase.com.br). Repositório: [iogomarques/IGbase]
 - Lateral do Budget (usuário, 23/10/2026): ter as duas listas, cotações e fornecedores, com cotações como padrão e o usuário escolhendo.
 - Solar Distribution (usuário, 30/10/2026): rateio proporcional ao consumo total (consumo médio), ajuste manual, porcentagens inteiras fechando 100%, geradora 0% por padrão (com opção), várias usinas em cascata. A verdade são as faturas e a planilha de exemplo; o usuário avisa quando algo mudar. Venda do produto não é prioridade. Respostas do sócio (30/10/2026) confirmaram: kWp × 115; geração real opcional por APsystems/SolarEdge/outro; proporcional + ajuste; geradora 0%; inteiros; não compensado acima de 30/50/100 = sugerir ampliação.
 - Pasta local reorganizada em 30/10/2026: `SITE\\00` a `04` por subsite, `90 - HISTÓRICO`, `99 - PODE APAGAR`.
+- **Solar Distribution é beta** (usuário, 31/10/2026): ainda não é usado de verdade; mudanças de cálculo nele podem ser publicadas sem pedir antes, sempre explicando o que mudou. Organization (faturamento real) continua com a regra de perguntar.
+- Pasta `IG SOLAR` (empresa toda) liberada em 31/10/2026; exemplos em `ARQUIVOS IG\RATEIO SILAS`. Pastas GERADORA 01/02 são fonte; planilhas de fora estão em análise e podem ter erros (usar como referência, não corrigir).
+- Regra geral (usuário, 31/10/2026): geração considerada = média dos últimos 3 meses (90 dias), ou do tempo de existência da usina.
 - Conta de teste criada pelo usuário e logada no navegador do app do Claude; usar para conferir telas autenticadas.
 - Publicação automática autorizada, com exceções: ver regra 7 do [CLAUDE.md](CLAUDE.md).
 - Saldo (usuário, 23/10/2026): créditos às vezes já foram cobrados e às vezes não; o usuário informa consumo e sobra e a comparação deve ser automática. Comportamento atual mantido: cobra a diferença com aviso quando o uso excede o saldo, e a opção "saldo já cobrado" evita cobrança dupla.
@@ -54,6 +57,7 @@ Os itens abaixo resumem mensagens reais de commits, não garantias de validaçã
 | 30/10/2026 (Claude) | Versão 1.10.13: Solar Distribution com modo de distribuição homogênea ou prioritária (escolha do usuário) e potência da placa por usina, opcional |
 | 30/10/2026 (Claude) | Versão 1.10.14: Solar Distribution no padrão do Organization (lateral com filtros/ordenação/limpar, lápis de edição, etapas); tela de carregamento do Organization também no Budget, Empresas e Distribution. Pedido do usuário: subsites iguais ao padrão |
 | 30/10/2026 (Claude) | Versão 1.10.15: "Como usar" no menu Minha conta de todas as páginas — tutorial passo a passo do IG Base, Organization, Budget, Distribution e Empresas (Suporte não precisa, pedido do usuário) |
+| 31/10/2026 (Claude) | Versão 1.10.16: Solar Distribution (beta) com média de 3 meses da geração, desconto do consumo da própria geradora, leitura de faturas com duas geradoras e cálculo começando pela usina mais restrita (caso Silas) |
 
 Para conferir detalhes, use `git log --oneline` e `git show <commit>`. O histórico `.git` permanece na mesma pasta; não foi convertido em uma cópia nova.
 
