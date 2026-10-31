@@ -28,6 +28,7 @@ Site: [igbase.com.br](https://igbase.com.br). Repositório: [iogomarques/IGbase]
 - **Solar Distribution é beta** (usuário, 31/10/2026): ainda não é usado de verdade; mudanças de cálculo nele podem ser publicadas sem pedir antes, sempre explicando o que mudou. Organization (faturamento real) continua com a regra de perguntar.
 - Pasta `IG SOLAR` (empresa toda) liberada em 31/10/2026; exemplos em `ARQUIVOS IG\RATEIO SILAS`. Pastas GERADORA 01/02 são fonte; planilhas de fora estão em análise e podem ter erros (usar como referência, não corrigir).
 - Ivoney (pai e sócio do Iogo) respondeu dúvidas do Solar Distribution em 31/10/2026: porcentagens pelo consumo médio de cada fatura, só o excedente da geradora vai para as beneficiadas, geração esperada informada por UFV, formulário como etapa final, saldo ÷ consumo médio para saber quando cadastrar novo rateio.
+- Mínimo (usuário, 31/10/2026): nunca é compensado. Ex.: mínimo 100, consumo 200 → a unidade precisa de crédito para 100. Vale para unidades (base do rateio) e geradora (desconto do consumo acima do mínimo).
 - Regra geral (usuário, 31/10/2026): geração considerada = média dos últimos 3 meses (90 dias), ou do tempo de existência da usina.
 - A conta de teste é só para testes do Claude (usuário, 31/10/2026). O site tem que funcionar para qualquer pessoa que entrar: testar sempre também o caminho de um usuário novo, com a conta vazia. A referência à REN 482/2012 no formulário fica como no modelo do Ivoney.
 - Conta de teste criada pelo usuário e logada no navegador do app do Claude; usar para conferir telas autenticadas.
@@ -67,6 +68,7 @@ Os itens abaixo resumem mensagens reais de commits, não garantias de validaçã
 | 31/10/2026 (Claude) | Versão 1.10.21: o formulário abre numa prévia dentro da página (o navegador do app bloqueava a nova aba), com Baixar PDF e Abrir em outra aba |
 | 31/10/2026 (Claude) | Versão 1.10.22: teste completo como usuário novo (conta vazia), no computador e no celular: faturas em duas escolhas, rateio, salvar, recarregar, histórico e formulário, sem erros. No celular os filtros da lateral ficam recolhidos |
 | 31/10/2026 (Claude) | Versão 1.10.23: respostas finais do Ivoney — consumo da geradora sai inteiro (sem mínimo) e geração pela média dos últimos 3 meses (ou dos meses existentes). Silas: geradora 1 = 289 kWh, geradora 2 = 136 kWh |
+| 31/10/2026 (Claude) | Versão 1.10.24: correção do entendimento — o mínimo nunca é compensado: base do rateio = consumo médio − mínimo de cada unidade; geradora desconta o consumo acima do mínimo dela. Silas: apartamento 48%, casa do pai 31%, chácara 21% na geradora 1; casa do pai 100% na 2; faltam 166 kWh |
 
 Para conferir detalhes, use `git log --oneline` e `git show <commit>`. O histórico `.git` permanece na mesma pasta; não foi convertido em uma cópia nova.
 

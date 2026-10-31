@@ -85,3 +85,13 @@ Exemplos em `IG SOLAR\ARQUIVOS IG\RATEIO SILAS` (pastas GERADORA 01 e 02 = fonte
 - **Mínimo da geradora não é considerado:** o consumo da rede da geradora sai inteiro da geração (como a planilha v7). O campo "Mínimo da geradora" saiu da tela. Os mínimos 30/50/100 continuam valendo para as **unidades** (alerta de não compensado e sugestão de ampliação).
 - **Média de 3 meses:** a geração considerada é a média dos últimos 3 meses; se a usina tiver menos, a média dos meses que existirem. Vale para a geração esperada informada e para a injeção e o consumo da rede lidos do histórico da fatura da geradora.
 - Caso Silas com a regra final: geradora 1 = 1.200 − 566 (consumida na hora) − 346 (rede) = 289 kWh; geradora 2 = 890 − 223 − 531 = 136 kWh. Rateio: geradora 2 → casa do pai 100%; geradora 1 → apartamento 39%, casa do pai 42%, chácara 19%. Faltam ~386 kWh/mês.
+
+## Correção do entendimento sobre o mínimo (31/10/2026, versão 1.10.24)
+
+O usuário explicou que "o mínimo não é considerado" quer dizer: **o mínimo nunca é compensado**, então ninguém recebe crédito para ele. Exemplo dele: mínimo 100 e consumo 200 → só 100 precisam ser enviados à unidade. A 1.10.23 tinha entendido o contrário para a geradora; foi corrigido.
+
+- **Unidades:** a base do rateio é o que cada unidade precisa compensar = consumo médio − mínimo (30/50/100). Coluna "A compensar" na tabela; o resumo mostra "A compensar (sem o mínimo)" e a falta do sistema usa essa soma.
+- **Geradora:** desconta o consumo da rede acima do mínimo dela (como as faturas mostram: loja consumiu 400 e usou 370 de crédito). Campo "Mínimo da geradora" de volta.
+- **Média de 3 meses:** mantida (geração esperada e histórico da fatura da geradora; com menos meses, a média dos que existirem).
+- **Saldo:** continua saldo ÷ consumo médio (regra do Ivoney).
+- Silas: a compensar 234 (apartamento) + 386 (casa do pai) + 99 (chácara) = 720 kWh; sobra geradora 1 = 319, geradora 2 = 236. Rateio: geradora 2 → casa do pai 100%; geradora 1 → apartamento 48%, casa do pai 31%, chácara 21%. Faltam ~166 kWh/mês.

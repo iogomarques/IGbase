@@ -37,7 +37,7 @@ test('porcentagens inteiras sempre fecham o total',()=>{for(const p of [[1,1,1],
  assert.deepEqual(E.inteiros([1,1,1,1],100),[25,25,25,25]);});
 
 function cenario(){const d=E.fresh(),u=E.usina('Usina A');Object.assign(u,{kwp:10,fator:100});d.usinas.push(u);
- for(const [n,c] of [['U1',300],['U2',300],['U3',300],['U4',100]]){const x=E.unidade(n);Object.assign(x,{consumoMedio:c,minimo:30,saldo:0,usinas:[u.id]});d.unidades.push(x);}return d;}
+ for(const [n,c] of [['U1',300],['U2',300],['U3',300],['U4',100]]){const x=E.unidade(n);Object.assign(x,{consumoMedio:c,minimo:0,saldo:0,usinas:[u.id]});d.unidades.push(x);}return d;}
 
 test('uma usina: proporcional ao consumo, inteiros, 100%',()=>{const d=cenario(),r=E.calcular(d),f=Object.values(r.usinas[0].final);assert.deepEqual(f,[30,30,30,10]);assert.equal(r.usinas[0].soma,100);assert.equal(r.ok,true);});
 
@@ -53,9 +53,9 @@ test('várias usinas: a que atende só uma unidade entrega 100% a ela e a outra 
  assert.equal(rb[big.id],100);assert.ok(ra[big.id]>0);assert.equal(ra[x1.id],ra[x2.id]);assert.equal(ra[x1.id]+ra[x2.id]+ra[big.id],100);
  d.usinas.reverse();r=E.calcular(d);const rb2=r.usinas.find(u=>u.usinaId===b.id).final,ra2=r.usinas.find(u=>u.usinaId===a.id).final;assert.equal(rb2[big.id],100);assert.equal(ra2[big.id],ra[big.id]);});
 
-test('geradora que consome na hora: só a sobra entra no rateio (produção − injeção + consumo da rede, sem tirar o mínimo)',()=>{const u=E.usina('G1');Object.assign(u,{geracaoMeses:[1200],injecao3:634.33,consumoGeradora:345.67,minimoGeradora:30});
- const en=E.energiaUsina(u);assert.equal(Math.round(en.autoconsumo),566);assert.equal(Math.round(en.rede),346);assert.equal(Math.round(en.liquida),289);
- u.injecao3=null;u.injecaoFatura=null;assert.equal(Math.round(E.energiaUsina(u).liquida),854);});
+test('geradora que consome na hora: só a sobra entra no rateio (produção − injeção + consumo da rede acima do mínimo)',()=>{const u=E.usina('G1');Object.assign(u,{geracaoMeses:[1200],injecao3:634.33,consumoGeradora:345.67,minimoGeradora:30});
+ const en=E.energiaUsina(u);assert.equal(Math.round(en.autoconsumo),566);assert.equal(Math.round(en.rede),316);assert.equal(Math.round(en.liquida),319);
+ u.injecao3=null;u.injecaoFatura=null;assert.equal(Math.round(E.energiaUsina(u).liquida),884);});
 
 test('alerta quando as usinas não atendem o consumo total',()=>{const d=cenario();d.unidades[0].consumoMedio=2000;const r=E.calcular(d);assert.ok(r.deficit>0);assert.match(r.alertas.map(a=>a.texto).join(' '),/não atendem/);});
 
@@ -75,19 +75,23 @@ test('não compensado acima do mínimo da fase sugere ampliação',()=>{const d=
  assert.ok(a);assert.equal(a.ampliacao.kwh,115);assert.equal(a.ampliacao.kwp,1.15);assert.equal(a.ampliacao.placas,2);assert.match(a.texto,/ampliação/);
  un.naoCompensado=50;assert.equal(E.calcular(d).alertas.some(x=>x.unidadeId===un.id&&x.ampliacao),false);});
 
-test('consumo da geradora sai inteiro da geração para rateio, sem tirar o mínimo (planilha: geração − consumo da geradora)',()=>{const d=cenario(),u=d.usinas[0];
- u.consumoGeradora=64;u.minimoGeradora=100;assert.equal(E.energiaUsina(u).liquida,936);
- u.consumoGeradora=300;assert.equal(E.energiaUsina(u).liquida,700);const r=E.calcular(d);assert.equal(Math.round(r.unidades[0].credito),210);});
+test('consumo da geradora acima do mínimo sai da geração para rateio',()=>{const d=cenario(),u=d.usinas[0];
+ u.consumoGeradora=64;u.minimoGeradora=100;assert.equal(E.energiaUsina(u).liquida,1000);
+ u.consumoGeradora=300;assert.equal(E.energiaUsina(u).liquida,800);u.minimoGeradora=null;assert.equal(E.energiaUsina(u).liquida,700);});
+
+test('o mínimo da unidade nunca é compensado: mínimo 100 e consumo 200 → precisa de 100; o rateio segue essa necessidade',()=>{const un=E.unidade('X');Object.assign(un,{consumoMedio:200,minimo:100});assert.equal(E.necessidade(un),100);
+ un.consumoMedio=80;assert.equal(E.necessidade(un),0);un.consumoMedio=null;assert.equal(E.necessidade(un),0);
+ const d=cenario();d.unidades.forEach(x=>x.minimo=100);const r=E.calcular(d),f=Object.values(r.usinas[0].final);assert.deepEqual([...f].sort((a,b)=>a-b),[0,33,33,34]);assert.equal(f[3],0);assert.equal(Math.round(r.totalConsumo),600);});
 
 test('fator editável muda a geração e a sugestão de ampliação',()=>{const d=cenario(),u=d.usinas[0];u.fator=130;assert.equal(E.energiaUsina(u).bruta,1300);
- const un=d.unidades[0];un.naoCompensado=160;const a=E.calcular(d).alertas.find(x=>x.ampliacao);assert.equal(a.ampliacao.kwp,1);});
+ const un=d.unidades[0];un.minimo=30;un.naoCompensado=160;const a=E.calcular(d).alertas.find(x=>x.ampliacao);assert.equal(a.ampliacao.kwp,1);});
 
 test('modo homogêneo (padrão) × prioritário quando falta energia',()=>{const d=cenario();const [a,b,c,e]=d.unidades;a.consumoMedio=1000;a.prioritaria=true;
  assert.equal(E.modo(d),'homogenea');let r=E.calcular(d),f=r.usinas[0].final;assert.equal(f[a.id],59);assert.equal(r.usinas[0].soma,100);
  d.modo='prioritaria';r=E.calcular(d);f=r.usinas[0].final;assert.equal(f[a.id],100);assert.equal(f[b.id],0);assert.equal(r.usinas[0].soma,100);
  a.consumoMedio=600;r=E.calcular(d);f=r.usinas[0].final;assert.equal(f[a.id],60);assert.equal(f[b.id]+f[c.id]+f[e.id],40);assert.equal(f[b.id],f[c.id]);assert.ok(f[e.id]<f[b.id]);});
 
-test('placa opcional: vazio mostra só kWp; outra potência muda a quantidade',()=>{const d=cenario(),u=d.usinas[0],un=d.unidades[0];un.naoCompensado=130;
+test('placa opcional: vazio mostra só kWp; outra potência muda a quantidade',()=>{const d=cenario(),u=d.usinas[0],un=d.unidades[0];un.minimo=30;un.naoCompensado=130;
  let a=E.calcular(d).alertas.find(x=>x.ampliacao);assert.equal(a.ampliacao.placaW,620);assert.equal(a.ampliacao.placas,2);
  u.placaW=550;a=E.calcular(d).alertas.find(x=>x.ampliacao);assert.equal(a.ampliacao.placas,2);u.placaW=null;a=E.calcular(d).alertas.find(x=>x.ampliacao);assert.equal(a.ampliacao.placas,null);assert.doesNotMatch(a.texto,/placas/);
  delete u.placaW;assert.equal(E.placaUsina(u),620);});
