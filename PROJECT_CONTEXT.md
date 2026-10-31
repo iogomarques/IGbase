@@ -63,6 +63,7 @@ Os itens abaixo resumem mensagens reais de commits, não garantias de validaçã
 | 31/10/2026 (Claude) | Versão 1.10.18: correção relatada pelo usuário — escolher faturas em mais de uma vez apagava as anteriores; agora soma na lista e ignora a mesma fatura repetida (mesma UC e mês) |
 | 31/10/2026 (Claude) | Versão 1.10.19: falta de energia avisada por sistema (usinas e unidades ligadas entre si). No teste oficial com a conta de teste, os sistemas Pedro Amaro e Silas apareciam somados (815 kWh); agora Silas = 256 kWh. Teste oficial do caso Silas no site publicado conferiu: geradora 1 = 319 kWh, geradora 2 = 236 kWh; casa do pai 100% da 2; da 1: apartamento 46%, casa do pai 31%, chácara 23% |
 | 31/10/2026 (Claude) | Versão 1.10.20: respostas do Ivoney (sócio) — geração esperada por UFV, formulário no modelo da Equatorial aberto na etapa final, saldo ÷ consumo médio = meses até o novo rateio |
+| 31/10/2026 (Claude) | Versão 1.10.21: o formulário abre numa prévia dentro da página (o navegador do app bloqueava a nova aba), com Baixar PDF e Abrir em outra aba |
 
 Para conferir detalhes, use `git log --oneline` e `git show <commit>`. O histórico `.git` permanece na mesma pasta; não foi convertido em uma cópia nova.
 

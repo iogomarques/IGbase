@@ -101,8 +101,8 @@ function renderHistorico(){const host=document.querySelector('[data-page=histori
 const usinaByUc=uc=>uc&&data.usinas.find(u=>E.ucKey(u.uc)===E.ucKey(uc)),unidadeByUc=uc=>uc&&data.unidades.find(u=>E.ucKey(u.uc)===E.ucKey(uc));
 
 /* ---------- Faturas ---------- */
-async function pdfText(file){let pdfjs,last;for(const base of ['https://cdn.jsdelivr.net/npm/pdfjs-dist@6.4.299/legacy/build/','https://unpkg.com/pdfjs-dist@6.4.299/legacy/build/']){try{pdfjs=await timeout(import(base+'pdf.mjs'));pdfjs.GlobalWorkerOptions.workerSrc=base+'pdf.worker.mjs';break;}catch(e){last=e;}}
- if(!pdfjs)throw Error('Leitor de PDF indisponível: '+(last?.message||''));const task=pdfjs.getDocument({data:new Uint8Array(await file.arrayBuffer()),isEvalSupported:false,enableScripting:false,useSystemFonts:true});
+let pdfjsMod=null;async function loadPdfjs(){if(pdfjsMod)return pdfjsMod;let last;for(const base of ['https://cdn.jsdelivr.net/npm/pdfjs-dist@6.4.299/legacy/build/','https://unpkg.com/pdfjs-dist@6.4.299/legacy/build/']){try{const m=await timeout(import(base+'pdf.mjs'));m.GlobalWorkerOptions.workerSrc=base+'pdf.worker.mjs';return pdfjsMod=m;}catch(e){last=e;}}throw Error('Leitor de PDF indisponível: '+(last?.message||''));}
+async function pdfText(file){const pdfjs=await loadPdfjs();const task=pdfjs.getDocument({data:new Uint8Array(await file.arrayBuffer()),isEvalSupported:false,enableScripting:false,useSystemFonts:true});
  try{const pdf=await timeout(task.promise);if(pdf.numPages>10)throw Error('Fatura com mais de 10 páginas.');const parts=[];for(let n=1;n<=pdf.numPages;n++){const page=await pdf.getPage(n),content=await page.getTextContent();parts.push(E.linesFromItems(content.items));}return parts.join('\n');}finally{await task.destroy();}}
 /* Faturas escolhidas em mais de uma vez (ex.: pasta da geradora 1, depois da geradora 2) somam na mesma lista.
    A mesma fatura de novo (mesma UC e mesmo mês, ou mesmo arquivo) não entra duas vezes. "Limpar lista" recomeça. */
@@ -121,10 +121,9 @@ function aplicarFaturas(){const marcadas=review.filter(r=>!r.erro&&r.aplicar);if
  const n=marcadas.length;review=[];touch();notify(n+' fatura(s) aplicada(s). Confira o rateio e clique em "Salvar na conta".');location.hash='rateio';}
 
 /* ---------- Formulário PDF ---------- */
-/* Formulário de Solicitação de Rateio - GD, no modelo da aba RATEIO da planilha. É a etapa final: abre na tela
-   (nova aba) para conferir, imprimir ou salvar e enviar à distribuidora; se o navegador bloquear a aba, baixa o arquivo. */
-async function formulario(us,linhas,reserva,quando){let win=null;try{win=window.open('','_blank');if(win)win.document.write('<p style="font:14px sans-serif;padding:24px">Gerando o formulário de rateio…</p>');}catch(e){win=null;}
- try{await lib('gerador PDF',['https://cdn.jsdelivr.net/npm/jspdf@2.5.1/dist/jspdf.umd.min.js','https://unpkg.com/jspdf@2.5.1/dist/jspdf.umd.min.js'],()=>!!window.jspdf);}catch(e){if(win)win.close();throw e;}
+/* Formulário de Solicitação de Rateio - GD, no modelo da aba RATEIO da planilha. É a etapa final: abre na própria
+   página (janela com a prévia) para conferir, e dali baixar, abrir em outra aba ou imprimir pelo leitor de PDF. */
+async function formulario(us,linhas,reserva,quando){await lib('gerador PDF',['https://cdn.jsdelivr.net/npm/jspdf@2.5.1/dist/jspdf.umd.min.js','https://unpkg.com/jspdf@2.5.1/dist/jspdf.umd.min.js'],()=>!!window.jspdf);
  const doc=new jspdf.jsPDF({unit:'mm',format:'a4'}),W=210,M=16,dt=new Date(quando||Date.now());let y=16;
  const t=(txt,x,yy,o={})=>{doc.setFont('helvetica',o.bold?'bold':'normal');doc.setFontSize(o.size||9.5);doc.text(String(txt??''),x,yy,o.align?{align:o.align}:undefined);};
  const campo=(rot,val,x,yy,larg)=>{t(rot,x,yy,{bold:true});const w=doc.getTextWidth(rot)+1.5;doc.setFont('helvetica','normal');t(doc.splitTextToSize(String(val||'—'),larg-w)[0],x+w,yy);doc.setDrawColor(190);doc.line(x+w,yy+1,x+larg,yy+1);doc.setDrawColor(0);};
@@ -153,8 +152,14 @@ async function formulario(us,linhas,reserva,quando){let win=null;try{win=window.
  y=Math.max(y+16,250);doc.line(M+35,y,W-M-35,y);t('Titular da UC ou Representante legal',W/2,y+5,{align:'center'});
  t('EQUATORIAL ENERGIA Goiás – Rua 2, Nº 505, Edifício Eletra – Jardim Goiás, Goiânia, GO, Brasil – CEP: 74805-180',W/2,289,{size:7.5,align:'center'});
  const name='Rateio '+(us.nome||'usina').replace(/[\\/:*?"<>|]/g,'')+' '+dt.toISOString().slice(0,10)+'.pdf',blob=doc.output('blob'),url=URL.createObjectURL(blob);
- if(win&&!win.closed){win.location.href=url;notify('Formulário aberto em outra aba: confira, imprima ou salve ('+name+').');setTimeout(()=>URL.revokeObjectURL(url),120000);}
- else{const a=document.createElement('a');a.href=url;a.download=name;document.body.append(a);a.click();a.remove();setTimeout(()=>URL.revokeObjectURL(url),4000);notify('Formulário baixado: '+name+'. O navegador bloqueou a nova aba.');}}
+ previaFormulario(url,name,blob);}
+function previaFormulario(url,name,blob){let d=document.getElementById('dist-form-preview');if(!d){d=document.createElement('dialog');d.id='dist-form-preview';d.className='ig-settings dist-preview';d.setAttribute('aria-labelledby','dist-form-preview-title');document.body.append(d);
+  d.addEventListener('close',()=>{const u=d.dataset.url;d.innerHTML='';if(u)setTimeout(()=>URL.revokeObjectURL(u),1000);});d.addEventListener('click',e=>{if(e.target.closest('.ig-settings-close'))d.close();});}
+ d.dataset.url=url;d.innerHTML='<button type="button" class="ig-settings-close" aria-label="Fechar a prévia">×</button><h2 class="cfg-modal-title" id="dist-form-preview-title">Formulário de rateio</h2><p class="hint">Confira antes de enviar à distribuidora. Para imprimir, use o botão de impressão do leitor de PDF ou baixe o arquivo.</p><div class="dist-preview-pages" aria-label="Prévia do formulário de rateio"><p class="hint">Montando a prévia…</p></div><div class="cfg-actions"><a class="ig-settings-button" href="'+url+'" download="'+esc(name)+'">Baixar PDF</a><a class="ig-settings-button" href="'+url+'" target="_blank" rel="noopener">Abrir em outra aba</a></div>';
+ if(!d.open)d.showModal();notify('Formulário pronto: '+name+'. Confira na prévia.');
+ /* A prévia é desenhada com o mesmo leitor de PDF das faturas, para aparecer em qualquer navegador (inclusive celular). */
+ (async()=>{const box=d.querySelector('.dist-preview-pages');try{const pdfjs=await loadPdfjs(),task=pdfjs.getDocument({data:new Uint8Array(await blob.arrayBuffer()),isEvalSupported:false,enableScripting:false});try{const pdf=await timeout(task.promise);const canvases=[];for(let n=1;n<=Math.min(pdf.numPages,4);n++){const page=await pdf.getPage(n),vp=page.getViewport({scale:2}),c=document.createElement('canvas');c.width=vp.width;c.height=vp.height;await page.render({canvasContext:c.getContext('2d'),viewport:vp}).promise;canvases.push(c);}if(d.dataset.url!==url)return;box.replaceChildren(...canvases);}finally{await task.destroy();}}
+  catch(e){if(d.dataset.url!==url)return;box.innerHTML='<iframe title="Prévia do formulário de rateio" src="'+url+'"></iframe>';}})();}
 function linhasDe(us,finais){return Object.entries(finais).map(([id,p])=>{const un=unidadeById(id);return {unidadeId:id,uc:un?.uc||'',nome:un?.nome||'',titular:un?.titular||'',documento:un?.documento||'',percentual:p};});}
 
 /* ---------- Eventos ---------- */

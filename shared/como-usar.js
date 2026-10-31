@@ -57,7 +57,7 @@
     ['Confira as unidades','No modo "Unidades" da lateral, confira consumo médio, ligação (mínimo de 30, 50 ou 100 kWh) e saldo, e quais usinas atendem cada unidade.'],
     ['Escolha o modo','Na aba Rateio, escolha "Homogênea" (proporcional ao consumo, como a planilha) ou "Prioritária" (unidades marcadas são atendidas primeiro).'],
     ['Ajuste e feche 100%','Veja o sugerido e, se precisar, ajuste em pontos (+ ou −) na coluna Ajuste. Cada usina precisa fechar 100%.'],
-    ['Formulário (etapa final)','Com tudo conferido, clique em "Formulário de rateio (PDF)". O formulário, no modelo da Equatorial, abre em outra aba para conferir, imprimir ou salvar e enviar à distribuidora. Depois clique em "Salvar este rateio no histórico" e em "Salvar na conta".']]},
+    ['Formulário (etapa final)','Com tudo conferido, clique em "Formulário de rateio (PDF)". O formulário, no modelo da Equatorial, abre na tela em uma prévia; dali você baixa o PDF ou abre em outra aba para imprimir e enviar à distribuidora. Depois clique em "Salvar este rateio no histórico" e em "Salvar na conta".']]},
    {titulo:'Alertas que aparecem',dicas:[
     '"Não atendem o consumo total": a geração não cobre todas as unidades; o site sugere quantos kWp (e placas) ampliar.',
     'Não compensado acima do mínimo: faltou crédito naquela unidade; aumente a porcentagem dela ou amplie a usina.',
