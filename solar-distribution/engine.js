@@ -81,11 +81,10 @@ function energiaUsina(u){let fonte=fonteGeracao(u),bruta=null,meses=0;const est=
  if(fonte==='media3'){const v=mesesGeracao(u);meses=v.length;if(meses)bruta=v.reduce((a,b)=>a+b,0)/meses;else{fonte='estimada';bruta=est();}}
  else if(fonte==='fatura'){bruta=num(u.injecao3)??num(u.injecaoFatura);meses=num(u.injecao3)!==null?(num(u.meses3)||3):1;}
  else bruta=est();
- const real=fonte!=='estimada';if(bruta===null)return {bruta:null,autoconsumo:0,rede:0,consumoGeradora:0,liquida:null,reserva:0,disponivel:null,origem:real?'real':'estimada',fonte};const reserva=Math.max(0,Math.min(100,Math.round(num(u.reservaGeradora)||0))),inj=num(u.injecao3)??num(u.injecaoFatura),autoconsumo=fonte!=='fatura'&&inj!==null?Math.max(0,bruta-inj):0,rede=Math.max(0,(num(u.consumoGeradora)||0)-(num(u.minimoGeradora)||0)),consumoGeradora=autoconsumo+rede,liquida=Math.max(0,bruta-consumoGeradora);return {bruta,autoconsumo,rede,consumoGeradora,liquida,reserva,disponivel:liquida*(100-reserva)/100,origem:real?'real':'estimada',fonte,meses};}
+ const real=fonte!=='estimada';if(bruta===null)return {bruta:null,autoconsumo:0,rede:0,consumoGeradora:0,liquida:null,reserva:0,disponivel:null,origem:real?'real':'estimada',fonte};const reserva=Math.max(0,Math.min(100,Math.round(num(u.reservaGeradora)||0))),inj=num(u.injecao3)??num(u.injecaoFatura),autoconsumo=fonte!=='fatura'&&inj!==null?Math.max(0,bruta-inj):0,rede=Math.max(0,num(u.consumoGeradora)||0),consumoGeradora=autoconsumo+rede,liquida=Math.max(0,bruta-consumoGeradora);return {bruta,autoconsumo,rede,consumoGeradora,liquida,reserva,disponivel:liquida*(100-reserva)/100,origem:real?'real':'estimada',fonte,meses};}
 /* Como na planilha (v7: consumo na geração = produção − injeção + consumo da rede): geração para rateio = produção − o que a própria
    geradora consome. Esse consumo tem duas partes: o que ela usa na hora (produção − energia injetada, quando a fatura informa a injeção)
-   e o consumo da rede acima do mínimo dela. Confere com as faturas: excedente = injetada − créditos usados pela geradora (Lei 14.300, art. 1º).
-   Só abate o que passa do mínimo da geradora (30/50/100): abaixo dele a concessionária cobra o mínimo e não usa crédito (Lei 14.300, art. 16). */
+   e o consumo da rede (média dos últimos 3 meses), inteiro: o mínimo da geradora não é considerado (Ivoney, 31/10/2026). */
 /* Placas para uma ampliação: só quando a potência da placa (W) do projeto foi informada; vazio = só kWp. */
 function placaUsina(u){if(u&&u.placaW===undefined)return 620;const w=num(u&&u.placaW);return w!==null&&w>0?w:null;}
 function ampliacaoTexto(kwp,w){return 'cerca de '+fmt(kwp,1)+' kWp'+(w?' ('+Math.ceil(kwp*1000/w)+' placas de '+fmt(w,0)+' W)':'');}

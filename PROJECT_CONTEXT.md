@@ -66,6 +66,7 @@ Os itens abaixo resumem mensagens reais de commits, não garantias de validaçã
 | 31/10/2026 (Claude) | Versão 1.10.20: respostas do Ivoney (sócio) — geração esperada por UFV, formulário no modelo da Equatorial aberto na etapa final, saldo ÷ consumo médio = meses até o novo rateio |
 | 31/10/2026 (Claude) | Versão 1.10.21: o formulário abre numa prévia dentro da página (o navegador do app bloqueava a nova aba), com Baixar PDF e Abrir em outra aba |
 | 31/10/2026 (Claude) | Versão 1.10.22: teste completo como usuário novo (conta vazia), no computador e no celular: faturas em duas escolhas, rateio, salvar, recarregar, histórico e formulário, sem erros. No celular os filtros da lateral ficam recolhidos |
+| 31/10/2026 (Claude) | Versão 1.10.23: respostas finais do Ivoney — consumo da geradora sai inteiro (sem mínimo) e geração pela média dos últimos 3 meses (ou dos meses existentes). Silas: geradora 1 = 289 kWh, geradora 2 = 136 kWh |
 
 Para conferir detalhes, use `git log --oneline` e `git show <commit>`. O histórico `.git` permanece na mesma pasta; não foi convertido em uma cópia nova.
 

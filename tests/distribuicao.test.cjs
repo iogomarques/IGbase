@@ -53,9 +53,9 @@ test('várias usinas: a que atende só uma unidade entrega 100% a ela e a outra 
  assert.equal(rb[big.id],100);assert.ok(ra[big.id]>0);assert.equal(ra[x1.id],ra[x2.id]);assert.equal(ra[x1.id]+ra[x2.id]+ra[big.id],100);
  d.usinas.reverse();r=E.calcular(d);const rb2=r.usinas.find(u=>u.usinaId===b.id).final,ra2=r.usinas.find(u=>u.usinaId===a.id).final;assert.equal(rb2[big.id],100);assert.equal(ra2[big.id],ra[big.id]);});
 
-test('geradora que consome na hora: só a sobra entra no rateio (produção − injeção + consumo da rede acima do mínimo)',()=>{const u=E.usina('G1');Object.assign(u,{geracaoMeses:[1200],injecao3:634.33,consumoGeradora:345.67,minimoGeradora:30});
- const en=E.energiaUsina(u);assert.equal(Math.round(en.autoconsumo),566);assert.equal(Math.round(en.rede),316);assert.equal(Math.round(en.liquida),319);
- u.injecao3=null;u.injecaoFatura=null;assert.equal(Math.round(E.energiaUsina(u).liquida),884);});
+test('geradora que consome na hora: só a sobra entra no rateio (produção − injeção + consumo da rede, sem tirar o mínimo)',()=>{const u=E.usina('G1');Object.assign(u,{geracaoMeses:[1200],injecao3:634.33,consumoGeradora:345.67,minimoGeradora:30});
+ const en=E.energiaUsina(u);assert.equal(Math.round(en.autoconsumo),566);assert.equal(Math.round(en.rede),346);assert.equal(Math.round(en.liquida),289);
+ u.injecao3=null;u.injecaoFatura=null;assert.equal(Math.round(E.energiaUsina(u).liquida),854);});
 
 test('alerta quando as usinas não atendem o consumo total',()=>{const d=cenario();d.unidades[0].consumoMedio=2000;const r=E.calcular(d);assert.ok(r.deficit>0);assert.match(r.alertas.map(a=>a.texto).join(' '),/não atendem/);});
 
@@ -75,10 +75,9 @@ test('não compensado acima do mínimo da fase sugere ampliação',()=>{const d=
  assert.ok(a);assert.equal(a.ampliacao.kwh,115);assert.equal(a.ampliacao.kwp,1.15);assert.equal(a.ampliacao.placas,2);assert.match(a.texto,/ampliação/);
  un.naoCompensado=50;assert.equal(E.calcular(d).alertas.some(x=>x.unidadeId===un.id&&x.ampliacao),false);});
 
-test('consumo da geradora acima do mínimo sai da geração para rateio (planilha: geração − consumo da geradora)',()=>{const d=cenario(),u=d.usinas[0];
- u.consumoGeradora=64;u.minimoGeradora=100;assert.equal(E.energiaUsina(u).liquida,1000);
- u.consumoGeradora=300;assert.equal(E.energiaUsina(u).liquida,800);const r=E.calcular(d);assert.equal(Math.round(r.unidades[0].credito),240);
- u.minimoGeradora=null;assert.equal(E.energiaUsina(u).liquida,700);});
+test('consumo da geradora sai inteiro da geração para rateio, sem tirar o mínimo (planilha: geração − consumo da geradora)',()=>{const d=cenario(),u=d.usinas[0];
+ u.consumoGeradora=64;u.minimoGeradora=100;assert.equal(E.energiaUsina(u).liquida,936);
+ u.consumoGeradora=300;assert.equal(E.energiaUsina(u).liquida,700);const r=E.calcular(d);assert.equal(Math.round(r.unidades[0].credito),210);});
 
 test('fator editável muda a geração e a sugestão de ampliação',()=>{const d=cenario(),u=d.usinas[0];u.fator=130;assert.equal(E.energiaUsina(u).bruta,1300);
  const un=d.unidades[0];un.naoCompensado=160;const a=E.calcular(d).alertas.find(x=>x.ampliacao);assert.equal(a.ampliacao.kwp,1);});
