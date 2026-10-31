@@ -142,7 +142,7 @@ function calcular(d,sugestao){
   for(const [id,v] of Object.entries(finais)){const c=r.energia.disponivel===null?null:(r.energia.liquida*v/100);if(c!==null){porUnidade[id].credito+=c;porUnidade[id].origens.push({usinaId:us.id,percentual:v,credito:c});}}
   porUsina.push({usinaId:us.id,energia:r.energia,sugerido:r.percentuais,final:finais,soma,alvo,ok:ok&&!negativos.length});}
  const unidades=d.unidades.map(un=>{const p=porUnidade[un.id],consumo=num(un.consumoMedio),minimo=num(un.minimo)??100,saldo=num(un.saldo)??0;
-  const uso=consumo===null?null:Math.max(0,consumo-minimo),projetado=uso===null?null:saldo+p.credito-uso,cobertura=uso?p.credito/uso:null,meses=saldo>0&&consumo>0?saldo/consumo:null;
+  const uso=consumo===null?null:Math.max(0,consumo-minimo),projetado=uso===null?null:saldo+p.credito-uso,cobertura=uso?p.credito/uso:null,meses=saldo>0&&uso>0?saldo/uso:null;
   const venc=(num(un.saldoExpira30)||0)+(num(un.saldoExpira60)||0);if(venc>0.5)alertas.push({tipo:'aviso',unidadeId:un.id,texto:un.nome+': '+fmt(venc,0)+' kWh de saldo vencem nos próximos 60 dias'+(num(un.saldoExpira30)>0.5?' ('+fmt(num(un.saldoExpira30),0)+' kWh em 30 dias)':'')+'. Use esse saldo antes: a porcentagem desta unidade pode baixar por um tempo.'});
   if(!un.usinas.length)alertas.push({tipo:'aviso',unidadeId:un.id,texto:un.nome+' não está ligada a nenhuma usina.'});
   else if(uso!==null&&projetado<0)alertas.push({tipo:'aviso',unidadeId:un.id,texto:un.nome+': faltam cerca de '+fmt(-projetado,0)+' kWh no mês, mesmo usando o saldo. Ligue mais uma usina ou aumente a porcentagem.'});

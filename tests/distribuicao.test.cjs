@@ -119,7 +119,7 @@ test('dois clientes na mesma conta: a falta é avisada por sistema, sem somar os
  const r=E.calcular(d);assert.equal(r.sistemas.length,2);const al=r.alertas.filter(a=>/não atendem/.test(a.texto));assert.equal(al.length,1);assert.match(al[0].texto,/^Sistema Usina A:/);assert.match(al[0].texto,/faltam 1\.700 kWh/);
  assert.equal(Math.round(r.deficit),1700);});
 
-test('saldo dura saldo ÷ consumo médio meses (regra do Ivoney); fatura traz classe, endereço, CEP e cidade',()=>{const d=cenario(),un=d.unidades[3];un.saldo=1283;un.consumoMedio=129;const u=E.calcular(d).unidades.find(x=>x.id===un.id);assert.equal(Math.round(u.meses*10)/10,9.9);
+test('saldo dura saldo ÷ (consumo médio − mínimo) meses; fatura traz classe, endereço, CEP e cidade',()=>{const d=cenario(),un=d.unidades[3];un.saldo=1283;un.consumoMedio=129;un.minimo=30;const u=E.calcular(d).unidades.find(x=>x.id===un.id);assert.equal(Math.round(u.meses*10)/10,13);
  un.saldo=0;assert.equal(E.calcular(d).unidades.find(x=>x.id===un.id).meses,null);
  const f=E.parseInvoice(fatura().replace('CNPJ/CPF: 000.000.001-91','CNPJ/CPF: 000.000.001-91\nRUA 03, Q. 8, L. 1, S/N\nSETOR SANTO ANTONIO\nCEP: 76520000 NOVA CRIXAS GO BRASIL NOTA FISCAL Nº 1'));
  assert.equal(f.classe,'B B1 RESIDENCIAL');assert.equal(f.endereco,'RUA 03, Q. 8, L. 1, S/N');assert.equal(f.bairro,'SETOR SANTO ANTONIO');assert.equal(f.cep,'76520-000');assert.equal(f.cidade,'NOVA CRIXAS');});

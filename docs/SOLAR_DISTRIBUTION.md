@@ -93,5 +93,5 @@ O usuário explicou que "o mínimo não é considerado" quer dizer: **o mínimo 
 - **Unidades:** a base do rateio é o que cada unidade precisa compensar = consumo médio − mínimo (30/50/100). Coluna "A compensar" na tabela; o resumo mostra "A compensar (sem o mínimo)" e a falta do sistema usa essa soma.
 - **Geradora:** desconta o consumo da rede acima do mínimo dela (como as faturas mostram: loja consumiu 400 e usou 370 de crédito). Campo "Mínimo da geradora" de volta.
 - **Média de 3 meses:** mantida (geração esperada e histórico da fatura da geradora; com menos meses, a média dos que existirem).
-- **Saldo:** continua saldo ÷ consumo médio (regra do Ivoney).
+- **Saldo (1.10.25, usuário):** meses de saldo = saldo ÷ (consumo médio − mínimo), a parte que realmente usa crédito. Chácara do Silas: 1.283 ÷ 99 ≈ 13 meses.
 - Silas: a compensar 234 (apartamento) + 386 (casa do pai) + 99 (chácara) = 720 kWh; sobra geradora 1 = 319, geradora 2 = 236. Rateio: geradora 2 → casa do pai 100%; geradora 1 → apartamento 48%, casa do pai 31%, chácara 21%. Faltam ~166 kWh/mês.

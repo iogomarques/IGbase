@@ -63,7 +63,7 @@
     'Não compensado acima do mínimo: faltou crédito naquela unidade; aumente a porcentagem dela ou amplie a usina.',
     'Unidade lida antes da geradora: o crédito entra na fatura do mês seguinte.',
     'CPF/CNPJ diferente: no autoconsumo remoto, a usina e as unidades precisam ter o mesmo titular.',
-    'Saldo acumulado: o site divide o saldo pelo consumo médio da unidade e mostra quantos meses ele dura e quando cadastrar um novo rateio.',
+    'Saldo acumulado: o site divide o saldo pelo consumo médio da unidade menos o mínimo (a parte que usa crédito) e mostra quantos meses ele dura e quando cadastrar um novo rateio.',
     'A alteração do rateio na Equatorial vale a partir do ciclo seguinte ao pedido.',
     'Unidade atendida por duas usinas (ex.: uma casa que recebe 100% de uma e parte da outra): marque as duas em "Usinas que mandam energia". A usina que atende só essa casa entrega 100% a ela e a outra cobre o que faltar.',
     'Depois de lançar as faturas, confira as ligações: o site liga pelas porcentagens que estão cadastradas hoje na Equatorial, e o plano novo pode ser diferente.']}]},
