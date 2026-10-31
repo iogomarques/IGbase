@@ -22,7 +22,7 @@ ${o.extra||''}`;
 test('fatura de unidade: campos usados no rateio',()=>{const f=E.parseInvoice(fatura());
  assert.equal(f.uc,'9.999.001.012-11');assert.equal(f.fases,'MONO');assert.equal(f.minimo,30);assert.equal(f.leituraAtual,'2026-08-31');assert.equal(f.referencia,'SET/2026');assert.equal(f.valorFatura,50);
  assert.equal(f.consumoMes,700);assert.equal(f.consumoMedio,700);assert.equal(f.naoCompensado,30);assert.equal(f.ehGeradora,false);
- assert.deepEqual(f.scee,{geradoras:[{uc:'9.990.000.012-99',geracaoCiclo:2000,excedenteRecebido:600}],cicloGeracao:'08/2026',ucGeradora:'9.990.000.012-99',geracaoCiclo:2000,excedenteRecebido:600,creditoRecebido:700,saldo:1234.56,saldoExpira30:0});
+ assert.deepEqual(f.scee,{geradoras:[{uc:'9.990.000.012-99',geracaoCiclo:2000,excedenteRecebido:600}],cicloGeracao:'08/2026',ucGeradora:'9.990.000.012-99',geracaoCiclo:2000,excedenteRecebido:600,creditoRecebido:700,saldo:1234.56,saldoExpira30:0,saldoExpira60:null});
  assert.deepEqual(f.rateioCadastrado,[{uc:'9.990.000.012-99',percentual:30}]);assert.deepEqual(f.avisos,[]);});
 
 test('fatura da geradora: geração medida e sem média de consumo',()=>{const f=E.parseInvoice(fatura({fases:'TRIFÁSICO',extra:'99999999-9 ENERGIA GERAÇÃO - KWH ÚNICO 5000 8000 1,000000 3000'}));
@@ -106,3 +106,7 @@ PERÍODO DE REFERÊNCIA DA APURAÇÃO
 CONSUMO NÃO COMPENSADO kWh 182,35 1,0 182,35`);
  assert.equal(f.uc,'999.888.012-77');assert.deepEqual(f.rateioCadastrado,[{uc:'8.880.000.012-88',percentual:95}]);
  assert.deepEqual(f.scee.geradoras,[{uc:'9.990.000.012-99',geracaoCiclo:269,excedenteRecebido:134.5},{uc:'8.880.000.012-88',geracaoCiclo:188,excedenteRecebido:178.6}]);});
+
+test('saldo que vence em 30/60 dias gera aviso',()=>{const d=cenario(),un=d.unidades[1];un.saldoExpira30=120;un.saldoExpira60=80;const a=E.calcular(d).alertas.find(x=>x.unidadeId===un.id&&/vencem/.test(x.texto));assert.ok(a);assert.match(a.texto,/200 kWh/);
+ un.saldoExpira30=0;un.saldoExpira60=null;assert.equal(E.calcular(d).alertas.some(x=>x.unidadeId===un.id&&/vencem/.test(x.texto)),false);
+ const f=E.parseInvoice(fatura());assert.equal(f.scee.saldoExpira30,0);});
