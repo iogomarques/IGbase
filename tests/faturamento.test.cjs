@@ -103,3 +103,18 @@ test('modelos padrão salvos no banco (chaves reordenadas) não contam como desa
     assert.notEqual(e.assinaturaDados(alterado), e.assinaturaDados(novo), 'mudança real continua detectada');
   }
 });
+
+test('itens financeiros da conta: valor pela coluna, sem pegar o histórico de consumo ao lado (Aurélio 10/2026)', () => {
+  const ctx = vm.createContext({ console });
+  const grab = (name) => { const i = html.indexOf('function ' + name + '('); let d = 0; for (let k = html.indexOf('{', i); k < html.length; k++) { if (html[k] === '{') d++; else if (html[k] === '}') { d--; if (!d) return html.slice(i, k + 1); } } };
+  vm.runInContext(grab('lancamentosFinanceirosPdf') + ';this.f=lancamentosFinanceirosPdf;', ctx);
+  const it = (str, x, y) => ({ str, transform: [1, 0, 0, 1, x, y] });
+  const items = [it('MÊS/ANO', 677, 771.9), it('JUROS MORATÓRIA.', 19, 770.5), it('40,00', 248, 768.7), it('2,12', 373, 768.7), it('892,38', 810, 766.6),
+    it('JUROS MORATÓRIA.', 19, 760.5), it('8,00', 250, 758.7), it('0,48', 372, 758.7), it('1090,46', 808, 761.6),
+    it('MULTA - 08/2026.', 19, 750.5), it('40,00', 248, 748.7), it('3,18', 373, 748.7), it('959,00', 809, 749.6),
+    it('MULTA - 09/2026.', 19, 740.5), it('8,00', 250, 738.7), it('3,58', 372, 738.7), it('1021,00', 808, 742.6),
+    it('RELIGAÇÃO NORMAL DISJUNTOR', 19, 730.5), it('1,00', 251, 728.7), it('14,712000', 299, 728.7), it('14,71', 372, 728.7), it('904,00', 809, 731.6),
+    it('VALOR CORREÇÃO IPCA.', 19, 720.5), it('40,00', 248, 718.7), it('0,86', 372, 718.7), it('792,00', 809, 719.6)];
+  const linhas = ctx.f(items).trim().split('\n').map((l) => l.split(' | ')[2]);
+  assert.deepEqual(linhas, ['2,12', '0,48', '3,18', '3,58', '14,71', '0,86']);
+});

@@ -72,6 +72,7 @@ Os itens abaixo resumem mensagens reais de commits, não garantias de validaçã
 | 31/10/2026 (Claude) | Versão 1.10.25: meses de saldo = saldo ÷ (consumo médio − mínimo), a pedido do usuário |
 | 31/10/2026 (Claude) | Versão 1.10.26: duas formas de calcular o rateio, à escolha do usuário — sem considerar o saldo (padrão) ou considerando o saldo dividido pelos meses até refazer o rateio |
 | 31/10/2026 (Claude) | Versão 1.10.27: mínimo de 1% por unidade em todos os modos (regra da Equatorial, inteiros); com o saldo, quem tem saldo para mais de 3 meses fica com 1% e as demais recebem pelo consumo |
+| 02/11/2026 (Claude) | Versão 1.10.28 (Solar Organization, autorizado pelo usuário): leitura de itens financeiros da conta pela posição na página (valor na coluna \"Valor (R$)\", à esquerda do histórico). Antes, na fatura GD2 do Aurélio 10/2026, lia \"adicionais\" 1.090,46 e \"multas\" 967 do histórico; agora 18,17 e 6,76 (fecha com a conta de 257,15). Rótulo \"Energia compensada na conta\" → \"Energia injetada que aparece na conta\". O total cobrado do cliente (R$ 1.154,87) não mudou: nesse perfil GD2 multas/adicionais não entram na cobrança |
 
 Para conferir detalhes, use `git log --oneline` e `git show <commit>`. O histórico `.git` permanece na mesma pasta; não foi convertido em uma cópia nova.
 
