@@ -4,7 +4,7 @@
 <meta charset="UTF-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1.0" />
 <title>Solar Organization | IG Base</title>
-<link rel="icon" type="image/png" sizes="64x64" href="/favicon-ig-base.png?v=1.10.28">
+<link rel="icon" type="image/png" sizes="64x64" href="/favicon-ig-base.png?v=1.10.29">
 <!-- O SDK é carregado sem bloquear a renderização da página, no início do app. -->
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -318,6 +318,11 @@
   input[type=search]::-webkit-search-cancel-button{ -webkit-appearance:none; }
   .filtros-clientes select,.filtros-historico input:not(.busca-input),.filtros-historico select{ width:100%;min-width:0;height:38px;padding:8px 9px;border:1px solid var(--line);border-radius:var(--radius-s);background:var(--surface);font-size:13px; }
   .filtros-clientes .btn{ justify-content:center;font-size:12px; }
+  .filtros-mais>summary{ cursor:pointer;list-style:none;font-size:12px;font-weight:600;padding:6px 2px;display:flex;align-items:center;gap:6px; }
+  .filtros-mais>summary::-webkit-details-marker{ display:none; }
+  .filtros-mais>summary::before{ content:'▸';color:var(--accent);transition:transform .15s; }
+  .filtros-mais[open]>summary::before{ transform:rotate(90deg); }
+  .filtros-mais-corpo{ display:flex;flex-direction:column;gap:6px;padding-top:4px; }
   .filtros-grid{ display:grid;grid-template-columns:repeat(auto-fit,minmax(min(100%,200px),1fr));gap:12px; }
   .filtros-grid .field{ min-width:0;margin:0; }
   .filtros-grid .busca-wrap{ margin:0; }
@@ -459,7 +464,7 @@
 
 @media screen{.vigencia-linha input[type=month]{width:100%;min-height:44px;padding:9px;border:1px solid var(--line);border-radius:8px;background:#fff;font:inherit}.vigencia-linha .vigencia-remover{margin-top:10px}#m-vigencias{margin-top:16px}}
 </style>
-<script src="/shared/companies.js?v=1.10.28"></script><link rel="stylesheet" href="/shared/presentation.css?v=1.10.28"><script src="/shared/account.js?v=1.10.28"></script><script src="/shared/login.js?v=1.10.28"></script><script src="/shared/version.js?v=1.10.28"></script></head>
+<script src="/shared/companies.js?v=1.10.29"></script><link rel="stylesheet" href="/shared/presentation.css?v=1.10.29"><script src="/shared/account.js?v=1.10.29"></script><script src="/shared/login.js?v=1.10.29"></script><script src="/shared/version.js?v=1.10.29"></script></head>
 <body>
 
 <div id="auth-root"><div class="auth-screen startup-screen"><div class="startup-card" aria-busy="true"><div class="startup-brand"><img width="713" height="340" draggable="false" src="/assets/logo-ig-base.png" alt="IG Base"></div><div class="startup-spinner" aria-hidden="true"></div><h1 class="startup-title">Carregando o sistema</h1><p class="startup-message" role="status" aria-live="polite">Preparando seu ambiente…</p><noscript>Ative o JavaScript no navegador para utilizar o sistema.</noscript></div></div></div>
@@ -474,7 +479,7 @@
 </div>
 <footer class="app-footer ig-footer" id="app-footer" style="display:none">
   <div class="footer-links"><a href="/">IG Base</a><a href="/solar-organization/" aria-current="page">Solar Organization</a><a href="/solar-budget/">Solar Budget</a><a href="/solar-distribution/">Solar Distribution</a><a href="/empresas/">Empresas</a><a href="/suporte/">Suporte</a></div>
-  <div class="version" data-ig-version>IG Base v1.10.28</div>
+  <div class="version" data-ig-version>IG Base v1.10.29</div>
 </footer>
 
 <div id="modal-root"></div>
@@ -1250,11 +1255,22 @@ function buscaClienteInputHtml(){
   return '<div class="filtros-clientes"><label class="filter-label" for="busca-cliente">Buscar cliente</label>' +
     '<div class="busca-wrap">' + ICON_SEARCH + '<input type="search" id="busca-cliente" class="busca-input" placeholder="Nome, documento ou UC" value="' + escapeHtml(state.buscaCliente || '') + '" autocomplete="off">' +
     (state.buscaCliente ? '<button type="button" class="busca-clear" data-action="limpar-busca-cliente" aria-label="Limpar busca">' + ICON_X + '</button>' : '') + '</div>' +
+    '<details class="filtros-mais" data-filtros-clientes' + (filtrosClientesAbertos() ? ' open' : '') + '><summary>Filtros</summary><div class="filtros-mais-corpo">' +
     '<label class="filter-label" for="tipo-cliente">Tipo de usina</label><select id="tipo-cliente">' + opcoesFiltro([['','Todos os tipos'],['GD1','GD1'],['GD2','GD2']],state.tipoCliente || '') + '</select>' +
     '<label class="filter-label" for="ordem-cliente">Ordenar clientes</label><select id="ordem-cliente">' +
     opcoesFiltro([['cliente-az','Cliente: A–Z'],['cliente-za','Cliente: Z–A'],['local-az','Local: A–Z'],['local-za','Local: Z–A']],state.ordemCliente || 'cliente-az') + '</select>' +
-    '<button type="button" class="btn btn-ghost" data-action="limpar-filtros-clientes">Limpar filtros</button></div>';
+    '<button type="button" class="btn btn-ghost" data-action="limpar-filtros-clientes">Limpar filtros</button></div></details></div>';
 }
+/* No celular os filtros da lateral ficam recolhidos para o lançamento aparecer logo; no computador, abertos.
+   Depois que o usuário abre ou fecha, a escolha vale até recarregar a página. */
+var filtrosClientesEscolha = null;
+function filtrosClientesAbertos(){
+  if(filtrosClientesEscolha !== null) return filtrosClientesEscolha;
+  return !(window.matchMedia && window.matchMedia('(max-width: 900px)').matches);
+}
+document.addEventListener('toggle', function(e){
+  if(e.target && e.target.matches && e.target.matches('[data-filtros-clientes]')) filtrosClientesEscolha = e.target.open;
+}, true);
 
 
 function limparBuscaCliente(){
@@ -2669,7 +2685,8 @@ function notaResumoEnergia(r){
     else partes.push('Saldo utilizado incluído na cobrança de energia.');
   }
   if(r.consumoNaoCobertoKwh > 0) partes.push('Diferença sem cobertura de energia: ' + energiaTexto(r.consumoNaoCobertoKwh) + '.');
-  if(r.saldoDisponivelKwh === null) partes.push(r.conciliacaoSaldo && r.saldoRestanteKwh !== null ? 'Saldo inicial não informado; saldo final conferido na distribuidora.' : 'Saldo antes do uso e saldo final não informados.');
+  /* Com conciliação, a nota seguinte já traz o saldo final conferido: aqui só o aviso do saldo inicial, sem repetir. */
+  if(r.saldoDisponivelKwh === null) partes.push(r.conciliacaoSaldo && r.saldoRestanteKwh !== null ? 'Saldo inicial não informado.' : 'Saldo antes do uso e saldo final não informados.');
   else if(!r.conciliacaoSaldo)partes.push('Saldo: ' + energiaTexto(r.saldoDisponivelKwh) + ' antes do uso − ' + energiaTexto(r.saldoUtilizadoKwh) + ' utilizado = ' + energiaTexto(r.saldoRestanteKwh) + ' disponível após a fatura.');
   if(r.conciliacaoSaldo)partes.push(notaConciliacaoSaldo(r));
   if(r.creditoMesNaoUtilizadoKwh > 0) partes.push('Injeção do mês não utilizada: ' + energiaTexto(r.creditoMesNaoUtilizadoKwh) + ' (separada do saldo anterior).');
@@ -4643,13 +4660,13 @@ async function onSignOut(){
    O aviso aparece uma vez por versão por navegador (localStorage compartilhado
    entre o site principal e os subsites, pois ficam no mesmo domínio).
    ============================================================ */
-var IG_BASE_VERSION = window.IGBaseRelease?.version || '1.10.28';
-var IG_BASE_RELEASE_ID = window.IGBaseRelease?.releaseId || '1.10.28-2026-10-30';
+var IG_BASE_VERSION = window.IGBaseRelease?.version || '1.10.29';
+var IG_BASE_RELEASE_ID = window.IGBaseRelease?.releaseId || '1.10.29-2026-10-30';
 var IG_BASE_CHANGELOG = [
-  "Solar Distribution (beta): formulário de rateio no modelo da Equatorial, com prévia na tela como etapa final para baixar, imprimir ou enviar.",
-  "Solar Distribution: o mínimo (30/50/100 kWh) nunca é compensado; vale para o rateio e para quantos meses o saldo dura.",
-  "Solar Organization: leitura correta de multas, juros, religação e correção da conta da Equatorial (não pega mais números do histórico).",
-  "Solar Organization: o campo da injeção da conta agora se chama \"Energia injetada que aparece na conta\"."
+  "Solar Distribution: usina sem geração pede a potência ali mesmo no rateio (ou usa a energia injetada da fatura), em vez de \"nenhuma unidade ligada\".",
+  "Solar Distribution: soma ao vivo ao digitar os ajustes, Tab passa para o próximo campo e cada usina mostra quanto vai de fato para o rateio.",
+  "Solar Distribution: avisos de cada unidade na própria linha; formulário do histórico com endereço e contatos.",
+  "Solar Organization: filtros da lateral recolhidos no celular e texto do saldo sem repetição na fatura do cliente."
 ];
 function igbMostrarChangelog(){
   var KEY = 'igbase_changelog_visto';

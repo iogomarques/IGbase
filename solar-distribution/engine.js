@@ -30,7 +30,7 @@ function parseInvoice(text){
   const after=t.slice(m.index+m[0].length).split('\n').map(s=>s.trim()).filter(Boolean);if(after[0]&&!/CNPJ|CPF/.test(after[0]))out.titular=after[0];}
  m=/CNPJ\/CPF:\s*([\d.\/-]+)/.exec(t);if(m)out.documento=m[1];
  /* Dados do formulário de rateio (modelo da planilha): classe, endereço, bairro, CEP e cidade da UC. */
- m=/Classifica[çc][ãa]o:\s*([^\n]+)/i.exec(t);if(m)out.classe=m[1].trim();
+ m=/Classifica[çc][ãa]o:\s*([^\n]+)/i.exec(t);if(m)out.classe=m[1].trim().replace(/\s*-$/,'');
  {const ls=t.split('\n'),i=ls.findIndex(l=>/CNPJ\/CPF:/.test(l)),j=ls.findIndex((l,k)=>k>i&&/^\s*CEP:/.test(l));if(i>=0&&j>i&&j-i<=6){const end=ls.slice(i+1,j).map(l=>l.replace(/\s*NOTA FISCAL.*$/i,'').trim()).filter(Boolean);if(end.length>=2){out.bairro=end.pop();out.endereco=end.join(' ');}else if(end.length)out.endereco=end[0];}}
  m=/CEP:\s*(\d{5})-?(\d{3})\s+(.+?)\s+([A-Z]{2})\s+BRASIL/.exec(t);if(m){out.cep=m[1]+'-'+m[2];out.cidade=m[3].trim();out.uf=m[4];}
  m=new RegExp('\\b('+MESES.join('|')+')\\/(\\d{4})\\s+R\\$\\**\\s*([\\d.,]+)').exec(t);if(m){out.referencia=m[1]+'/'+m[2];out.valorFatura=num(m[3]);}
@@ -65,7 +65,7 @@ function round2(v){return Math.round(v*100)/100;}
 
 /* ---------- Modelo ---------- */
 function fresh(){return {version:VERSION,modo:'homogenea',considerarSaldo:false,mesesRevisao:3,usinas:[],unidades:[],rateios:[]};}
-function usina(nome='Nova usina'){return {id:uid(),nome,uc:'',titular:'',documento:'',kwp:null,fator:115,geracaoReal:null,geracaoMeses:[null,null,null],monitoramento:'APsystems',fonteGeracao:'media3',injecaoFatura:null,injecao3:null,consumoRede3:null,meses3:null,placaW:620,consumoGeradora:null,minimoGeradora:null,reservaGeradora:0,leituraAtual:null,classe:'',endereco:'',bairro:'',cep:'',cidade:'',email:'',telefone:'',celular:'',tipoSolicitacao:'alteracao',compensacao:'normal',saldo:null,rateioCadastrado:[],ajustes:{},fatura:null};}
+function usina(nome='Nova usina'){return {id:uid(),nome,uc:'',titular:'',documento:'',kwp:null,fator:115,geracaoReal:null,geracaoMeses:[null,null,null],monitoramento:'APsystems',fonteGeracao:'media3',injecaoFatura:null,injecao3:null,consumoRede3:null,meses3:null,placaW:620,consumoGeradora:null,minimoGeradora:null,reservaGeradora:0,leituraAtual:null,classe:'',endereco:'',bairro:'',cep:'',cidade:'',uf:'',email:'',telefone:'',celular:'',tipoSolicitacao:'alteracao',compensacao:'normal',saldo:null,rateioCadastrado:[],ajustes:{},fatura:null};}
 function unidade(nome='Nova unidade'){return {id:uid(),nome,uc:'',titular:'',documento:'',fases:'TRI',minimo:100,consumoMedio:null,consumoMes:null,saldo:null,naoCompensado:null,leituraAtual:null,valorFatura:null,prioritaria:false,usinas:[],fatura:null};}
 function validate(d){if(!d||typeof d!=='object')throw Error('Dados do Solar Distribution inválidos.');if(d.version!==VERSION)throw Error('Versão de dados do Solar Distribution incompatível.');for(const k of ['usinas','unidades','rateios'])if(!Array.isArray(d[k]))throw Error('Dados do Solar Distribution incompletos.');for(const u of d.usinas)if(typeof u.id!=='string')throw Error('Usina inválida.');for(const u of d.unidades)if(typeof u.id!=='string'||!Array.isArray(u.usinas))throw Error('Unidade inválida.');return d;}
 
@@ -90,7 +90,8 @@ function placaUsina(u){if(u&&u.placaW===undefined)return 620;const w=num(u&&u.pl
 function ampliacaoTexto(kwp,w){return 'cerca de '+fmt(kwp,1)+' kWp'+(w?' ('+Math.ceil(kwp*1000/w)+' placas de '+fmt(w,0)+' W)':'');}
 /* O mínimo (30/50/100 kWh) nunca é compensado: cada unidade só precisa de crédito para o que passa dele.
    Ex.: mínimo 100 e consumo médio 200 → a unidade precisa de 100 (usuário, 31/10/2026). É a base do rateio. */
-function necessidadeBase(un){const c=num(un.consumoMedio);if(c===null)return 0;const m=num(un.minimo)??MINIMO_FASES[un.fases]??0;return Math.max(0,c-m);}
+function minimoUnidade(un){return num(un.minimo)??MINIMO_FASES[un.fases]??0;}
+function necessidadeBase(un){const c=num(un.consumoMedio);if(c===null)return 0;return Math.max(0,c-minimoUnidade(un));}
 function necessidade(un,d){return coberta(un,d)?0:necessidadeBase(un);}
 /* Com o saldo: a unidade cujo saldo cobre 3 meses (90 dias) do que ela usa fica com 1% (o mínimo da Equatorial);
    as demais, mesmo com algum saldo, recebem normalmente pelo consumo − mínimo (usuário, 31/10/2026). */
@@ -158,7 +159,7 @@ function calcular(d,sugestao){
   if(negativos.length)alertas.push({tipo:'erro',usinaId:us.id,texto:us.nome+': cada unidade precisa de pelo menos 1% (regra da Equatorial). Ajuste até nenhuma ficar abaixo de 1%.'});
   for(const [id,v] of Object.entries(finais)){const c=r.energia.disponivel===null?null:(r.energia.liquida*v/100);if(c!==null){porUnidade[id].credito+=c;porUnidade[id].origens.push({usinaId:us.id,percentual:v,credito:c});}}
   porUsina.push({usinaId:us.id,energia:r.energia,sugerido:r.percentuais,final:finais,soma,alvo,ok:ok&&!negativos.length});}
- const unidades=d.unidades.map(un=>{const p=porUnidade[un.id],consumo=num(un.consumoMedio),minimo=num(un.minimo)??100,saldo=num(un.saldo)??0;
+ const unidades=d.unidades.map(un=>{const p=porUnidade[un.id],consumo=num(un.consumoMedio),minimo=minimoUnidade(un),saldo=num(un.saldo)??0;
   const uso=consumo===null?null:Math.max(0,consumo-minimo),projetado=uso===null?null:saldo+p.credito-uso,cobertura=uso?p.credito/uso:null,meses=saldo>0&&uso>0?saldo/uso:null;
   const venc=(num(un.saldoExpira30)||0)+(num(un.saldoExpira60)||0);if(venc>0.5)alertas.push({tipo:'aviso',unidadeId:un.id,texto:un.nome+': '+fmt(venc,0)+' kWh de saldo vencem nos próximos 60 dias'+(num(un.saldoExpira30)>0.5?' ('+fmt(num(un.saldoExpira30),0)+' kWh em 30 dias)':'')+'. Use esse saldo antes: a porcentagem desta unidade pode baixar por um tempo.'});
   if(!un.usinas.length)alertas.push({tipo:'aviso',unidadeId:un.id,texto:un.nome+' não está ligada a nenhuma usina.'});

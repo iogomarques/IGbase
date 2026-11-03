@@ -60,3 +60,16 @@
 .side-filters-body{display:flex;flex-direction:column;gap:6px;padding-top:4px}
 @media(min-width:901px){.side-filters-box>summary{color:var(--muted)}}
 .dist-meses-rev{max-width:200px;flex:0 1 200px}
+/* Avisos da unidade dentro da linha do rateio */
+.dist-row-alerts{margin:6px 0 0;max-width:320px;border:0;padding:0;background:none}
+.dist-row-alerts>summary{cursor:pointer;display:inline-block;font-size:12px;font-weight:600;color:#8a5a00;background:#fff3d6;border:1px solid #eadcb6;border-radius:999px;padding:2px 10px}
+.dist-row-alerts ul{list-style:none;margin:6px 0 0;padding:0;display:grid;gap:4px}
+.dist-row-alerts li{font-size:12px;line-height:1.4;padding:5px 8px;border-radius:8px;background:#fffaf0;border:1px solid #eadcb6;color:#5c4710}
+.dist-row-alerts li.erro{background:#fff4f2;border-color:#efcfc8;color:#7d2a1d}
+.dist-table td:last-child{white-space:normal;min-width:150px}
+.dist-falta-geracao{margin:10px 0 4px}
+/* Conferência das faturas: campos legíveis sem cortar a UC e os avisos */
+.dist-table [data-review-uc]{min-width:150px}
+.dist-table [data-review-nome]{min-width:160px}
+.dist-table [data-review-tipo]{min-width:140px}
+.dist-table td:last-child.tiny{min-width:220px;max-width:340px}

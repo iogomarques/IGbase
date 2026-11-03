@@ -33,7 +33,7 @@ Percentuais somando 100% (o titular pode reservar parte para a geradora); no aut
 | `solar-distribution/store.js` (`IGDistributionStore`) | Grava em `configuracoes_documento.data.solarDistribution` (versão 1), relendo a linha e conferindo `updated_at`; preserva empresas, Budget e demais áreas |
 | `solar-distribution/app.js` | Tela: lateral Usinas/Unidades, abas Rateio, Lançar faturas, Usinas, Unidades e Histórico; leitura de PDF com pdf.js; formulário de rateio em PDF com jsPDF |
 | `solar-distribution/index.html`, `styles.css` | Página no esqueleto do Budget/Organization (usa `/solar-budget/styles.css` e `/shared/presentation.css`) |
-| `tests/distribuicao.test.cjs` | 11 testes com dados fictícios |
+| `tests/distribuicao.test.cjs` | 26 testes com dados fictícios |
 
 Rascunho não salvo fica no navegador (`igbase:solar-distribution:v1:<userId>`) até "Salvar na conta". Rateios salvos no histórico são cópias fixas: não mudam quando o cadastro muda.
 
@@ -112,3 +112,20 @@ Regras explicadas pelo usuário:
 - **Com o saldo:** prazo fixo de 3 meses (90 dias). A unidade cujo saldo cobre 3 meses do que ela usa (consumo − mínimo) fica com 1%; as demais, mesmo com algum saldo, recebem normalmente pelo consumo − mínimo. O campo de meses saiu da tela.
 - Exemplo do usuário (usina de 10.000 kWh, 4 unidades de 2.500 kWh, 2 com saldo para mais de 3 meses): 49% / 49% / 1% / 1%.
 - Silas com saldo: geradora 1 → apartamento 60%, casa do pai 39%, chácara 1%; geradora 2 → casa do pai 100%.
+
+## Testes e melhorias de usabilidade (03/11/2026, versão 1.10.29)
+
+Testado localmente com banco simulado (nada gravado no Supabase real): 12 faturas reais lidas sem erro; fluxo lançar → rateio → ajuste → formulário → salvar → recarregar → formulário do histórico; caso Silas confere com o documentado (G1 48/31/21%, G2 100%); celular sem rolagem lateral; console sem erros. Suíte: 26 testes do Distribution e 8 de faturamento passando.
+
+Corrigido:
+- Depois de lançar as faturas, a usina sem potência/geração aparecia como **"Nenhuma unidade ligada"**, mesmo com unidades ligadas. Agora mostra "Falta a geração", as unidades ligadas e os campos de potência e geração esperada ali mesmo, mais o botão "Usar a energia injetada da fatura" (troca a fonte da usina para a injeção lida; continua editável em Usinas).
+- Ao digitar um ajuste (ou qualquer campo) e apertar Tab, a tela era redesenhada e o cursor sumia. Agora o foco passa para o campo seguinte.
+- Formulário gerado pelo **Histórico** saía sem classe, endereço, bairro, CEP, cidade, e-mail e telefones. Os rateios salvos agora guardam esses dados; os antigos usam os dados atuais da usina só nesses campos (porcentagens e UCs continuam as do histórico).
+- UF da cidade no formulário vem da fatura (antes fixo "GO"). Classe da fatura sem o traço sobrando no fim. Texto longo no formulário diminui a letra para caber antes de cortar.
+- Mínimo vazio usa o da fase (30/50/100) em todo o cálculo; antes a projeção de saldo usava 100 fixo.
+
+Melhorado:
+- Soma ao vivo enquanto digita o ajuste (selo "x% de 100%" e coluna Final).
+- Cabeçalho da usina mostra a energia que de fato vai para o rateio (ex.: "1.200 kWh → 319 kWh para o rateio, descontado o consumo da geradora").
+- Avisos de cada unidade ficam na linha dela (botão "N avisos"); em cima ficam só os gerais e um resumo.
+- Tabela de conferência das faturas com UC, tipo e nome legíveis.

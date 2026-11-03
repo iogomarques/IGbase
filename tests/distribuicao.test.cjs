@@ -131,6 +131,10 @@ test('com saldo: unidade com saldo para mais de 3 meses fica com 1%; as demais p
  f=E.calcular(d).usinas[0].final;assert.deepEqual([a,b,c,e].map(u=>f[u.id]),[49,49,1,1]);assert.ok(Object.values(f).every(Number.isInteger));
  e.saldo=7000;assert.equal(E.coberta(e,d),false);f=E.calcular(d).usinas[0].final;assert.equal(f[c.id],1);assert.equal(f[e.id],f[a.id]);});
 
+test('mínimo vazio usa o da fase em todo o cálculo; classe sem traço sobrando no fim',()=>{const d=cenario(),un=d.unidades[3];Object.assign(un,{minimo:null,fases:'MONO',consumoMedio:130,saldo:200});
+ assert.equal(E.necessidade(un),100);assert.equal(E.calcular(d).unidades.find(x=>x.id===un.id).uso,100);
+ const f=E.parseInvoice(fatura().replace('Classificação: B B1 RESIDENCIAL','Classificação: B B3 COMERCIAL OU SERVIÇOS E OUTRAS ATIVIDADES -'));assert.equal(f.classe,'B B3 COMERCIAL OU SERVIÇOS E OUTRAS ATIVIDADES');});
+
 test('mínimo de 1% para toda unidade, em qualquer modo; ajuste abaixo de 1% é erro',()=>{const d=cenario();const [a,b,c,e]=d.unidades;e.consumoMedio=0;
  let r=E.calcular(d);assert.equal(r.usinas[0].final[e.id],1);assert.equal(r.usinas[0].soma,100);
  d.modo='prioritaria';a.prioritaria=true;a.consumoMedio=5000;r=E.calcular(d);assert.ok(Object.values(r.usinas[0].final).every(v=>v>=1));assert.equal(r.usinas[0].soma,100);
