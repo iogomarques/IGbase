@@ -23,10 +23,11 @@ async function relatorio(model,empresa,opcoes={}){const doc=new root.jspdf.jsPDF
  const paragrafo=(s,size=9,c=CINZA,gap=2)=>{fonte(size,false,c);for(const l of doc.splitTextToSize(texto(s),W-2*M)){espaco(size*.42+1);escrever(l,M,y);y+=size*.42+1;}y+=gap;};
  /* Cabeçalho: empresa à esquerda, logo à direita (como a fatura do Solar Organization). */
  const dim=empresa?.logoBase64?await dimensoes(empresa.logoBase64):null;let logoW=0,logoH=0;
- if(dim){logoW=Math.min(48,24*dim.w/dim.h);logoH=logoW*dim.h/dim.w;doc.addImage(empresa.logoBase64,formatoImg(empresa.logoBase64),W-M-logoW,y-5,logoW,logoH,undefined,'FAST');}
+ /* Logo no mesmo tamanho da fatura do Solar Organization: até 88 × 33 mm. */
+ if(dim){logoW=Math.min(88,33*dim.w/dim.h);logoH=logoW*dim.h/dim.w;doc.addImage(empresa.logoBase64,formatoImg(empresa.logoBase64),W-M-logoW,y-5,logoW,logoH,undefined,'FAST');}
  const linhasEmpresa=empresa&&root.IGCompanies?root.IGCompanies.lines(empresa):[];
  linhasEmpresa.forEach((l,i)=>{fonte(i?8.5:12,!i,i?CINZA:TINTA);for(const t of doc.splitTextToSize(texto(l),W-2*M-(logoW?logoW+8:0))){escrever(t,M,y);y+=i?4:5.5;}});
- y=Math.max(y,16+logoH-4)+4;
+ y=Math.max(y,16-5+logoH)+4;
  doc.setFillColor(...cor);doc.rect(M,y,W-2*M,.8,'F');y+=9;
  fonte(15,true,TINTA);escrever(model.titulo||'Relatório de rateio de créditos',M,y);fonte(9,false,CINZA);escrever('Emitido em '+new Date(model.data).toLocaleDateString('pt-BR'),W-M,y,{align:'right'});y+=8;
  titulo('CLIENTE');
