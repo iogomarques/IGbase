@@ -1,6 +1,6 @@
 /* Solar Distribution: documentos em PDF (jsPDF, A4 em mm).
    - relatorio(): relatório do cliente, no estilo da fatura do Solar Organization (empresa, logo e cor no cabeçalho),
-     com a situação de cada usina e o rateio de cada unidade; pode levar os formulários da Equatorial no mesmo arquivo.
+     com a situação de cada usina e o rateio de cada unidade. Os formulários da Equatorial saem à parte.
    - formulario(): Formulário de Solicitação de Rateio - GD (modelo da aba RATEIO da planilha), numa página. */
 (function(root){'use strict';
 const W=210,H=297,M=16,CINZA=[92,111,99],TINTA=[22,36,29],LINHA=[221,229,218];
@@ -21,13 +21,14 @@ async function relatorio(model,empresa,opcoes={}){const doc=new root.jspdf.jsPDF
  const espaco=h=>{if(y+h>H-18)novaPagina();};
  const titulo=s=>{espaco(14);fonte(10,true,cor);escrever(s,M,y);y+=2.5;doc.setDrawColor(...LINHA);doc.setLineWidth(.3);doc.line(M,y,W-M,y);y+=6;};
  const paragrafo=(s,size=9,c=CINZA,gap=2)=>{fonte(size,false,c);for(const l of doc.splitTextToSize(texto(s),W-2*M)){espaco(size*.42+1);escrever(l,M,y);y+=size*.42+1;}y+=gap;};
- /* Cabeçalho: empresa à esquerda, logo à direita (como a fatura do Solar Organization). */
- const dim=empresa?.logoBase64?await dimensoes(empresa.logoBase64):null;let logoW=0,logoH=0;
- /* Logo no mesmo tamanho da fatura do Solar Organization: até 88 × 33 mm. */
- if(dim){logoW=Math.min(88,33*dim.w/dim.h);logoH=logoW*dim.h/dim.w;doc.addImage(empresa.logoBase64,formatoImg(empresa.logoBase64),W-M-logoW,y-5,logoW,logoH,undefined,'FAST');}
+ /* Cabeçalho: dados da empresa na metade esquerda; o logo ocupa a metade direita, centralizado e maior
+    (até 40 mm de altura), para ter destaque (usuário, 05/11/2026). */
+ const dim=empresa?.logoBase64?await dimensoes(empresa.logoBase64):null,topo=y-5,colW=dim?(W-2*M)*0.5:W-2*M;
  const linhasEmpresa=empresa&&root.IGCompanies?root.IGCompanies.lines(empresa):[];
- linhasEmpresa.forEach((l,i)=>{fonte(i?8.5:12,!i,i?CINZA:TINTA);for(const t of doc.splitTextToSize(texto(l),W-2*M-(logoW?logoW+8:0))){escrever(t,M,y);y+=i?4:5.5;}});
- y=Math.max(y,16-5+logoH)+4;
+ linhasEmpresa.forEach((l,i)=>{fonte(i?8.5:12,!i,i?CINZA:TINTA);for(const t of doc.splitTextToSize(texto(l),colW)){escrever(t,M,y);y+=i?4:5.5;}});
+ if(dim){const zx=M+colW+6,zw=W-M-zx,lw=Math.min(zw,40*dim.w/dim.h),lh=lw*dim.h/dim.w,bloco=Math.max(y-topo,lh);
+  doc.addImage(empresa.logoBase64,formatoImg(empresa.logoBase64),zx+(zw-lw)/2,topo+(bloco-lh)/2,lw,lh,undefined,'FAST');y=topo+bloco+5;}
+ else y+=4;
  doc.setFillColor(...cor);doc.rect(M,y,W-2*M,.8,'F');y+=9;
  fonte(15,true,TINTA);escrever(model.titulo||'Relatório de rateio de créditos',M,y);fonte(9,false,CINZA);escrever('Emitido em '+new Date(model.data).toLocaleDateString('pt-BR'),W-M,y,{align:'right'});y+=8;
  titulo('CLIENTE');
@@ -57,10 +58,10 @@ async function relatorio(model,empresa,opcoes={}){const doc=new root.jspdf.jsPDF
    y+=h;doc.setDrawColor(236,240,234);doc.line(M,y-2.8,W-M,y-2.8);});
   fonte(8,true);escrever('Total',M+4,y+.5);escrever(us.linhas.reduce((a,l)=>a+l.final,0)+(us.reserva||0)+'%',M+cols.slice(0,5).reduce((a,c)=>a+c.w,0)-1,y+.5,{align:'right'});escrever(kwh(us.linhas.reduce((a,l)=>a+(l.credito||0),0)),M+cols.slice(0,6).reduce((a,c)=>a+c.w,0)-1,y+.5,{align:'right'});y+=8;}
  if(model.avisos.length){titulo('PONTOS DE ATENÇÃO');model.avisos.forEach(a=>paragrafo('• '+a,8.5,[92,71,16],1));y+=2;}
- titulo('PRÓXIMOS PASSOS');model.proximos.forEach(a=>paragrafo('• '+a,8.5,CINZA,1));
- paragrafo('Valores estimados com a geração e o consumo médio informados; a Equatorial aplica o rateio a partir do ciclo seguinte ao pedido. Créditos de energia valem por 60 meses.',7.5,CINZA,0);
- /* Rodapé da empresa só nas páginas do relatório: o formulário tem o rodapé da Equatorial. */
- rodape();if(opcoes.formularios&&model.formularios?.length)for(const f of model.formularios){doc.addPage();formulario(doc,f.usina,f.linhas,f.reserva,model.data);}doc.setProperties({title:texto(model.titulo+' - '+model.cliente.nome)});return doc;}
+ /* Sem "próximos passos": quem monta a usina decide e analisa isso (usuário, 05/11/2026). */
+ y+=2; paragrafo('Valores estimados com a geração e o consumo médio informados; a Equatorial aplica o rateio a partir do ciclo seguinte ao pedido. Créditos de energia valem por 60 meses.',7.5,CINZA,0);
+ /* Os formulários da Equatorial saem em PDFs separados (um por usina): o cliente não os envia. */
+ rodape();doc.setProperties({title:texto(model.titulo+' - '+model.cliente.nome)});return doc;}
 
 /* Desenha o formulário da Equatorial na página atual de "doc". */
 function formulario(doc,us,linhas,reserva,quando){const dt=new Date(quando||Date.now());let y=16;
