@@ -48,28 +48,43 @@
     'Quantidade cotada não garante estoque: confirme com o fornecedor.',
     'Se um PDF passar de 8 páginas, use o recorte: ele não divide kits nem reparte frete e descontos.',
     'Em "Mais opções" há o backup da cotação (exportar e restaurar em JSON).']}]},
-  {id:'distribution',nome:'Solar Distribution',link:'/solar-distribution/',intro:'Monta o rateio dos créditos de energia entre a usina geradora e as unidades, a partir das faturas da Equatorial, e gera o formulário de rateio.',grupos:[
-   {titulo:'Passo a passo',passos:[
-    ['Envie as faturas','Em "Lançar faturas", clique em "Escolher faturas (PDF)" e selecione a fatura da usina geradora e as faturas das unidades. Dá para escolher em várias vezes (uma pasta por geradora, por exemplo): as faturas somam na lista, e a mesma fatura repetida entra uma vez só.'],
-    ['Confira a leitura','O site mostra o que leu de cada PDF: UC, tipo de ligação, consumo médio, saldo, não compensado, data de leitura e rateio atual. Confira se cada um está como unidade ou usina geradora e clique em "Aplicar faturas marcadas".'],
-    ['Complete a usina','Clique no lápis da usina na lateral. Em "Geração esperada da UFV" informe a geração esperada daquela usina (kWh/mês); com mais de um mês, até 3, o site usa a média. Sem valor, ele estima pela potência em kWp × fator (115 por padrão; mude se o projeto usar 95, 120, 130…). Confira também os "Dados do formulário de rateio" (e-mail e telefones não vêm na fatura).'],
-    ['Consumo da geradora','A fatura da geradora já traz a energia injetada e o consumo da rede dos últimos 3 meses. O site desconta o que a própria geradora consome (na hora e da rede acima do mínimo dela) e só a sobra entra no rateio. A geração é sempre a média dos últimos 3 meses, ou dos meses que a usina tiver.'],
-    ['Confira as unidades','No modo "Unidades" da lateral, confira consumo médio, ligação (mínimo de 30, 50 ou 100 kWh) e saldo, e quais usinas atendem cada unidade.'],
-    ['Escolha o modo','A porcentagem segue o que cada unidade precisa compensar: consumo médio menos o mínimo (30, 50 ou 100 kWh), que nunca é compensado. Ex.: mínimo 100 e consumo 200 → a unidade precisa de 100. Na aba Rateio, escolha "Homogênea" (proporcional a essa necessidade) ou "Prioritária" (unidades marcadas são atendidas primeiro).'],
-    ['Ajuste e feche 100%','Veja o sugerido e, se precisar, ajuste em pontos (+ ou −) na coluna Ajuste. Cada usina precisa fechar 100%.'],
-    ['Formulário (etapa final)','Com tudo conferido, clique em "Formulário de rateio (PDF)". O formulário, no modelo da Equatorial, abre na tela em uma prévia; dali você baixa o PDF ou abre em outra aba para imprimir e enviar à distribuidora. Depois clique em "Salvar este rateio no histórico" e em "Salvar na conta".']]},
+  {id:'distribution',nome:'Solar Distribution',link:'/solar-distribution/',intro:'Monta o rateio dos créditos de energia de cada cliente entre as usinas geradoras e as unidades, a partir das faturas da Equatorial, e gera o relatório do cliente (com a sua empresa no cabeçalho) e os formulários de rateio da Equatorial.',grupos:[
+   {titulo:'O que o site lê sozinho e o que você informa',dicas:[
+    'Lido das faturas: UC, titular, CPF/CNPJ, tipo de ligação (mínimo de 30, 50 ou 100 kWh), consumo médio, saldo, não compensado, datas de leitura, rateio cadastrado hoje na Equatorial e, na fatura da geradora, a energia injetada na rede e o consumo da rede dos últimos meses, além de classe, endereço, CEP e cidade para o formulário.',
+    'Você informa: a geração esperada de cada usina (kWh/mês, do monitoramento) ou a potência em kWp; quem recebe de qual usina, se o plano for diferente do cadastro atual da Equatorial; e-mail e telefones do formulário; e, no modo prioritário, quais unidades são prioritárias.',
+    'A fatura não mostra a produção total dos painéis: a parte que a geradora usa na hora, durante o sol, não passa pelo medidor. Esse número só existe no monitoramento (APsystems, SolarEdge…).']},
+   {titulo:'Passo a passo (um cliente por vez)',passos:[
+    ['Escolha as faturas','Em "Lançar faturas", clique em "Escolher faturas (PDF)" e selecione a fatura da usina geradora e as faturas das unidades do cliente. Dá para escolher em várias vezes (uma pasta por geradora, por exemplo): as faturas somam na lista, e a mesma fatura repetida entra uma vez só.'],
+    ['2a. Cliente','O site acha o cliente pelo CPF/CNPJ das faturas. Se for a primeira vez, cria um cliente novo com o nome do titular (dá para trocar o nome ali). Também dá para escolher outro cliente já cadastrado.'],
+    ['2b. Faturas lidas','Confira o que foi lido de cada PDF e se cada fatura está como "Unidade" ou "Usina geradora". Desmarque o que não quiser aplicar.'],
+    ['2c. Geração de cada usina','Informe a geração esperada da UFV (kWh/mês) ou a potência (kWp; o site usa kWp × 115, fator que pode ser trocado na usina). Pode deixar para depois: o rateio pede de novo.'],
+    ['2d. Quem recebe de qual usina','A tabela já vem marcada pelo cadastro atual da Equatorial (o que aparece nas faturas). Se o plano novo for diferente, marque e desmarque aqui. Uma unidade pode receber de mais de uma usina.'],
+    ['3. Aplicar','Clique em "Aplicar e ver o rateio". O site abre o rateio do cliente com as etapas (Faturas, Geração, Ligações, Ajuste 100%, Relatório) e a lista "O que falta para fechar o rateio", com um link para resolver cada item.'],
+    ['Confira e ajuste','No "Mapa do rateio", cada usina aparece numa barra com a porcentagem de cada unidade. Na tabela da usina, ajuste em pontos (+ ou −) na coluna Ajuste: a soma aparece na hora e cada usina precisa fechar 100%, com pelo menos 1% por unidade.'],
+    ['Relatório do cliente','No fim da página, escolha a empresa do cabeçalho e clique em "Relatório do cliente (PDF)". Sai um PDF só, no estilo da fatura do Solar Organization: situação de cada usina, rateio de cada unidade, pontos de atenção, próximos passos e, no fim, os formulários da Equatorial para assinar e enviar (dá para desmarcar).'],
+    ['Salve','Clique em "Salvar este rateio no histórico" e em "Salvar na conta". O histórico guarda as porcentagens e o relatório daquele dia, para emitir de novo igual.']]},
+   {titulo:'Como o site chega na energia do rateio',dicas:[
+    'A geradora também consome. Só a sobra vai para as unidades: geração − o que a geradora usa na hora (geração − energia injetada) − o consumo da rede dela acima do mínimo. É o mesmo "GERAÇÃO CICLO" que aparece nas faturas das unidades.',
+    'Exemplo: geração esperada 1.200 kWh, a fatura mostra 634 kWh injetados e 346 kWh de consumo da rede (mínimo 30): 1.200 − 566 − 316 = 319 kWh para o rateio. O cabeçalho de cada usina mostra essa conta ("1.200 kWh → 319 kWh para o rateio").',
+    'Com a fatura da geradora lançada, a sobra fica igual a energia injetada − consumo da rede acima do mínimo; a geração esperada pesa de verdade quando não há fatura da geradora. Os valores da fatura são a média dos últimos 3 meses (ou dos meses que existirem).',
+    'Cada unidade precisa de crédito só para o consumo médio menos o mínimo (30, 50 ou 100 kWh), que a Equatorial cobra de qualquer jeito. Ex.: mínimo 100 e consumo 200 → a unidade precisa de 100.']},
+   {titulo:'Clientes e lateral',dicas:[
+    'A lateral abre em "Clientes": busque por nome, UC ou CPF/CNPJ. O ponto colorido mostra a situação (verde: pronto; laranja: pendências; vermelho: a geração não atende o consumo).',
+    'Com um cliente escolhido, as abas Rateio, Usinas, Unidades e Histórico mostram só o que é dele. Para voltar ao painel com todos os clientes, clique em "Todos os clientes".',
+    'O lápis ao lado do cliente abre os dados dele (nome, CPF/CNPJ, e-mail e telefone que saem no relatório). Nas fichas de usina e unidade dá para trocar o cliente de cada uma.',
+    'Os modos "Usinas" e "Unidades" da lateral continuam para editar cada usina (fator, meses de geração, dados do formulário) e cada unidade (consumo, ligação, saldo, usinas que mandam energia).']},
    {titulo:'Alertas que aparecem',dicas:[
-    '"Não atendem o consumo total": a geração não cobre todas as unidades; o site sugere quantos kWp (e placas) ampliar.',
-    'Não compensado acima do mínimo: faltou crédito naquela unidade; aumente a porcentagem dela ou amplie a usina.',
+    '"Não atendem o consumo total": a geração não cobre todas as unidades do cliente; o site sugere quantos kWp (e placas) ampliar.',
+    'Não compensado acima do mínimo: faltou crédito naquela unidade; aumente a porcentagem dela ou amplie a usina. O aviso aparece embaixo do nome da unidade, na tabela.',
     'Unidade lida antes da geradora: o crédito entra na fatura do mês seguinte.',
     'CPF/CNPJ diferente: no autoconsumo remoto, a usina e as unidades precisam ter o mesmo titular.',
-    'Saldo acumulado: o site divide o saldo pelo consumo médio da unidade menos o mínimo (a parte que usa crédito) e mostra quantos meses ele dura e quando cadastrar um novo rateio.',
-    'Duas formas de calcular, em "Saldo das unidades" na aba Rateio: "Não considerar" segue só o consumo (bom para deixar o rateio muito tempo sem mexer); "Considerar o saldo": quem tem saldo para mais de 3 meses (90 dias) fica com 1% e a energia vai para as demais — refaça o rateio em 3 meses.',
-    'Regra da Equatorial: toda unidade do rateio recebe no mínimo 1%, sempre em números inteiros que fecham 100%.',
-    'A alteração do rateio na Equatorial vale a partir do ciclo seguinte ao pedido.',
-    'Unidade atendida por duas usinas (ex.: uma casa que recebe 100% de uma e parte da outra): marque as duas em "Usinas que mandam energia". A usina que atende só essa casa entrega 100% a ela e a outra cobre o que faltar.',
-    'Depois de lançar as faturas, confira as ligações: o site liga pelas porcentagens que estão cadastradas hoje na Equatorial, e o plano novo pode ser diferente.']}]},
-  {id:'empresas',nome:'Empresas',link:'/empresas/',intro:'Cadastro da empresa que aparece nos documentos do Solar Organization e do Solar Budget.',grupos:[
+    'Saldo acumulado: o site divide o saldo pelo consumo médio da unidade menos o mínimo e mostra quantos meses ele dura e quando fazer um novo rateio.']},
+   {titulo:'Bom saber',dicas:[
+    'Modo de distribuição: "Homogênea" divide na proporção do que cada unidade precisa; "Prioritária" atende primeiro as unidades marcadas na coluna "Prioritária".',
+    'Saldo das unidades: "Não considerar" segue só o consumo (bom para deixar o rateio muito tempo sem mexer); "Considerar o saldo": quem tem saldo para mais de 3 meses fica com 1% e a energia vai para as demais — refaça o rateio em 3 meses.',
+    'Regra da Equatorial: toda unidade do rateio recebe no mínimo 1%, sempre em números inteiros que fecham 100%. A alteração vale a partir do ciclo seguinte ao pedido (peça com cerca de 30 dias de antecedência).',
+    'Nada vai para a conta até você clicar em "Salvar na conta"; até lá, as alterações ficam guardadas neste navegador.']}]},
+  {id:'empresas',nome:'Empresas',link:'/empresas/',intro:'Cadastro da empresa que aparece nos documentos do Solar Organization, do Solar Budget e no relatório do cliente do Solar Distribution.',grupos:[
    {titulo:'Passo a passo',passos:[
     ['Nova empresa','Clique em "+ Cadastrar empresa".'],
     ['Dados','Preencha nome, razão social, CPF/CNPJ, endereço, e-mail, telefones (um por linha), o texto do rodapé dos documentos e a cor de destaque. Envie a logo em PNG ou JPG de até 900 KB.'],
