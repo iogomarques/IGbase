@@ -74,3 +74,14 @@ input,textarea,[contenteditable=true]{-webkit-user-select:text;user-select:text}
 .ig-falta-nota::before{content:"⚠ Falta: "}
 @keyframes ig-falta-pulso{0%{box-shadow:0 0 0 0 #e0a10666}100%{box-shadow:0 0 0 10px #e0a10600}}
 @media(prefers-reduced-motion:reduce){.ig-falta{animation:none}}
+/* Links navegados por shared/navegacao.js (sem a tarja de endereço do navegador). */
+a[data-ig-href]{cursor:pointer}
+/* Menu "Sistemas" junto ao logo dos subsites. */
+.ig-sistemas{position:relative;margin:8px 0 6px;font:600 13px -apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Helvetica,Arial,sans-serif;z-index:60}
+.ig-sistemas>summary{list-style:none;display:inline-flex;align-items:center;gap:6px;cursor:pointer;padding:7px 12px;border:1px solid #dbe7d8;border-radius:999px;background:#fff;color:#2f663f;user-select:none}
+.ig-sistemas>summary::-webkit-details-marker{display:none}
+.ig-sistemas>summary:hover,.ig-sistemas[open]>summary{background:#eef6ec;border-color:#2f663f}
+.ig-sistemas>nav{position:absolute;left:0;top:calc(100% + 6px);min-width:220px;display:grid;padding:6px;background:#fff;border:1px solid #dbe7d8;border-radius:14px;box-shadow:0 14px 36px #16351f26}
+.ig-sistemas>nav a{display:block;padding:9px 12px;border-radius:9px;color:#203b29;text-decoration:none;font-weight:500}
+.ig-sistemas>nav a:hover,.ig-sistemas>nav a:focus-visible{background:#eef6ec;outline:none}
+.ig-sistemas>nav a[aria-current="page"]{background:#2f663f;color:#fff;font-weight:600}

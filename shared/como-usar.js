@@ -10,7 +10,7 @@
     ['Cadastre sua empresa','Antes de emitir documentos, cadastre em Empresas a empresa que aparece nas faturas e orçamentos (nome, CNPJ, logo e rodapé).'],
     ['Ajuste sua conta','Em Minha conta → Configurações você muda o nome de usuário e sai da conta. Em todos os sistemas o menu Minha conta fica no canto superior direito.']]},
    {titulo:'Bom saber',dicas:[
-    'O rodapé de todas as páginas tem os links para os outros sistemas e para o Suporte.',
+    'Para ir a outro sistema, use o botão "Sistemas" ao lado do logo (em todas as páginas menos a inicial). O rodapé tem o IG Base, Empresas e Suporte.',
     'Quando sai uma versão nova, aparece um aviso com as novidades. Ele aparece uma vez só.',
     'Rascunhos que ainda não foram salvos ficam no navegador do aparelho em uso. O que você salva na conta aparece em qualquer aparelho.',
     'Em todos os sistemas, quando falta preencher algo, o site para, leva você ao campo e o destaca em laranja com o que falta. O destaque some quando você preenche.']}]},
