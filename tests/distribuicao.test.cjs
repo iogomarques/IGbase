@@ -148,7 +148,8 @@ test('clientes: dados antigos são agrupados pelo CPF/CNPJ do titular; organizar
  const ids=d.clientes.map(x=>x.id);assert.equal(E.organizarClientes(d),false);assert.deepEqual(d.clientes.map(x=>x.id),ids);
  const it=E.itensCliente(d,a.clienteId);assert.deepEqual(it.usinas.map(u=>u.nome),['A','B']);assert.deepEqual(it.unidades.map(u=>u.nome).sort(),['Solta','U1']);});
 
-test('pendências do cliente na ordem: geração, ligações, consumo, 100%; vazia quando pronto',()=>{const d=cenario();E.organizarClientes(d);const id=d.clientes[0].id,us=d.usinas[0];
+test('pendências do cliente na ordem: geração, ligações, consumo, 100%, contato; vazia quando pronto',()=>{const d=cenario();E.organizarClientes(d);const id=d.clientes[0].id,us=d.usinas[0];
+ assert.deepEqual(E.pendencias(d,E.calcular(d),id).map(p=>p.etapa),['formulario']);us.telefone='(62) 90000-0000';
  assert.deepEqual(E.pendencias(d,E.calcular(d),id),[]);
  us.kwp=null;let p=E.pendencias(d,E.calcular(d),id);assert.equal(p[0].etapa,'geracao');assert.equal(p[0].usinaId,us.id);us.kwp=10;
  d.unidades[0].usinas=[];d.unidades[1].consumoMedio=null;p=E.pendencias(d,E.calcular(d),id);assert.deepEqual(p.map(x=>x.etapa),['ligacoes','dados']);d.unidades[0].usinas=[us.id];d.unidades[1].consumoMedio=300;

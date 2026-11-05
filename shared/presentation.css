@@ -68,3 +68,9 @@ input,textarea,[contenteditable=true]{-webkit-user-select:text;user-select:text}
 .help-steps strong{color:#1f2a22;font-size:14px}
 .help-tips{margin:0;padding-left:18px;display:grid;gap:8px;font-size:13.5px;line-height:1.55;color:#3b4a3f}
 @media(max-width:600px){.help-tabs button{flex:1 1 45%}.help-group{padding:14px}}
+/* Campo que falta preencher (shared/falta.js): contorno laranja, fundo claro e o aviso logo abaixo. */
+.ig-falta{outline:3px solid #e0a106!important;outline-offset:3px;border-radius:10px;background-color:#fff8e1!important;animation:ig-falta-pulso 1s ease-out 2}
+.ig-falta-nota{display:block;margin:6px 0 2px;color:#8a5a00;font-size:12.5px;font-weight:700;line-height:1.35}
+.ig-falta-nota::before{content:"⚠ Falta: "}
+@keyframes ig-falta-pulso{0%{box-shadow:0 0 0 0 #e0a10666}100%{box-shadow:0 0 0 10px #e0a10600}}
+@media(prefers-reduced-motion:reduce){.ig-falta{animation:none}}

@@ -91,6 +91,8 @@ function pendencias(d,c,id){const {usinas,unidades}=itensCliente(d,id),out=[],ad
   if(!unidades.some(un=>un.usinas.includes(us.id)))add('ligacoes','Marque as unidades que recebem da usina '+us.nome+'.',{usinaId:us.id});}
  for(const un of unidades){if(!un.usinas.length)add('ligacoes','Ligue a unidade '+un.nome+' a uma usina.',{unidadeId:un.id});if(num(un.consumoMedio)===null)add('dados','Informe o consumo médio da unidade '+un.nome+'.',{unidadeId:un.id});}
  for(const us of usinas){const r=c.usinas.find(x=>x.usinaId===us.id);if(r&&Object.keys(r.final).length&&!r.ok)add('ajuste','Feche '+r.alvo+'% na usina '+us.nome+' (hoje soma '+r.soma+'%; cada unidade com pelo menos 1%).',{usinaId:us.id});}
+ /* Contato do formulário da Equatorial (não vem na fatura): pelo menos e-mail ou um telefone por usina com unidades. */
+ for(const us of usinas)if(unidades.some(un=>un.usinas.includes(us.id))&&!String(us.email||us.telefone||us.celular||'').trim())add('formulario','Informe o e-mail ou um telefone da usina '+us.nome+' (vai no formulário da Equatorial).',{usinaId:us.id});
  return out;}
 /* Resumo de um cliente a partir do cálculo geral: só as usinas, unidades, avisos e sistemas dele. */
 function resumoCliente(d,c,id){const {usinas,unidades}=itensCliente(d,id),uIds=new Set(usinas.map(u=>u.id)),nIds=new Set(unidades.map(u=>u.id));

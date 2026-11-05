@@ -119,3 +119,5 @@
 .dist-documentos .check{display:flex;align-items:center;gap:8px;align-self:end}
 a.button{display:inline-flex;align-items:center;justify-content:center;text-decoration:none;padding:9px 16px;border-radius:10px;font-weight:600}
 a.button.primary{background:var(--green);color:#fff}
+.dist-resolver{margin-left:6px;padding:2px 10px;min-height:0;border-radius:999px;border:1px solid #c98a1b;background:#fff;color:#8a5a00;font-size:12px;font-weight:700;cursor:pointer}
+.dist-resolver:hover{background:#fff3d6}

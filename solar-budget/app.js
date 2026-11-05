@@ -161,7 +161,7 @@ async function read(type,supplierId){
   const text=supplierId?box.querySelector('[data-source=text]').value:$('list-text').value;
   const ocr=supplierId?box.querySelector('[data-source=ocr]').checked:$('list-ocr').checked;
   const mode=supplierId?box.querySelector('[data-source=mode]').value:$('list-mode').value;
-  if(!file&&!text.trim())throw Error('Selecione um arquivo ou cole um texto.');
+  if(!file&&!text.trim()){window.IGFalta?.marcar(supplierId?box.querySelector('[data-source=file]'):$('list-file'),'Selecione um arquivo ou cole um texto.');throw Error('Selecione um arquivo ou cole um texto.');}
   const parts=file?await fileText(file,ocr):[];if(text.trim())parts.push({name:'Texto colado',text});
   if(user?.id!==owner||data.id!==draftId||sessionGeneration!==generation)throw Error('A cotação ou sessão mudou durante a leitura. Importe novamente.');
   const parsed=parts.map(p=>{
@@ -197,7 +197,7 @@ function applyReview(){
 function confirmItem(i){return !!i.description.trim()&&E.valid(i.qty)&&i.qty>0&&!!i.unit;}
 function handleChange(event){const t=event.target;const tr=t.closest('tr'),sbox=t.closest('.supplier');
  if(t.dataset.choice!==undefined){data.choices[t.dataset.choice]=t.value;touch();return;}
- if(t.dataset.sfield&&sbox){const s=data.suppliers.find(s=>s.id===sbox.dataset.supplier);const numeric=['freight','discount','reportedTotal'].includes(t.dataset.sfield);const value=numeric?E.num(t.value):t.value;if(numeric&&t.value.trim()&&(value===null||value<0)){notify('Informe um valor numérico não negativo.','error');t.value=amount(s[t.dataset.sfield]);return;}s[t.dataset.sfield]=value;touch();return;}
+ if(t.dataset.sfield&&sbox){const s=data.suppliers.find(s=>s.id===sbox.dataset.supplier);const numeric=['freight','discount','reportedTotal'].includes(t.dataset.sfield);const value=numeric?E.num(t.value):t.value;if(numeric&&t.value.trim()&&(value===null||value<0)){notify('Informe um valor numérico não negativo.','error');t.value=amount(s[t.dataset.sfield]);window.IGFalta?.marcar(t,'Use um número igual ou maior que zero.');return;}s[t.dataset.sfield]=value;touch();return;}
  if(!tr||!t.dataset.field)return;
  const context=tr.dataset.context,kind=tr.dataset.item?'item':'offer';
  const collection=context==='review'?review?.rows:kind==='item'?data.items:data.suppliers.find(s=>s.id===tr.dataset.supplier)?.offers;
@@ -210,7 +210,7 @@ function handleChange(event){const t=event.target;const tr=t.closest('tr'),sbox=
   x.components=components;x.confirmed=false;if(components.length)x.itemId='';
  }else if(['confirmed','rejected','divisible'].includes(field)){
   if(field==='confirmed'&&t.checked){
-   if(kind==='item'&&!confirmItem(x)){notify('Informe material, quantidade positiva e unidade antes de confirmar.','error');t.checked=false;return;}
+   if(kind==='item'&&!confirmItem(x)){notify('Informe material, quantidade positiva e unidade antes de confirmar.','error');t.checked=false;window.IGFalta?.marcar(t.closest('tr')?.querySelector('td')||t,'Preencha material, quantidade positiva e unidade.');return;}
    if(kind==='offer'){
     const i=data.items.find(i=>i.id===x.itemId);const r=E.cost({...x,confirmed:true},i);const issues=x.components.length?[]:r.issues;
     if(!E.valid(x.price)||issues?.length||E.offerIssues(x).length){notify('Corrija os dados antes de confirmar. '+[...(issues||[]),...E.offerIssues(x)].join(' · '),'error');t.checked=false;return;}
@@ -221,7 +221,7 @@ function handleChange(event){const t=event.target;const tr=t.closest('tr'),sbox=
   x[field]=t.checked;if(field==='rejected'&&t.checked)x.confirmed=false;
  }else{
   const numeric=['qty','price','quotedQty','quotedTotal','pack','stock','quoteLimit','min','bundleBuy'].includes(field);const value=numeric?E.num(t.value):t.value;
-  if(numeric&&t.value.trim()&&(value===null||value<0)){notify('Informe um número não negativo. O valor anterior foi preservado.','error');t.value=amount(x[field]);return;}
+  if(numeric&&t.value.trim()&&(value===null||value<0)){notify('Informe um número não negativo. O valor anterior foi preservado.','error');t.value=amount(x[field]);window.IGFalta?.marcar(t,'Use um número igual ou maior que zero.');return;}
   x[field]=value;
   if(field!=='note'&&field!=='bundleBuy')x.confirmed=false;
  }
@@ -307,7 +307,9 @@ $('login-form').addEventListener('submit',async event=>{event.preventDefault();i
 $('logout').onclick=async()=>{if(busy){notify('Aguarde a operação em andamento.','warn');return;}try{const r=await db.auth.signOut();if(r.error)throw r.error;}catch(e){notify(e.message,'error');}};
 $('retry').onclick=boot;
 $('new').onclick=()=>{if(busy)return;if(dirty&&!confirm('Criar uma nova cotação? Salve o rascunho ou exporte um backup para preservar o trabalho atual.'))return;data=E.fresh();if(companyService){const c=companyService.selected('solar-budget');data.doc.companySnapshot=c;data.doc.companyId=c?.id||'';}touch();render();};
-$('confirm-list').onclick=()=>{const valid=data.items.filter(confirmItem);if(!valid.length){notify('Preencha as quantidades e unidades antes de confirmar.','warn');return;}const notes=[...new Set(data.items.map(i=>i.note).filter(Boolean))];if(!confirm('Você revisou '+valid.length+' necessidades preenchidas? '+notes.join(' ')))return;valid.forEach(i=>i.confirmed=true);touch();render();};
+/* Necessidades incompletas ficam destacadas: só as completas são confirmadas. */
+const marcarIncompletas=()=>window.IGFalta?.marcarTodos(data.items.filter(i=>!confirmItem(i)).map(i=>[document.querySelector('tr[data-item="'+CSS.escape(i.id)+'"] td'),'Preencha material, quantidade positiva e unidade.']).filter(x=>x[0]));
+$('confirm-list').onclick=()=>{const valid=data.items.filter(confirmItem);if(!valid.length){notify('Preencha as quantidades e unidades antes de confirmar.','warn');marcarIncompletas();return;}const notes=[...new Set(data.items.map(i=>i.note).filter(Boolean))];if(!confirm('Você revisou '+valid.length+' necessidades preenchidas? '+notes.join(' ')))return;valid.forEach(i=>i.confirmed=true);touch();render();const falta=data.items.length-valid.length;if(falta){notify(falta+(falta>1?' necessidades ficaram sem confirmar':' necessidade ficou sem confirmar')+': complete material, quantidade e unidade (em laranja).','warn');marcarIncompletas();}};
 $('read-list').onclick=()=>read('list');$('apply-review').onclick=applyReview;$('cancel-review').onclick=()=>{$('review-dialog').close();review=null;};
 $('add-item').onclick=()=>{data.items.push(E.item());touch();render();};$('add-supplier').onclick=()=>{data.suppliers.push(E.supplier('Fornecedor '+(data.suppliers.length+1)));touch();render();};
 $('quote-name').onchange=()=>{data.name=$('quote-name').value.trim()||'Nova cotação';touch();};

@@ -12,7 +12,8 @@
    {titulo:'Bom saber',dicas:[
     'O rodapé de todas as páginas tem os links para os outros sistemas e para o Suporte.',
     'Quando sai uma versão nova, aparece um aviso com as novidades. Ele aparece uma vez só.',
-    'Rascunhos que ainda não foram salvos ficam no navegador do aparelho em uso. O que você salva na conta aparece em qualquer aparelho.']}]},
+    'Rascunhos que ainda não foram salvos ficam no navegador do aparelho em uso. O que você salva na conta aparece em qualquer aparelho.',
+    'Em todos os sistemas, quando falta preencher algo, o site para, leva você ao campo e o destaca em laranja com o que falta. O destaque some quando você preenche.']}]},
   {id:'organization',nome:'Solar Organization',link:'/solar-organization/',intro:'Monta e emite a fatura de aluguel de energia de cada cliente (GD1 ou GD2), a partir da fatura da Equatorial ou de lançamento manual.',grupos:[
    {titulo:'Uma vez: preparar',passos:[
     ['Empresa emissora','Cadastre a empresa em Empresas e escolha a empresa padrão em Minha conta → Configurações do Solar Organization. É ela que aparece no documento do cliente.'],
@@ -32,7 +33,10 @@
    {titulo:'Cuidados',dicas:[
     'Abrir uma fatura antiga não recalcula nada: valores, tarifas e dados do cliente ficam como estavam na emissão.',
     'O perfil define como entram o Fio B e o repasse. Conferir quem paga a fatura da concessionária evita cobrança errada.',
-    'Dados lidos do PDF sempre passam pela sua conferência antes de entrar na fatura.']}]},
+    'Dados lidos do PDF sempre passam pela sua conferência antes de entrar na fatura.',
+    'Se faltar algo (fatura não lida ou não aplicada, mês e ano, geração do GD2, saldo, nome do cliente, calcular antes de salvar ou emitir), o site para e leva você ao campo, destacado em laranja com o que falta.',
+    'Campo do mês vazio conta como 0. Antes de calcular, o site destaca os campos vazios: preencha, ou clique em "Calcular orçamento" de novo para usar 0.',
+    'A condição de pagamento (ex.: débito automático) é de uso interno: sai no PDF interno, não na fatura do cliente.']}]},
   {id:'budget',nome:'Solar Budget',link:'/solar-budget/',intro:'Compara as cotações dos fornecedores para a lista de materiais de um projeto e monta os carrinhos de compra.',grupos:[
    {titulo:'Passo a passo',passos:[
     ['Crie a cotação','Clique em "+ Nova cotação" na lateral e dê um nome (por exemplo, o cliente e a potência).'],
@@ -47,7 +51,8 @@
     'A escolha automática compara material por material; ela não calcula a melhor combinação de frete, desconto ou kit.',
     'Quantidade cotada não garante estoque: confirme com o fornecedor.',
     'Se um PDF passar de 8 páginas, use o recorte: ele não divide kits nem reparte frete e descontos.',
-    'Em "Mais opções" há o backup da cotação (exportar e restaurar em JSON).']}]},
+    'Em "Mais opções" há o backup da cotação (exportar e restaurar em JSON).',
+    'Necessidade sem material, quantidade ou unidade não é confirmada: o site destaca em laranja o que falta preencher. Números inválidos também ficam destacados.']}]},
   {id:'distribution',nome:'Solar Distribution',link:'/solar-distribution/',intro:'Monta o rateio dos créditos de energia de cada cliente entre as usinas geradoras e as unidades, a partir das faturas da Equatorial, e gera o relatório do cliente (com a sua empresa no cabeçalho) e os formulários de rateio da Equatorial.',grupos:[
    {titulo:'O que o site lê sozinho e o que você informa',dicas:[
     'Lido das faturas: UC, titular, CPF/CNPJ, tipo de ligação (mínimo de 30, 50 ou 100 kWh), consumo médio, saldo, não compensado, datas de leitura, rateio cadastrado hoje na Equatorial e, na fatura da geradora, a energia injetada na rede e o consumo da rede dos últimos meses, além de classe, endereço, CEP e cidade para o formulário.',
@@ -83,6 +88,7 @@
     'Modo de distribuição: "Homogênea" divide na proporção do que cada unidade precisa; "Prioritária" atende primeiro as unidades marcadas na coluna "Prioritária".',
     'Saldo das unidades: "Não considerar" segue só o consumo (bom para deixar o rateio muito tempo sem mexer); "Considerar o saldo": quem tem saldo para mais de 3 meses fica com 1% e a energia vai para as demais — refaça o rateio em 3 meses.',
     'Regra da Equatorial: toda unidade do rateio recebe no mínimo 1%, sempre em números inteiros que fecham 100%. A alteração vale a partir do ciclo seguinte ao pedido (peça com cerca de 30 dias de antecedência).',
+    'Se faltar um passo, o relatório, o histórico e o formulário não saem: ao clicar, o site leva você ao que falta (a geração, uma ligação, o consumo, o contato ou o ajuste de 100%), destacado em laranja. No lançamento, "Aplicar" também para se faltar o nome do cliente novo, a geração de uma usina ou a usina de uma unidade.',
     'Nada vai para a conta até você clicar em "Salvar na conta"; até lá, as alterações ficam guardadas neste navegador.']}]},
   {id:'empresas',nome:'Empresas',link:'/empresas/',intro:'Cadastro da empresa que aparece nos documentos do Solar Organization, do Solar Budget e no relatório do cliente do Solar Distribution.',grupos:[
    {titulo:'Passo a passo',passos:[
