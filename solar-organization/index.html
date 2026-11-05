@@ -4,7 +4,7 @@
 <meta charset="UTF-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1.0" />
 <title>Solar Organization | IG Base</title>
-<link rel="icon" type="image/png" sizes="64x64" href="/favicon-ig-base.png?v=1.10.34">
+<link rel="icon" type="image/png" sizes="64x64" href="/favicon-ig-base.png?v=1.10.35">
 <!-- O SDK é carregado sem bloquear a renderização da página, no início do app. -->
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -464,7 +464,7 @@
 
 @media screen{.vigencia-linha input[type=month]{width:100%;min-height:44px;padding:9px;border:1px solid var(--line);border-radius:8px;background:#fff;font:inherit}.vigencia-linha .vigencia-remover{margin-top:10px}#m-vigencias{margin-top:16px}}
 </style>
-<script src="/shared/companies.js?v=1.10.34"></script><link rel="stylesheet" href="/shared/presentation.css?v=1.10.34"><script src="/shared/account.js?v=1.10.34"></script><script src="/shared/login.js?v=1.10.34"></script><script src="/shared/falta.js?v=1.10.34"></script><script src="/shared/version.js?v=1.10.34"></script></head>
+<script src="/shared/companies.js?v=1.10.35"></script><link rel="stylesheet" href="/shared/presentation.css?v=1.10.35"><script src="/shared/account.js?v=1.10.35"></script><script src="/shared/login.js?v=1.10.35"></script><script src="/shared/falta.js?v=1.10.35"></script><script src="/shared/version.js?v=1.10.35"></script></head>
 <body>
 
 <div id="auth-root"><div class="auth-screen startup-screen"><div class="startup-card" aria-busy="true"><div class="startup-brand"><img width="713" height="340" draggable="false" src="/assets/logo-ig-base.png" alt="IG Base"></div><div class="startup-spinner" aria-hidden="true"></div><h1 class="startup-title">Carregando o sistema</h1><p class="startup-message" role="status" aria-live="polite">Preparando seu ambiente…</p><noscript>Ative o JavaScript no navegador para utilizar o sistema.</noscript></div></div></div>
@@ -479,7 +479,7 @@
 </div>
 <footer class="app-footer ig-footer" id="app-footer" style="display:none">
   <div class="footer-links"><a href="/">IG Base</a><a href="/solar-organization/" aria-current="page">Solar Organization</a><a href="/solar-budget/">Solar Budget</a><a href="/solar-distribution/">Solar Distribution</a><a href="/empresas/">Empresas</a><a href="/suporte/">Suporte</a></div>
-  <div class="version" data-ig-version>IG Base v1.10.34</div>
+  <div class="version" data-ig-version>IG Base v1.10.35</div>
 </footer>
 
 <div id="modal-root"></div>
@@ -3703,6 +3703,7 @@ async function baixarPdf(modo){
     if(m.extras.length && !interno){titulo('DETALHES SELECIONADOS');linhas(m.extras);}
     if(interno){
       paragrafo('Perfil: '+profile.nome+' · Consumo: '+m.energia.origemConsumo+'. O total financeiro foi preservado.',9);
+      if(client.condicaoPagamento)paragrafo('Condição de pagamento (uso interno, não sai na fatura do cliente): '+client.condicaoPagamento,9);
       if(m.avisos.length){titulo('CONFERÊNCIA');m.avisos.forEach(function(a){paragrafo(a,9,[139,76,30]);});}
       if(d.vigenciaTarifaria){titulo('TARIFAS DO PERÍODO');paragrafo('Referência: '+d.vigenciaTarifaria.referencia+'. Fórmulas '+d.versaoCalculo+' preservadas.',9);d.vigenciaTarifaria.aplicadas.forEach(function(r){paragrafo('Vigência '+r.inicio+' · '+(r.observacao || 'Valores conferidos no cadastro'),9);});}
       if(d.importacaoEquatorial && d.importacaoEquatorial.tributosConferencia){titulo('TRIBUTOS — CONFERÊNCIA DA FATURA');paragrafo('Trechos do PDF; podem já integrar a tarifa ou o total. Não foram adicionados automaticamente.',8.5);d.importacaoEquatorial.tributosConferencia.forEach(function(l){paragrafo(l,8.5);});}
@@ -4667,9 +4668,11 @@ async function onSignOut(){
    O aviso aparece uma vez por versão por navegador (localStorage compartilhado
    entre o site principal e os subsites, pois ficam no mesmo domínio).
    ============================================================ */
-var IG_BASE_VERSION = window.IGBaseRelease?.version || '1.10.34';
-var IG_BASE_RELEASE_ID = window.IGBaseRelease?.releaseId || '1.10.34-2026-10-30';
+var IG_BASE_VERSION = window.IGBaseRelease?.version || '1.10.35';
+var IG_BASE_RELEASE_ID = window.IGBaseRelease?.releaseId || '1.10.35-2026-10-30';
 var IG_BASE_CHANGELOG = [
+  "Solar Distribution: salvar na conta mais de uma vez sem recarregar a página não acusa mais conflito falso.",
+  "Solar Organization: a condição de pagamento aparece no PDF interno (e continua fora da fatura do cliente).",
   "Solar Distribution: relatório do cliente com o logo maior e centralizado, sem \"próximos passos\"; os formulários da Equatorial saem em PDFs separados, um por usina (não vão para o cliente).",
   "Em todos os sistemas: quando falta preencher algo, o site para, leva você ao campo e o destaca em laranja com o que falta.",
   "Solar Distribution: o relatório, o histórico e o formulário levam direto ao que falta (geração, ligação, consumo, contato da usina ou ajuste de 100%); o lançamento não aplica sem a geração de cada usina.",
