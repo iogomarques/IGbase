@@ -142,3 +142,10 @@ Pedido do usuário: com 50–60 clientes, achar as usinas e unidades de cada um 
 - **Histórico** por cliente: cada rateio salvo guarda o cliente, o modelo do relatório (refeito igual, sem recalcular) e os dados da empresa sem o logo (o logo vem do cadastro; ~6 KB por rateio).
 
 Testado localmente (banco simulado): caso Silas pelo fluxo guiado em duas escolhas de faturas (marcações vindas da Equatorial: apartamento → casa; casa do pai → loja e casa; chácara → loja), plano novo aplicado → 48/31/21% e 100%; segundo cliente (exemplos) com 33,3 kWp; painel geral; relatório com empresa e logo (4 páginas, 468 KB); histórico e relatório refeito; celular sem rolagem lateral; console sem erros. Suíte: 29 testes do Distribution e 8 de faturamento.
+
+## Classificação GD, "a compensar" explicado e ampliação só em kWp (05/11/2026, versão 1.10.37)
+
+Diretrizes do usuário:
+- **Classificação GD (Lei 14.300):** lida da fatura — "INJEÇÃO SCEE - UC <geradora> - GD I" nas faturas das unidades e "INJEÇÃO SCEE - GD I" na da própria geradora (I/II/III → GD1/GD2/GD3). Campo `gd` na usina (editável na ficha); a unidade mostra a classificação de cada usina que manda crédito ("recebe como GD1"). Aparece no rateio, na ficha da unidade e no relatório.
+- **"A compensar" = consumo médio − mínimo não compensado** (custo de disponibilidade: 30/50/100). A coluna mostra a conta embaixo do valor (ex.: "264 − 30 (mínimo mono)"), o resumo diz "consumo médio − mínimo" e o relatório explica.
+- **Ampliação só em kWp:** o site informa quantos kWp de geração faltam e nunca sugere placas, inversores ou como executar (dimensionamento do instalador). O campo "Potência da placa" saiu (substitui a seção de 30/10 sobre placa).

@@ -72,7 +72,7 @@ test('fatura da geradora: meses de consumo da rede e injeção, média dos últi
  assert.equal(f.ehGeradora,true);assert.equal(f.historicoGeradora.length,4);assert.deepEqual(f.historicoGeradora[2],{consumo:334,injecao:567});assert.equal(f.injecao3,634.33);assert.equal(f.consumoRede3,345.67);assert.equal(f.meses3,3);assert.equal(f.mediaInjecaoImpressa,669.92);});
 
 test('não compensado acima do mínimo da fase sugere ampliação',()=>{const d=cenario(),un=d.unidades[0];un.minimo=50;un.naoCompensado=165;const a=E.calcular(d).alertas.find(x=>x.unidadeId===un.id&&x.ampliacao);
- assert.ok(a);assert.equal(a.ampliacao.kwh,115);assert.equal(a.ampliacao.kwp,1.15);assert.equal(a.ampliacao.placas,2);assert.match(a.texto,/ampliação/);
+ assert.ok(a);assert.equal(a.ampliacao.kwh,115);assert.equal(a.ampliacao.kwp,1.15);assert.match(a.texto,/cerca de \d+,\d kWp/);assert.doesNotMatch(a.texto,/placa/);
  un.naoCompensado=50;assert.equal(E.calcular(d).alertas.some(x=>x.unidadeId===un.id&&x.ampliacao),false);});
 
 test('consumo da geradora acima do mínimo sai da geração para rateio',()=>{const d=cenario(),u=d.usinas[0];
@@ -91,10 +91,9 @@ test('modo homogêneo (padrão) × prioritário quando falta energia',()=>{const
  d.modo='prioritaria';r=E.calcular(d);f=r.usinas[0].final;assert.equal(f[a.id],97);assert.equal(f[b.id],1);assert.equal(r.usinas[0].soma,100);
  a.consumoMedio=600;r=E.calcular(d);f=r.usinas[0].final;assert.equal(f[a.id],60);assert.equal(f[b.id]+f[c.id]+f[e.id],40);assert.equal(f[b.id],f[c.id]);assert.ok(f[e.id]<f[b.id]);});
 
-test('placa opcional: vazio mostra só kWp; outra potência muda a quantidade',()=>{const d=cenario(),u=d.usinas[0],un=d.unidades[0];un.minimo=30;un.naoCompensado=130;
- let a=E.calcular(d).alertas.find(x=>x.ampliacao);assert.equal(a.ampliacao.placaW,620);assert.equal(a.ampliacao.placas,2);
- u.placaW=550;a=E.calcular(d).alertas.find(x=>x.ampliacao);assert.equal(a.ampliacao.placas,2);u.placaW=null;a=E.calcular(d).alertas.find(x=>x.ampliacao);assert.equal(a.ampliacao.placas,null);assert.doesNotMatch(a.texto,/placas/);
- delete u.placaW;assert.equal(E.placaUsina(u),620);});
+test('ampliação só em kWp: nunca sugere placas nem inversores (dimensionamento é do instalador)',()=>{const d=cenario(),un=d.unidades[0];un.minimo=30;un.naoCompensado=130;d.unidades[1].consumoMedio=5000;
+ const c=E.calcular(d),al=c.alertas.filter(x=>x.ampliacao||x.sistema);assert.ok(al.length>=2);for(const a of al){assert.match(a.texto,/kWp/);assert.doesNotMatch(a.texto,/placa|inversor|painel|m[óo]dulo/i);}
+ const a=al.find(x=>x.ampliacao);assert.deepEqual(Object.keys(a.ampliacao).sort(),['kwh','kwp']);});
 
 test('fatura com UC ao lado do CEP, rateio quebrado em duas linhas e duas geradoras no SCEE',()=>{const f=E.parseInvoice(`Tipo de fornecimento: MONOFÁSICO
 04/08/2026 02/09/2026 29 02/10/2026
@@ -160,3 +159,10 @@ test('resumo do cliente: só as usinas, unidades e falta dele (dois clientes na 
  E.organizarClientes(d);const c=E.calcular(d),[ca,cb]=[d.usinas[0].clienteId,b.clienteId];assert.notEqual(ca,cb);
  const ra=E.resumoCliente(d,c,ca),rb=E.resumoCliente(d,c,cb);assert.equal(ra.unidades.length,4);assert.equal(rb.unidades.length,1);assert.equal(Math.round(ra.deficit),1700);assert.equal(rb.deficit,0);assert.equal(rb.ok,true);
  assert.ok(ra.alertas.some(a=>/não atendem/.test(a.texto)));assert.equal(rb.alertas.some(a=>/não atendem/.test(a.texto)),false);});
+
+test('classificação GD lida da fatura: da própria geradora e de cada usina que manda crédito à unidade',()=>{
+ const un=E.parseInvoice(fatura({extra:'INJEÇÃO SCEE - UC 000296554301272 - GD I kWh 178,60 0,787589 -140,66\nINJEÇÃO SCEE - UC 000318790201259 - GD II kWh 337,05 0,787589 -265,46'}));
+ assert.deepEqual(un.gdUsinas,[{uc:'2.965.543.012-72',gd:'GD1'},{uc:'3.187.902.012-59',gd:'GD2'}]);assert.equal(un.gd,null);
+ const ger=E.parseInvoice(fatura({extra:'99999999-9 ENERGIA GERAÇÃO - KWH ÚNICO 5000 5639 1,000000 639\nINJEÇÃO SCEE - GD I kWh 370,00 0,787589 -291,41'}));assert.equal(ger.gd,'GD1');
+ const d=E.fresh(),a=E.usina('A'),b=E.usina('B');a.gd='GD1';d.usinas.push(a,b);const x=E.unidade('X');x.usinas=[a.id,b.id];
+ assert.deepEqual(E.gdUnidade(d,x).map(g=>g.gd),['GD1',null]);assert.equal(E.gdNome('III'),'GD3');});

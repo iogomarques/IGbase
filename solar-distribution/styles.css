@@ -123,3 +123,5 @@ a.button.primary{background:var(--green);color:#fff}
 .dist-resolver:hover{background:#fff3d6}
 .dist-forms{list-style:none;margin:8px 0 0;padding:0;display:grid;gap:8px}
 .dist-forms li{display:flex;justify-content:space-between;align-items:center;gap:10px;flex-wrap:wrap;padding:8px 12px;border:1px solid var(--border);border-radius:10px}
+.pill.gd{background:#eef3fb;color:#2d4f7a;font-size:11px;vertical-align:middle;margin-left:6px}
+.dist-gd-unidade{display:flex;flex-direction:column;gap:4px}

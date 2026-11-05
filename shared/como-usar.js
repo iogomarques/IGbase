@@ -75,7 +75,9 @@
     'A geradora também consome. Só a sobra vai para as unidades: geração − o que a geradora usa na hora (geração − energia injetada) − o consumo da rede dela acima do mínimo. É o mesmo "GERAÇÃO CICLO" que aparece nas faturas das unidades.',
     'Exemplo: geração esperada 1.200 kWh, a fatura mostra 634 kWh injetados e 346 kWh de consumo da rede (mínimo 30): 1.200 − 566 − 316 = 319 kWh para o rateio. O cabeçalho de cada usina mostra essa conta ("1.200 kWh → 319 kWh para o rateio").',
     'Com a fatura da geradora lançada, a sobra fica igual a energia injetada − consumo da rede acima do mínimo; a geração esperada pesa de verdade quando não há fatura da geradora. Os valores da fatura são a média dos últimos 3 meses (ou dos meses que existirem).',
-    'Cada unidade precisa de crédito só para o consumo médio menos o mínimo (30, 50 ou 100 kWh), que a Equatorial cobra de qualquer jeito. Ex.: mínimo 100 e consumo 200 → a unidade precisa de 100.']},
+    'Cada unidade precisa de crédito só para o consumo médio menos o mínimo (30, 50 ou 100 kWh), que a Equatorial cobra de qualquer jeito. Ex.: mínimo 100 e consumo 200 → a unidade precisa de 100.',
+    'Na tabela do rateio, a coluna "A compensar" mostra essa conta embaixo do valor (ex.: "264 − 30 (mínimo mono)" = 234 kWh). O mínimo é o custo de disponibilidade: 30 kWh monofásico, 50 bifásico, 100 trifásico.',
+    'Classificação GD (Lei 14.300): o site lê da fatura ("INJEÇÃO SCEE … GD I") e mostra na usina (GD1, GD2 ou GD3); a unidade recebe os créditos na classificação de cada usina ligada a ela. Dá para corrigir na ficha da usina.']},
    {titulo:'Clientes e lateral',dicas:[
     'A lateral abre em "Clientes": busque por nome, UC ou CPF/CNPJ. O ponto colorido mostra a situação (verde: pronto; laranja: pendências; vermelho: a geração não atende o consumo).',
     'Com um cliente escolhido, as abas Rateio, Usinas, Unidades e Histórico mostram só o que é dele. Para voltar ao painel com todos os clientes, clique em "Todos os clientes".',
@@ -83,7 +85,7 @@
     'No topo de cada cliente: "Arquivar cliente" tira o cliente da lista e do painel sem apagar nada (para ver ou reativar: Filtros → Situação → Arquivados). "Excluir cliente" apaga o cliente, as usinas e as unidades dele; os rateios já salvos no histórico continuam. Depois clique em "Salvar na conta".',
     'Os modos "Usinas" e "Unidades" da lateral continuam para editar cada usina (fator, meses de geração, dados do formulário) e cada unidade (consumo, ligação, saldo, usinas que mandam energia).']},
    {titulo:'Alertas que aparecem',dicas:[
-    '"Não atendem o consumo total": a geração não cobre todas as unidades do cliente; o site sugere quantos kWp (e placas) ampliar.',
+    '"Não atendem o consumo total": a geração não cobre todas as unidades do cliente; o site informa quantos kWp de geração faltam. O site informa só os kWp: placas, inversores e como ampliar ficam a cargo do instalador.',
     'Não compensado acima do mínimo: faltou crédito naquela unidade; aumente a porcentagem dela ou amplie a usina. O aviso aparece embaixo do nome da unidade, na tabela.',
     'Unidade lida antes da geradora: o crédito entra na fatura do mês seguinte.',
     'CPF/CNPJ diferente: no autoconsumo remoto, a usina e as unidades precisam ter o mesmo titular.',
