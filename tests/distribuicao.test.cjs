@@ -139,3 +139,23 @@ test('mínimo de 1% para toda unidade, em qualquer modo; ajuste abaixo de 1% é 
  let r=E.calcular(d);assert.equal(r.usinas[0].final[e.id],1);assert.equal(r.usinas[0].soma,100);
  d.modo='prioritaria';a.prioritaria=true;a.consumoMedio=5000;r=E.calcular(d);assert.ok(Object.values(r.usinas[0].final).every(v=>v>=1));assert.equal(r.usinas[0].soma,100);
  d.modo='homogenea';a.prioritaria=false;a.consumoMedio=300;e.consumoMedio=100;d.usinas[0].ajustes={[e.id]:-10,[a.id]:10};r=E.calcular(d);assert.equal(r.ok,false);assert.match(r.alertas.map(x=>x.texto).join(' '),/pelo menos 1%/);});
+
+test('clientes: dados antigos são agrupados pelo CPF/CNPJ do titular; organizar de novo dá o mesmo resultado',()=>{const d=E.fresh(),a=E.usina('A'),b=E.usina('B'),c=E.usina('Outro');
+ Object.assign(a,{documento:'000.000.001-91',titular:'FULANO'});Object.assign(b,{documento:'00000000191'});Object.assign(c,{documento:'11.111.111/0001-11',titular:'EMPRESA X'});d.usinas.push(a,b,c);
+ const u1=E.unidade('U1');u1.usinas=[a.id];const u2=E.unidade('U2');u2.usinas=[c.id];const solta=E.unidade('Solta');solta.documento='000.000.001-91';d.unidades.push(u1,u2,solta);delete d.clientes;
+ assert.equal(E.organizarClientes(d),true);assert.equal(d.clientes.length,2);assert.equal(a.clienteId,b.clienteId);assert.notEqual(a.clienteId,c.clienteId);
+ assert.equal(u1.clienteId,a.clienteId);assert.equal(u2.clienteId,c.clienteId);assert.equal(solta.clienteId,a.clienteId);assert.equal(d.clientes.find(x=>x.id===a.clienteId).nome,'FULANO');
+ const ids=d.clientes.map(x=>x.id);assert.equal(E.organizarClientes(d),false);assert.deepEqual(d.clientes.map(x=>x.id),ids);
+ const it=E.itensCliente(d,a.clienteId);assert.deepEqual(it.usinas.map(u=>u.nome),['A','B']);assert.deepEqual(it.unidades.map(u=>u.nome).sort(),['Solta','U1']);});
+
+test('pendências do cliente na ordem: geração, ligações, consumo, 100%; vazia quando pronto',()=>{const d=cenario();E.organizarClientes(d);const id=d.clientes[0].id,us=d.usinas[0];
+ assert.deepEqual(E.pendencias(d,E.calcular(d),id),[]);
+ us.kwp=null;let p=E.pendencias(d,E.calcular(d),id);assert.equal(p[0].etapa,'geracao');assert.equal(p[0].usinaId,us.id);us.kwp=10;
+ d.unidades[0].usinas=[];d.unidades[1].consumoMedio=null;p=E.pendencias(d,E.calcular(d),id);assert.deepEqual(p.map(x=>x.etapa),['ligacoes','dados']);d.unidades[0].usinas=[us.id];d.unidades[1].consumoMedio=300;
+ us.ajustes={[d.unidades[0].id]:5};p=E.pendencias(d,E.calcular(d),id);assert.equal(p.length,1);assert.equal(p[0].etapa,'ajuste');assert.match(p[0].texto,/105%/);});
+
+test('resumo do cliente: só as usinas, unidades e falta dele (dois clientes na mesma conta)',()=>{const d=cenario();d.unidades[0].consumoMedio=2000;
+ const b=E.usina('Outro cliente');Object.assign(b,{kwp:10,fator:100,documento:'22.222.222/0001-22'});d.usinas.push(b);const x=E.unidade('Casa sobrando');Object.assign(x,{consumoMedio:200,minimo:30,saldo:0,usinas:[b.id]});d.unidades.push(x);
+ E.organizarClientes(d);const c=E.calcular(d),[ca,cb]=[d.usinas[0].clienteId,b.clienteId];assert.notEqual(ca,cb);
+ const ra=E.resumoCliente(d,c,ca),rb=E.resumoCliente(d,c,cb);assert.equal(ra.unidades.length,4);assert.equal(rb.unidades.length,1);assert.equal(Math.round(ra.deficit),1700);assert.equal(rb.deficit,0);assert.equal(rb.ok,true);
+ assert.ok(ra.alertas.some(a=>/não atendem/.test(a.texto)));assert.equal(rb.alertas.some(a=>/não atendem/.test(a.texto)),false);});

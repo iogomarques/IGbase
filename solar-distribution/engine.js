@@ -64,10 +64,42 @@ function fmt(v,d=2){return v===null||v===undefined||!Number.isFinite(v)?'—':Nu
 function round2(v){return Math.round(v*100)/100;}
 
 /* ---------- Modelo ---------- */
-function fresh(){return {version:VERSION,modo:'homogenea',considerarSaldo:false,mesesRevisao:3,usinas:[],unidades:[],rateios:[]};}
+function fresh(){return {version:VERSION,modo:'homogenea',considerarSaldo:false,mesesRevisao:3,clientes:[],usinas:[],unidades:[],rateios:[]};}
 function usina(nome='Nova usina'){return {id:uid(),nome,uc:'',titular:'',documento:'',kwp:null,fator:115,geracaoReal:null,geracaoMeses:[null,null,null],monitoramento:'APsystems',fonteGeracao:'media3',injecaoFatura:null,injecao3:null,consumoRede3:null,meses3:null,placaW:620,consumoGeradora:null,minimoGeradora:null,reservaGeradora:0,leituraAtual:null,classe:'',endereco:'',bairro:'',cep:'',cidade:'',uf:'',email:'',telefone:'',celular:'',tipoSolicitacao:'alteracao',compensacao:'normal',saldo:null,rateioCadastrado:[],ajustes:{},fatura:null};}
 function unidade(nome='Nova unidade'){return {id:uid(),nome,uc:'',titular:'',documento:'',fases:'TRI',minimo:100,consumoMedio:null,consumoMes:null,saldo:null,naoCompensado:null,leituraAtual:null,valorFatura:null,prioritaria:false,usinas:[],fatura:null};}
-function validate(d){if(!d||typeof d!=='object')throw Error('Dados do Solar Distribution inválidos.');if(d.version!==VERSION)throw Error('Versão de dados do Solar Distribution incompatível.');for(const k of ['usinas','unidades','rateios'])if(!Array.isArray(d[k]))throw Error('Dados do Solar Distribution incompletos.');for(const u of d.usinas)if(typeof u.id!=='string')throw Error('Usina inválida.');for(const u of d.unidades)if(typeof u.id!=='string'||!Array.isArray(u.usinas))throw Error('Unidade inválida.');return d;}
+function validate(d){if(!d||typeof d!=='object')throw Error('Dados do Solar Distribution inválidos.');if(d.version!==VERSION)throw Error('Versão de dados do Solar Distribution incompatível.');for(const k of ['usinas','unidades','rateios'])if(!Array.isArray(d[k]))throw Error('Dados do Solar Distribution incompletos.');if(d.clientes!==undefined&&!Array.isArray(d.clientes))throw Error('Clientes do Solar Distribution inválidos.');for(const u of d.usinas)if(typeof u.id!=='string')throw Error('Usina inválida.');for(const u of d.unidades)if(typeof u.id!=='string'||!Array.isArray(u.usinas))throw Error('Unidade inválida.');return d;}
+
+/* ---------- Clientes ----------
+   Cada cliente agrupa as suas usinas e unidades (ex.: Silas = 2 geradoras + 3 unidades). Dados antigos, sem clientes,
+   são organizados pelo CPF/CNPJ do titular da usina; o id é derivado do documento ou da usina, então organizar de novo
+   (antes de salvar) dá o mesmo resultado. */
+function cliente(nome='Novo cliente',documento=''){return {id:uid(),nome,documento:documento||'',email:'',telefone:'',observacoes:''};}
+function docKey(v){const k=String(v||'').replace(/\D/g,'');return k.length>=11?k:'';}
+function organizarClientes(d){if(!Array.isArray(d.clientes))d.clientes=[];let mudou=false;const existe=id=>!!id&&d.clientes.some(c=>c.id===id);
+ const porDoc=doc=>{const k=docKey(doc);return k?d.clientes.find(c=>docKey(c.documento)===k):null;};
+ const novo=(nome,documento,id)=>{const c=Object.assign(cliente(String(nome||'Cliente').trim()||'Cliente',documento),{id});d.clientes.push(c);return c;};
+ for(const us of d.usinas){if(existe(us.clienteId))continue;const k=docKey(us.documento),c=porDoc(us.documento)||novo(us.titular||us.nome,us.documento,k?'cli-'+k:'cli-u-'+us.id);us.clienteId=c.id;mudou=true;}
+ for(const un of d.unidades){if(existe(un.clienteId))continue;const us=d.usinas.find(u=>un.usinas.includes(u.id)),k=docKey(un.documento);const c=us?d.clientes.find(x=>x.id===us.clienteId):(porDoc(un.documento)||novo(un.titular||un.nome,un.documento,k?'cli-'+k:'cli-n-'+un.id));un.clienteId=c.id;mudou=true;}
+ return mudou;}
+/* Usinas e unidades de um cliente. Uma unidade ligada a uma usina do cliente aparece junto, mesmo se cadastrada em outro. */
+function itensCliente(d,id){const usinas=d.usinas.filter(u=>u.clienteId===id),ids=new Set(usinas.map(u=>u.id));return {usinas,unidades:d.unidades.filter(un=>un.clienteId===id||un.usinas.some(x=>ids.has(x)))};}
+/* O que falta para fechar o rateio de um cliente, na ordem em que o usuário resolve. Lista vazia = pronto. */
+function pendencias(d,c,id){const {usinas,unidades}=itensCliente(d,id),out=[],add=(etapa,texto,ref)=>out.push(Object.assign({etapa,texto},ref||{}));
+ if(!usinas.length)add('faturas','Lance a fatura da usina geradora (ou cadastre a usina).');
+ if(!unidades.length)add('faturas','Lance as faturas das unidades que recebem os créditos.');
+ for(const us of usinas){const r=c.usinas.find(x=>x.usinaId===us.id);if(r&&r.energia.disponivel===null)add('geracao','Informe a geração esperada (kWh/mês) ou a potência (kWp) da usina '+us.nome+'.',{usinaId:us.id});
+  if(!unidades.some(un=>un.usinas.includes(us.id)))add('ligacoes','Marque as unidades que recebem da usina '+us.nome+'.',{usinaId:us.id});}
+ for(const un of unidades){if(!un.usinas.length)add('ligacoes','Ligue a unidade '+un.nome+' a uma usina.',{unidadeId:un.id});if(num(un.consumoMedio)===null)add('dados','Informe o consumo médio da unidade '+un.nome+'.',{unidadeId:un.id});}
+ for(const us of usinas){const r=c.usinas.find(x=>x.usinaId===us.id);if(r&&Object.keys(r.final).length&&!r.ok)add('ajuste','Feche '+r.alvo+'% na usina '+us.nome+' (hoje soma '+r.soma+'%; cada unidade com pelo menos 1%).',{usinaId:us.id});}
+ return out;}
+/* Resumo de um cliente a partir do cálculo geral: só as usinas, unidades, avisos e sistemas dele. */
+function resumoCliente(d,c,id){const {usinas,unidades}=itensCliente(d,id),uIds=new Set(usinas.map(u=>u.id)),nIds=new Set(unidades.map(u=>u.id));
+ const sistemas=c.sistemas.filter(s=>s.usinas.some(x=>uIds.has(x)));
+ return {usinas,unidades,porUsina:c.usinas.filter(r=>uIds.has(r.usinaId)),porUnidade:c.unidades.filter(u=>nIds.has(u.id)),
+  alertas:c.alertas.filter(a=>a.usinaId?uIds.has(a.usinaId):a.unidadeId?nIds.has(a.unidadeId):a.sistema?a.sistema.some(x=>uIds.has(x)):false),
+  sistemas,energia:usinas.reduce((a,us)=>a+((c.usinas.find(r=>r.usinaId===us.id)||{}).energia?.disponivel||0),0),
+  compensar:unidades.reduce((a,un)=>a+necessidade(un,d),0),deficit:sistemas.reduce((a,s)=>a+Math.max(0,s.deficit),0),
+  ok:usinas.length>0&&c.usinas.filter(r=>uIds.has(r.usinaId)).every(r=>r.ok&&r.energia.disponivel!==null),pendencias:pendencias(d,c,id)};}
 
 /* Energia de uma usina disponível para as unidades no mês. */
 const FONTES={media3:'média dos últimos 3 meses',estimada:'estimada (kWp × fator)',fatura:'injetada na rede, média de 3 meses da fatura'};
@@ -181,6 +213,6 @@ function calcular(d,sugestao){
  const ok=porUsina.every(u=>u.ok)&&!alertas.some(a=>a.tipo==='erro');
  return {usinas:porUsina,unidades,alertas,totalConsumo,totalEnergia,deficit,sistemas,ok};}
 
-const api={VERSION,MINIMO_FASES,necessidade,necessidadeBase,coberta,inteirosMin,usaSaldo,mesesRevisao,FONTES,MONITORAMENTOS,mesesGeracao,MODOS,modo,placaUsina,fonteGeracao,fatorUsina,num,ucKey,ucFormat,linesFromItems,parseInvoice,fresh,usina,unidade,validate,energiaUsina,inteiros,sugerir,calcular,fmt,round2,clone,uid};
+const api={VERSION,MINIMO_FASES,cliente,docKey,organizarClientes,itensCliente,pendencias,resumoCliente,ampliacaoTexto,minimoUnidade,necessidade,necessidadeBase,coberta,inteirosMin,usaSaldo,mesesRevisao,FONTES,MONITORAMENTOS,mesesGeracao,MODOS,modo,placaUsina,fonteGeracao,fatorUsina,num,ucKey,ucFormat,linesFromItems,parseInvoice,fresh,usina,unidade,validate,energiaUsina,inteiros,sugerir,calcular,fmt,round2,clone,uid};
 root.SolarDistribution=api;if(typeof module!=='undefined'&&module.exports)module.exports=api;
 })(globalThis);

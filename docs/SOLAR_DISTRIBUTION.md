@@ -33,7 +33,8 @@ Percentuais somando 100% (o titular pode reservar parte para a geradora); no aut
 | `solar-distribution/store.js` (`IGDistributionStore`) | Grava em `configuracoes_documento.data.solarDistribution` (versão 1), relendo a linha e conferindo `updated_at`; preserva empresas, Budget e demais áreas |
 | `solar-distribution/app.js` | Tela: lateral Usinas/Unidades, abas Rateio, Lançar faturas, Usinas, Unidades e Histórico; leitura de PDF com pdf.js; formulário de rateio em PDF com jsPDF |
 | `solar-distribution/index.html`, `styles.css` | Página no esqueleto do Budget/Organization (usa `/solar-budget/styles.css` e `/shared/presentation.css`) |
-| `tests/distribuicao.test.cjs` | 26 testes com dados fictícios |
+| `solar-distribution/report.js` (`IGDistributionReport`) | PDFs: relatório do cliente (empresa no cabeçalho) e formulário da Equatorial |
+| `tests/distribuicao.test.cjs` | 29 testes com dados fictícios |
 
 Rascunho não salvo fica no navegador (`igbase:solar-distribution:v1:<userId>`) até "Salvar na conta". Rateios salvos no histórico são cópias fixas: não mudam quando o cadastro muda.
 
@@ -129,3 +130,15 @@ Melhorado:
 - Cabeçalho da usina mostra a energia que de fato vai para o rateio (ex.: "1.200 kWh → 319 kWh para o rateio, descontado o consumo da geradora").
 - Avisos de cada unidade ficam na linha dela (botão "N avisos"); em cima ficam só os gerais e um resumo.
 - Tabela de conferência das faturas com UC, tipo e nome legíveis.
+
+## Clientes, lançamento guiado e relatório do cliente (05/11/2026, versão 1.10.30)
+
+Pedido do usuário: com 50–60 clientes, achar as usinas e unidades de cada um (ex.: "as do Silas"), deixar claro o que precisa ser feito no lançamento e entregar ao cliente um PDF único, no estilo da fatura do Solar Organization, mostrando a situação da usina e a empresa que presta o serviço.
+
+- **Clientes** (`data.clientes`, `clienteId` em usinas e unidades): a lateral abre em "Clientes" (busca por nome, UC ou CPF/CNPJ; filtros por situação). Escolhido um cliente, as abas Rateio, Usinas, Unidades e Histórico mostram só o que é dele. Sem cliente escolhido, o Rateio é um painel geral com um cartão por cliente (pendências, falta de geração, pronto). Dados antigos são organizados sozinhos pelo CPF/CNPJ do titular da usina (`organizarClientes`, ids derivados do documento ou da usina, sem gravação automática).
+- **Lançamento guiado** ("Lançar faturas"): 1 escolher as faturas de um cliente; 2a cliente (achado pelo CPF/CNPJ ou novo pelo titular); 2b faturas lidas; 2c geração esperada (ou kWp) de cada geradora, pedida antes de aplicar; 2d tabela "quem recebe de qual usina", marcada pelo cadastro atual da Equatorial e editável; 3 aplicar e abrir o rateio do cliente.
+- **Etapas e "O que falta"** no topo do rateio do cliente (`pendencias`): faturas, geração, ligações, consumo, 100%. O relatório e o "Salvar no histórico" só liberam com a lista vazia. **Mapa do rateio**: uma barra colorida por usina com a porcentagem de cada unidade.
+- **Relatório do cliente (PDF)** (`solar-distribution/report.js`): cabeçalho com a empresa do cadastro do IG Base (logo, dados, cor, rodapé), cliente, resumo (energia para o rateio, a compensar, falta/ampliação), uma seção por usina (geração, consumo da geradora, barra e tabela das unidades com rateio atual e novo, crédito, saldo), pontos de atenção e próximos passos. Os formulários da Equatorial vão no fim do mesmo arquivo (opção marcada por padrão). Empresa: a escolhida no relatório, senão a do Organization.
+- **Histórico** por cliente: cada rateio salvo guarda o cliente, o modelo do relatório (refeito igual, sem recalcular) e os dados da empresa sem o logo (o logo vem do cadastro; ~6 KB por rateio).
+
+Testado localmente (banco simulado): caso Silas pelo fluxo guiado em duas escolhas de faturas (marcações vindas da Equatorial: apartamento → casa; casa do pai → loja e casa; chácara → loja), plano novo aplicado → 48/31/21% e 100%; segundo cliente (exemplos) com 33,3 kWp; painel geral; relatório com empresa e logo (4 páginas, 468 KB); histórico e relatório refeito; celular sem rolagem lateral; console sem erros. Suíte: 29 testes do Distribution e 8 de faturamento.
