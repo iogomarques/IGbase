@@ -166,3 +166,6 @@ test('classificação GD lida da fatura: da própria geradora e de cada usina qu
  const ger=E.parseInvoice(fatura({extra:'99999999-9 ENERGIA GERAÇÃO - KWH ÚNICO 5000 5639 1,000000 639\nINJEÇÃO SCEE - GD I kWh 370,00 0,787589 -291,41'}));assert.equal(ger.gd,'GD1');
  const d=E.fresh(),a=E.usina('A'),b=E.usina('B');a.gd='GD1';d.usinas.push(a,b);const x=E.unidade('X');x.usinas=[a.id,b.id];
  assert.deepEqual(E.gdUnidade(d,x).map(g=>g.gd),['GD1',null]);assert.equal(E.gdNome('III'),'GD3');});
+
+test('consumo médio igual ao impresso na fatura: entram todos os meses, inclusive MÍNIMO',()=>{const f=E.parseInvoice(fatura().replace('MÊS/ANO CONSUMO FATURADO(kWh) DIAS FATURAMENTO\n700,00 30 LIDA\n600,00 31 MÉDIA\n800,00 30 LIDA','MÊS/ANO CONSUMO FATURADO(kWh) DIAS FATURAMENTO\n100,00 30 LIDA\n23,00 31 MÍNIMO\n130,00 30 MÉDIA'));
+ assert.equal(f.consumoMedio,84.33);});

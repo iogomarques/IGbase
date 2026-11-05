@@ -149,3 +149,7 @@ Diretrizes do usuário:
 - **Classificação GD (Lei 14.300):** lida da fatura — "INJEÇÃO SCEE - UC <geradora> - GD I" nas faturas das unidades e "INJEÇÃO SCEE - GD I" na da própria geradora (I/II/III → GD1/GD2/GD3). Campo `gd` na usina (editável na ficha); a unidade mostra a classificação de cada usina que manda crédito ("recebe como GD1"). Aparece no rateio, na ficha da unidade e no relatório.
 - **"A compensar" = consumo médio − mínimo não compensado** (custo de disponibilidade: 30/50/100). A coluna mostra a conta embaixo do valor (ex.: "264 − 30 (mínimo mono)"), o resumo diz "consumo médio − mínimo" e o relatório explica.
 - **Ampliação só em kWp:** o site informa quantos kWp de geração faltam e nunca sugere placas, inversores ou como executar (dimensionamento do instalador). O campo "Potência da placa" saiu (substitui a seção de 30/10 sobre placa).
+
+## Consumo médio igual ao impresso na fatura (05/11/2026, versão 1.10.38)
+
+Conferência do Silas: a média do site deixava de fora os meses marcados "MÍNIMO" e a Equatorial os inclui (chácara: site 129,43 × fatura 121,25). Agora entram todos os 13 meses, igual à fatura. Silas: a compensar 712 kWh (era 720), faltam 158 kWh/mês (era 166), rateio da loja 49/32/19% (era 48/31/21%); casa continua 100%. A fatura "casa do seu pai 100%" (pasta GERADORA 02) é idêntica, byte a byte, à da pasta GERADORA 01: o site a ignora como repetida, corretamente.

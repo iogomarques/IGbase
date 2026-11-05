@@ -54,7 +54,8 @@ function parseInvoice(text){
     (ou dos meses que existirem), regra do IG Base para a geração. */
  if(out.ehGeradora){const i=t.search(/M[ÊE]S\/ANO\s+CONSUMO FATURADO/i);if(i>=0){const vals=[];for(const ln of t.slice(i).split('\n').slice(1)){if(/^\s*TOTAL\b/i.test(ln))break;const x=/(\d[\d.]*,\d{2})(?:\s+\d{1,2}\s+(?:LIDA|M[ÉE]DIA|M[ÍI]NIMO))?\s*$/i.exec(ln);if(x)vals.push(num(x[1]));}
   if(vals.length>=4){const meses=[];for(let k=2;k+1<vals.length;k+=2)meses.push({consumo:vals[k],injecao:vals[k+1]});out.historicoGeradora=meses.slice(0,13);out.mediaConsumoImpressa=vals[0];out.mediaInjecaoImpressa=vals[1];
-   const ult=meses.slice(0,3),med=k=>round2(ult.reduce((a,m)=>a+m[k],0)/ult.length);out.injecao3=med('injecao');out.consumoRede3=med('consumo');out.meses3=ult.length;}}}const hist=out.ehGeradora?[]:out.historico.filter(h=>h.tipo!=='MINIMO').map(h=>h.consumo).filter(v=>v!==null);if(hist.length)out.consumoMedio=Math.round(hist.reduce((a,b)=>a+b,0)/hist.length*100)/100;
+   const ult=meses.slice(0,3),med=k=>round2(ult.reduce((a,m)=>a+m[k],0)/ult.length);out.injecao3=med('injecao');out.consumoRede3=med('consumo');out.meses3=ult.length;}}}/* Média igual à impressa na fatura: a Equatorial entra com todos os 13 meses, inclusive os marcados MÍNIMO (conferido na chácara do Silas: 121,25). */
+ const hist=out.ehGeradora?[]:out.historico.map(h=>h.consumo).filter(v=>v!==null);if(hist.length)out.consumoMedio=Math.round(hist.reduce((a,b)=>a+b,0)/hist.length*100)/100;
  if(!out.uc)avisos.push('UC não encontrada. Informe o número da unidade.');
  if(!out.fases)avisos.push('Tipo de fornecimento não encontrado. Confira o mínimo (30, 50 ou 100 kWh).');
  if(out.consumoMedio===null&&!out.ehGeradora)avisos.push('Média de consumo não encontrada. Informe o consumo médio.');
