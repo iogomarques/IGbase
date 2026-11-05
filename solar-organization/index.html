@@ -4,7 +4,7 @@
 <meta charset="UTF-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1.0" />
 <title>Solar Organization | IG Base</title>
-<link rel="icon" type="image/png" sizes="64x64" href="/favicon-ig-base.png?v=1.10.35">
+<link rel="icon" type="image/png" sizes="64x64" href="/favicon-ig-base.png?v=1.10.36">
 <!-- O SDK é carregado sem bloquear a renderização da página, no início do app. -->
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -464,7 +464,7 @@
 
 @media screen{.vigencia-linha input[type=month]{width:100%;min-height:44px;padding:9px;border:1px solid var(--line);border-radius:8px;background:#fff;font:inherit}.vigencia-linha .vigencia-remover{margin-top:10px}#m-vigencias{margin-top:16px}}
 </style>
-<script src="/shared/companies.js?v=1.10.35"></script><link rel="stylesheet" href="/shared/presentation.css?v=1.10.35"><script src="/shared/account.js?v=1.10.35"></script><script src="/shared/login.js?v=1.10.35"></script><script src="/shared/falta.js?v=1.10.35"></script><script src="/shared/version.js?v=1.10.35"></script></head>
+<script src="/shared/companies.js?v=1.10.36"></script><link rel="stylesheet" href="/shared/presentation.css?v=1.10.36"><script src="/shared/account.js?v=1.10.36"></script><script src="/shared/login.js?v=1.10.36"></script><script src="/shared/falta.js?v=1.10.36"></script><script src="/shared/version.js?v=1.10.36"></script></head>
 <body>
 
 <div id="auth-root"><div class="auth-screen startup-screen"><div class="startup-card" aria-busy="true"><div class="startup-brand"><img width="713" height="340" draggable="false" src="/assets/logo-ig-base.png" alt="IG Base"></div><div class="startup-spinner" aria-hidden="true"></div><h1 class="startup-title">Carregando o sistema</h1><p class="startup-message" role="status" aria-live="polite">Preparando seu ambiente…</p><noscript>Ative o JavaScript no navegador para utilizar o sistema.</noscript></div></div></div>
@@ -479,7 +479,7 @@
 </div>
 <footer class="app-footer ig-footer" id="app-footer" style="display:none">
   <div class="footer-links"><a href="/">IG Base</a><a href="/solar-organization/" aria-current="page">Solar Organization</a><a href="/solar-budget/">Solar Budget</a><a href="/solar-distribution/">Solar Distribution</a><a href="/empresas/">Empresas</a><a href="/suporte/">Suporte</a></div>
-  <div class="version" data-ig-version>IG Base v1.10.35</div>
+  <div class="version" data-ig-version>IG Base v1.10.36</div>
 </footer>
 
 <div id="modal-root"></div>
@@ -1133,7 +1133,7 @@ async function loadAll(){
     state.clients = seedClients(state.profiles);
     if(!await saveClients())throw new Error('Não foi possível salvar os clientes iniciais. Tente novamente.');
   }
-  if(state.clients.length){ state.selectedClientId = state.clients[0].id; }
+  if(state.clients.length){ state.selectedClientId = (state.clients.find(function(c){return !c.arquivado;}) || state.clients[0]).id; }
 }
 
 /* ============================================================
@@ -1233,13 +1233,14 @@ function opcoesFiltro(opcoes, valor){
 function clientesFiltrados(){
   var items=state.clients.filter(function(c){
     return correspondeBusca(state.buscaCliente,dadosBuscaCliente(c)) &&
-      (!state.tipoCliente || tipoGDDoPerfil(getProfile(c.profileId)) === state.tipoCliente);
+      (!state.tipoCliente || tipoGDDoPerfil(getProfile(c.profileId)) === state.tipoCliente) &&
+      (state.situacaoCliente==='todos' || (state.situacaoCliente==='arquivados' ? !!c.arquivado : !c.arquivado));
   });
   return ordenarPorIdentificacao(items,state.ordemCliente || 'cliente-az',function(c){return c;});
 }
 function clientRowsHtml(){
   var lista = clientesFiltrados();
-  if(!lista.length) return '<div class="busca-vazio">Nenhum cliente corresponde aos filtros. Limpe a busca ou altere o tipo de usina.</div>';
+  if(!lista.length) return '<div class="busca-vazio">'+(state.situacaoCliente==='arquivados'?'Nenhum cliente arquivado.':'Nenhum cliente corresponde aos filtros. Limpe a busca ou altere o tipo de usina.')+(state.situacaoCliente!=='arquivados'&&state.clients.some(function(c){return c.arquivado;})?' Clientes arquivados ficam em Filtros → Situação.':'')+'</div>';
   return lista.map(function(c){
     var p=getProfile(c.profileId), tipo=tipoGDDoPerfil(p), local=localCliente(c);
     var documento=limparTextoExibicao(c.documento || c.cpf || c.cnpj);
@@ -1247,7 +1248,7 @@ function clientRowsHtml(){
     return '<div class="client-row' + (c.id === state.selectedClientId ? ' active' : '') + '" data-action="select-client" data-id="' + escapeHtml(c.id) + '">' +
       '<span class="client-dot" style="background:' + dotColor + '"></span>' +
       '<span class="meta"><span class="nome">' + textoExibicao(c.nome) + '</span> ' +
-      '<span class="uc">' + (c.uc ? 'UC: ' + textoExibicao(c.uc) : 'UC não informada') + (tipo ? ' · ' + tipo : '') + '</span> ' +
+      '<span class="uc">' + (c.uc ? 'UC: ' + textoExibicao(c.uc) : 'UC não informada') + (tipo ? ' · ' + tipo : '') + (c.arquivado ? ' · arquivado' : '') + '</span> ' +
       (documento ? '<span class="uc">Documento: ' + textoExibicao(documento) + '</span> ' : '') +
       (local ? '<span class="uc">Local: ' + textoExibicao(local) + '</span> ' : '') + '</span>' +
       '<button class="edit-btn" data-action="edit-client" data-id="' + escapeHtml(c.id) + '" title="Editar cliente" aria-label="Editar cliente">' +
@@ -1260,6 +1261,7 @@ function buscaClienteInputHtml(){
     (state.buscaCliente ? '<button type="button" class="busca-clear" data-action="limpar-busca-cliente" aria-label="Limpar busca">' + ICON_X + '</button>' : '') + '</div>' +
     '<details class="filtros-mais" data-filtros-clientes' + (filtrosClientesAbertos() ? ' open' : '') + '><summary>Filtros</summary><div class="filtros-mais-corpo">' +
     '<label class="filter-label" for="tipo-cliente">Tipo de usina</label><select id="tipo-cliente">' + opcoesFiltro([['','Todos os tipos'],['GD1','GD1'],['GD2','GD2']],state.tipoCliente || '') + '</select>' +
+    '<label class="filter-label" for="situacao-cliente">Situação</label><select id="situacao-cliente">' + opcoesFiltro([['','Ativos'],['arquivados','Arquivados'],['todos','Todos']],state.situacaoCliente || '') + '</select>' +
     '<label class="filter-label" for="ordem-cliente">Ordenar clientes</label><select id="ordem-cliente">' +
     opcoesFiltro([['cliente-az','Cliente: A–Z'],['cliente-za','Cliente: Z–A'],['local-az','Local: A–Z'],['local-za','Local: Z–A']],state.ordemCliente || 'cliente-az') + '</select>' +
     '<button type="button" class="btn btn-ghost" data-action="limpar-filtros-clientes">Limpar filtros</button></div></details></div>';
@@ -3121,10 +3123,11 @@ function renderHistorico(){
 function atualizarFiltroLista(target){
   if(target.id === 'tipo-cliente'){state.tipoCliente=target.value;atualizarListaClientes();}
   if(target.id === 'ordem-cliente'){state.ordemCliente=target.value;atualizarListaClientes();}
+  if(target.id === 'situacao-cliente'){state.situacaoCliente=target.value;atualizarListaClientes();}
   var chave=target.dataset && target.dataset.filtroHistorico;
   if(chave && Object.prototype.hasOwnProperty.call(filtrosHistorico(),chave)){filtrosHistorico()[chave]=target.value;atualizarListaHistorico();}
 }
-function limparFiltrosClientes(){state.buscaCliente='';state.tipoCliente='';state.ordemCliente='cliente-az';renderSidebar();}
+function limparFiltrosClientes(){state.buscaCliente='';state.tipoCliente='';state.ordemCliente='cliente-az';state.situacaoCliente='';renderSidebar();}
 function limparFiltrosHistorico(){state.buscaHistorico='';state.filtrosHistorico=filtrosHistoricoPadrao();renderHistorico();}
 
 function duplicarQuote(id){
@@ -3779,11 +3782,11 @@ async function baixarPdf(modo){
 }
 
 
-function handleConfirmClick(el, cb){
+function handleConfirmClick(el, cb, rotulo){
   if(el.dataset.confirming === '1'){ clearTimeout(el._confirmTimeout); cb(); }
   else{
     var original = el.textContent;
-    el.dataset.confirming = '1'; el.dataset.original = original; el.textContent = 'Confirmar exclusão';
+    el.dataset.confirming = '1'; el.dataset.original = original; el.textContent = rotulo || 'Confirmar exclusão';
     el._confirmTimeout = setTimeout(function(){ el.dataset.confirming=''; el.textContent = el.dataset.original; }, 3000);
   }
 }
@@ -4409,7 +4412,8 @@ function openClientModal(id){
         '<label class="checkbox-field" style="margin:4px 0 4px"><input type="checkbox" id="m-paga-fatura"' + (editing&&editing.locadorPagaFatura?' checked':'') + '> Eu pago a fatura da concessionária deste cliente</label>' +
         '<p class="hint" style="margin:0 0 12px">Quando marcado, o valor da fatura (campo "Valor da fatura" do mês) é somado ao total cobrado do cliente, sem margem — é só repasse, porque essa é a parte que eu uso pra pagar a conta. Desmarcado (padrão): o cliente paga a fatura direto pra concessionária, e eu só cobro a locação da usina.</p>' +
         '<div class="btn-row" style="justify-content:space-between;margin-top:8px">' +
-          (editing ? '<button class="btn btn-danger" data-action="delete-client-confirm" data-id="' + editing.id + '">Excluir cliente</button>' : '<span></span>') +
+          (editing ? '<span class="btn-row" style="margin:0"><button class="btn btn-danger" data-action="delete-client-confirm" data-id="' + editing.id + '" title="Apaga o cliente e as faturas dele do histórico">Excluir cliente</button><button class="btn" data-action="archive-client" data-id="' + editing.id + '" title="' + (editing.arquivado?'Volta para a lista de clientes':'Some da lista, mas o cadastro e o histórico ficam guardados') + '">' + (editing.arquivado?'Reativar cliente':'Arquivar cliente') + '</button></span>' : '<span></span>') +
+        (editing ? '<p class="hint" style="margin:8px 0 0">Arquivar esconde o cliente da lista sem apagar nada (para ver, Filtros → Situação: Arquivados). Excluir apaga o cliente e as '+state.quotes.filter(function(q){return q.clientId===editing.id;}).length+' fatura(s) dele do histórico, sem volta.</p>' : '') +
           '<button class="btn btn-primary" data-action="save-client" data-id="' + (editing?editing.id:'') + '">Salvar</button>' +
         '</div>' +
       '</div>' +
@@ -4460,6 +4464,15 @@ async function saveClientFromModal(existingId){
   state.selectedClientId = data.id;
   closeModal(); renderAll();
   toast('Cliente salvo.');
+}
+/* Arquivar: o cliente some da lista (cadastro e histórico continuam). Reativar devolve. */
+async function arquivarCliente(id){
+  var c=state.clients.find(function(x){return x.id===id;});if(!c)return;var arquivar=!c.arquivado;
+  var lista=state.clients.map(function(x){if(x.id!==id)return x;var n=Object.assign({},x);if(arquivar){n.arquivado=true;n.arquivadoEm=new Date().toISOString();}else{delete n.arquivado;delete n.arquivadoEm;}return n;});
+  if(!await salvarColecoesEstado([{campo:'clients',chave:'usinas:v2:clients',valor:lista}]))return;
+  if(arquivar && state.selectedClientId===id && state.situacaoCliente!=='arquivados' && state.situacaoCliente!=='todos'){var prox=state.clients.find(function(x){return !x.arquivado;});state.selectedClientId=prox?prox.id:null;}
+  closeModal(); renderAll();
+  toast(arquivar?'Cliente arquivado: '+c.nome+'. Saiu da lista; para ver, use Filtros → Situação: Arquivados. Nada foi apagado.':'Cliente reativado: '+c.nome+'.');
 }
 async function deleteClient(id){
   if(!await salvarColecoesEstado([
@@ -4668,16 +4681,12 @@ async function onSignOut(){
    O aviso aparece uma vez por versão por navegador (localStorage compartilhado
    entre o site principal e os subsites, pois ficam no mesmo domínio).
    ============================================================ */
-var IG_BASE_VERSION = window.IGBaseRelease?.version || '1.10.35';
-var IG_BASE_RELEASE_ID = window.IGBaseRelease?.releaseId || '1.10.35-2026-10-30';
+var IG_BASE_VERSION = window.IGBaseRelease?.version || '1.10.36';
+var IG_BASE_RELEASE_ID = window.IGBaseRelease?.releaseId || '1.10.36-2026-10-30';
 var IG_BASE_CHANGELOG = [
-  "Solar Distribution: salvar na conta mais de uma vez sem recarregar a página não acusa mais conflito falso.",
-  "Solar Organization: a condição de pagamento aparece no PDF interno (e continua fora da fatura do cliente).",
-  "Solar Distribution: relatório do cliente com o logo maior e centralizado, sem \"próximos passos\"; os formulários da Equatorial saem em PDFs separados, um por usina (não vão para o cliente).",
-  "Em todos os sistemas: quando falta preencher algo, o site para, leva você ao campo e o destaca em laranja com o que falta.",
-  "Solar Distribution: o relatório, o histórico e o formulário levam direto ao que falta (geração, ligação, consumo, contato da usina ou ajuste de 100%); o lançamento não aplica sem a geração de cada usina.",
-  "Solar Organization: campos do mês vazios são destacados antes de calcular (vazio conta como 0; clique de novo para confirmar).",
-  "Como usar: tutoriais atualizados com esses avisos."
+  "Arquivar e excluir: clientes no Solar Organization e no Solar Distribution, cotações no Solar Budget e empresas no cadastro de Empresas.",
+  "Arquivar tira da lista sem apagar nada (veja e reative em Filtros → Situação → Arquivados); excluir apaga de vez, com confirmação.",
+  "Solar Distribution: salvar várias vezes sem recarregar a página funciona; o relatório do cliente tem o logo centralizado e os formulários da Equatorial saem à parte."
 ];
 function igbMostrarChangelog(){
   var KEY = 'igbase_changelog_visto';
@@ -4913,7 +4922,8 @@ document.addEventListener('click', function(e){
     case 'limpar-busca-cliente': limparBuscaCliente(); break;
     case 'limpar-busca-historico': limparBuscaHistorico(); break;
     case 'edit-client': openClientModal(id); break;
-    case 'delete-client-confirm': handleConfirmClick(el, function(){ deleteClient(id); }); break;
+    case 'delete-client-confirm': handleConfirmClick(el, function(){ deleteClient(id); }, 'Confirmar: apagar cliente e histórico'); break;
+    case 'archive-client': arquivarCliente(id); break;
     case 'close-modal': closeModal(); break;
     case 'save-client': saveClientFromModal(id || null); break;
     case 'set-tab': setTab(el.dataset.tab); break;

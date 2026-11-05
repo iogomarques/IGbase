@@ -36,7 +36,8 @@
     'Dados lidos do PDF sempre passam pela sua conferência antes de entrar na fatura.',
     'Se faltar algo (fatura não lida ou não aplicada, mês e ano, geração do GD2, saldo, nome do cliente, calcular antes de salvar ou emitir), o site para e leva você ao campo, destacado em laranja com o que falta.',
     'Campo do mês vazio conta como 0. Antes de calcular, o site destaca os campos vazios: preencha, ou clique em "Calcular orçamento" de novo para usar 0.',
-    'A condição de pagamento (ex.: débito automático) é de uso interno: sai no PDF interno, não na fatura do cliente.']}]},
+    'A condição de pagamento (ex.: débito automático) é de uso interno: sai no PDF interno, não na fatura do cliente.',
+    'Cliente que você não atende mais ou quer ocultar: em "Editar dados do cliente", "Arquivar cliente" tira da lista sem apagar nada (para ver ou reativar: Filtros → Situação → Arquivados). "Excluir cliente" apaga o cliente e as faturas dele do histórico, sem volta.']}]},
   {id:'budget',nome:'Solar Budget',link:'/solar-budget/',intro:'Compara as cotações dos fornecedores para a lista de materiais de um projeto e monta os carrinhos de compra.',grupos:[
    {titulo:'Passo a passo',passos:[
     ['Crie a cotação','Clique em "+ Nova cotação" na lateral e dê um nome (por exemplo, o cliente e a potência).'],
@@ -52,6 +53,7 @@
     'Quantidade cotada não garante estoque: confirme com o fornecedor.',
     'Se um PDF passar de 8 páginas, use o recorte: ele não divide kits nem reparte frete e descontos.',
     'Em "Mais opções" há o backup da cotação (exportar e restaurar em JSON).',
+    'Para ocultar ou apagar uma cotação salva: em "Orçamentos e PDFs salvos", abra a cotação. "Arquivar cotação" tira da lista sem apagar ("Ver cotações arquivadas" na lateral, ou Situação: Arquivadas). "Excluir cotação" apaga todas as versões e PDFs salvos dela, sem volta.',
     'Necessidade sem material, quantidade ou unidade não é confirmada: o site destaca em laranja o que falta preencher. Números inválidos também ficam destacados.']}]},
   {id:'distribution',nome:'Solar Distribution',link:'/solar-distribution/',intro:'Monta o rateio dos créditos de energia de cada cliente entre as usinas geradoras e as unidades, a partir das faturas da Equatorial, e gera o relatório do cliente (com a sua empresa no cabeçalho) e, à parte, um formulário de rateio da Equatorial por usina.',grupos:[
    {titulo:'O que o site lê sozinho e o que você informa',dicas:[
@@ -78,6 +80,7 @@
     'A lateral abre em "Clientes": busque por nome, UC ou CPF/CNPJ. O ponto colorido mostra a situação (verde: pronto; laranja: pendências; vermelho: a geração não atende o consumo).',
     'Com um cliente escolhido, as abas Rateio, Usinas, Unidades e Histórico mostram só o que é dele. Para voltar ao painel com todos os clientes, clique em "Todos os clientes".',
     'O lápis ao lado do cliente abre os dados dele (nome, CPF/CNPJ, e-mail e telefone que saem no relatório). Nas fichas de usina e unidade dá para trocar o cliente de cada uma.',
+    'No topo de cada cliente: "Arquivar cliente" tira o cliente da lista e do painel sem apagar nada (para ver ou reativar: Filtros → Situação → Arquivados). "Excluir cliente" apaga o cliente, as usinas e as unidades dele; os rateios já salvos no histórico continuam. Depois clique em "Salvar na conta".',
     'Os modos "Usinas" e "Unidades" da lateral continuam para editar cada usina (fator, meses de geração, dados do formulário) e cada unidade (consumo, ligação, saldo, usinas que mandam energia).']},
    {titulo:'Alertas que aparecem',dicas:[
     '"Não atendem o consumo total": a geração não cobre todas as unidades do cliente; o site sugere quantos kWp (e placas) ampliar.',
@@ -99,6 +102,7 @@
     ['Use nos documentos','Escolha a empresa padrão nas Configurações do Solar Organization e em "Cliente e projeto" no Solar Budget.']]},
    {titulo:'Bom saber',dicas:[
     'Documentos já emitidos guardam os dados da empresa da época; mudar o cadastro vale para os próximos.',
+    'Para tirar uma empresa do cadastro, abra "Editar empresa" e use "Excluir empresa". Os documentos já emitidos continuam com os dados dela; se ela era a padrão de algum sistema, escolha outra.',
     'Se aparecer "Conferir dados anteriores do Solar Organization", é a passagem do cadastro antigo: confira e conclua uma vez.']}]}];
  const byPath=p=>p.startsWith('/solar-organization')?'organization':p.startsWith('/solar-budget')?'budget':p.startsWith('/solar-distribution')?'distribution':p.startsWith('/empresas')?'empresas':'hub';
  const esc=v=>String(v).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
