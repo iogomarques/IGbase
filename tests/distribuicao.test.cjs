@@ -176,3 +176,10 @@ test('período da geradora: 3 meses (padrão) ou 13 meses (média impressa); sem
  const d=E.fresh();assert.equal(E.periodoGeradora(d),3);d.periodoGeradora=13;assert.equal(E.periodoGeradora(d),13);d.periodoGeradora='13';assert.equal(E.periodoGeradora(d),13);
  const f=E.parseInvoice(fatura({extra:'99999999-9 ENERGIA GERAÇÃO - KWH ÚNICO 5000 5639 1,000000 639'}).replace('MÊS/ANO CONSUMO FATURADO(kWh) DIAS FATURAMENTO\n700,00 30 LIDA\n600,00 31 MÉDIA\n800,00 30 LIDA','MÊS/ANO CONSUMO FATURADO(kWh) DIAS FATURAMENTO\n329,92\n669,92\n400,00\n639,00 31 LIDA\n303,00\n697,00 29 LIDA\nTOTAL 10,00'));
  assert.equal(f.mediaInjecaoImpressa,669.92);assert.equal(f.mediaConsumoImpressa,329.92);});
+
+test('ajuste de consumo: média da fatura + ajuste (ex.: 2 ares novos) entra no rateio, na falta e no saldo; vazio não muda nada',()=>{const d=cenario(),un=d.unidades[0];un.minimo=30;
+ const antes=E.calcular(d);assert.equal(E.consumoConsiderado(un),300);assert.equal(E.necessidade(un,d),270);
+ un.consumoAjuste=334;un.consumoAjusteMotivo='2 ares novos';assert.equal(E.consumoConsiderado(un),634);assert.equal(E.necessidade(un,d),604);
+ const c=E.calcular(d);assert.ok(c.usinas[0].final[un.id]>antes.usinas[0].final[un.id]);assert.equal(c.unidades.find(x=>x.id===un.id).uso,604);
+ un.consumoAjuste=-500;assert.equal(E.consumoConsiderado(un),0);assert.equal(E.necessidade(un,d),0);
+ un.consumoMedio=null;assert.equal(E.consumoConsiderado(un),null);});

@@ -4,7 +4,7 @@
    - formulario(): Formulário de Solicitação de Rateio - GD (modelo da aba RATEIO da planilha), numa página. */
 (function(root){'use strict';
 const W=210,H=297,M=16,CINZA=[92,111,99],TINTA=[22,36,29],LINHA=[221,229,218];
-const texto=s=>String(s??'').replace(/[  ]/g,' ').replace(/[—–−]/g,'-');
+const texto=s=>String(s??'').replace(/[  ]/g,' ').replace(/[—–−]/g,'-').replace(/→/g,'->');
 const fmt=(v,d=0)=>v===null||v===undefined||!Number.isFinite(v)?'—':Number(v).toLocaleString('pt-BR',{minimumFractionDigits:d,maximumFractionDigits:d});
 const kwh=v=>v===null||v===undefined||!Number.isFinite(v)?'—':fmt(v)+' kWh';
 function rgb(hex){const m=/^#?([0-9a-f]{6})$/i.exec(hex||'');const n=parseInt(m?m[1]:'1B4D3E',16);return [n>>16&255,n>>8&255,n&255];}
@@ -51,12 +51,14 @@ async function relatorio(model,empresa,opcoes={}){const doc=new root.jspdf.jsPDF
   /* Tabela */
   const cab=()=>{fonte(7,true,CINZA);let cx=M;cols.forEach((c,i)=>{const lines=doc.splitTextToSize(c.t,c.w-1.5);lines.forEach((t,j)=>escrever(t,i?cx+c.w-1:cx,y+j*3,i?{align:'right'}:{}));cx+=c.w;});y+=7;doc.setDrawColor(...LINHA);doc.line(M,y-2.5,W-M,y-2.5);};
   cab();
-  us.linhas.forEach((l,i)=>{const nome=doc.splitTextToSize(texto(l.nome),cols[0].w-6),h=Math.max(nome.length*3.6+3.6,l.mesesTxt||l.compensarTxt?8:0)+2.5;const antes=doc.internal.getNumberOfPages();espaco(h+2);if(doc.internal.getNumberOfPages()!==antes)cab();
+  us.linhas.forEach((l,i)=>{const nome=doc.splitTextToSize(texto(l.nome),cols[0].w-6),h=Math.max(nome.length*3.6+3.6,l.mesesTxt||l.compensarTxt||l.ajuste?8:0)+2.5;const antes=doc.internal.getNumberOfPages();espaco(h+2);if(doc.internal.getNumberOfPages()!==antes)cab();
    doc.setFillColor(...cores[i%cores.length]);doc.rect(M,y-2.6,2.6,2.6,'F');fonte(8.2,true);nome.forEach((t,j)=>escrever(t,M+4,y+j*3.6));fonte(7,false,CINZA);escrever('UC '+(l.uc||'—'),M+4,y+nome.length*3.6);
    const vals={consumo:kwh(l.consumo),compensar:kwh(l.compensar),atual:l.atual===null?'—':l.atual+'%',final:l.final+'%',credito:kwh(l.credito),saldo:kwh(l.saldo),depois:l.saldoDepois===null?'—':kwh(l.saldoDepois)};
    let cx=M+cols[0].w;cols.slice(1).forEach(c=>{fonte(8.2,c.k==='final',c.k==='depois'&&l.saldoDepois<0?[153,55,37]:c.k==='final'?cor:TINTA);escrever(vals[c.k],cx+c.w-1,y,{align:'right'});cx+=c.w;});
    if(l.mesesTxt){fonte(6.8,false,CINZA);escrever(l.mesesTxt,W-M-1,y+3.6,{align:'right'});}
    if(l.compensarTxt){fonte(6.3,false,CINZA);escrever(l.compensarTxt.replace(/ \(mínimo.*\)$/,''),M+cols[0].w+cols[1].w+cols[2].w-1,y+3.6,{align:'right'});}
+   /* Consumo ajustado (previsão): mostra a média da fatura e o ajuste embaixo do consumo considerado. */
+   if(l.ajuste){fonte(6.3,false,[139,76,30]);escrever('fatura '+fmt(l.consumoFatura)+(l.ajuste>0?' + ':' - ')+fmt(Math.abs(l.ajuste)),M+cols[0].w+cols[1].w-1,y+3.6,{align:'right'});}
    y+=h;doc.setDrawColor(236,240,234);doc.line(M,y-2.8,W-M,y-2.8);});
   fonte(8,true);escrever('Total',M+4,y+.5);escrever(us.linhas.reduce((a,l)=>a+l.final,0)+(us.reserva||0)+'%',M+cols.slice(0,5).reduce((a,c)=>a+c.w,0)-1,y+.5,{align:'right'});escrever(kwh(us.linhas.reduce((a,l)=>a+(l.credito||0),0)),M+cols.slice(0,6).reduce((a,c)=>a+c.w,0)-1,y+.5,{align:'right'});y+=8;}
  if(model.avisos.length){titulo('PONTOS DE ATENÇÃO');model.avisos.forEach(a=>paragrafo('• '+a,8.5,[92,71,16],1));y+=2;}

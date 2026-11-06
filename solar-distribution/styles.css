@@ -125,3 +125,7 @@ a.button.primary{background:var(--green);color:#fff}
 .dist-forms li{display:flex;justify-content:space-between;align-items:center;gap:10px;flex-wrap:wrap;padding:8px 12px;border:1px solid var(--border);border-radius:10px}
 .pill.gd{background:#eef3fb;color:#2d4f7a;font-size:11px;vertical-align:middle;margin-left:6px}
 .dist-gd-unidade{display:flex;flex-direction:column;gap:4px}
+.dist-ajuste-consumo{grid-column:1/-1;border:1px solid #eadcb6;background:#fffaf0;border-radius:12px;padding:10px 14px;margin:0;display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:10px}
+.dist-ajuste-consumo legend{font-weight:600;font-size:13px;padding:0 6px;color:#5c4710}
+.dist-ajuste-consumo .hint{grid-column:1/-1;margin:0}
+.dist-ajustado{color:#8a5a00;font-weight:600}

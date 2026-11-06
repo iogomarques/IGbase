@@ -73,7 +73,7 @@ function round2(v){return Math.round(v*100)/100;}
 /* ---------- Modelo ---------- */
 function fresh(){return {version:VERSION,modo:'homogenea',considerarSaldo:false,mesesRevisao:3,clientes:[],usinas:[],unidades:[],rateios:[]};}
 function usina(nome='Nova usina'){return {id:uid(),nome,uc:'',titular:'',documento:'',kwp:null,fator:115,geracaoReal:null,geracaoMeses:[null,null,null],monitoramento:'APsystems',fonteGeracao:'media3',injecaoFatura:null,injecao3:null,consumoRede3:null,meses3:null,gd:'',consumoGeradora:null,minimoGeradora:null,reservaGeradora:0,leituraAtual:null,classe:'',endereco:'',bairro:'',cep:'',cidade:'',uf:'',email:'',telefone:'',celular:'',tipoSolicitacao:'alteracao',compensacao:'normal',saldo:null,rateioCadastrado:[],ajustes:{},fatura:null};}
-function unidade(nome='Nova unidade'){return {id:uid(),nome,uc:'',titular:'',documento:'',fases:'TRI',minimo:100,consumoMedio:null,consumoMes:null,saldo:null,naoCompensado:null,leituraAtual:null,valorFatura:null,prioritaria:false,usinas:[],fatura:null};}
+function unidade(nome='Nova unidade'){return {id:uid(),nome,uc:'',titular:'',documento:'',fases:'TRI',minimo:100,consumoMedio:null,consumoAjuste:null,consumoAjusteMotivo:'',consumoMes:null,saldo:null,naoCompensado:null,leituraAtual:null,valorFatura:null,prioritaria:false,usinas:[],fatura:null};}
 function validate(d){if(!d||typeof d!=='object')throw Error('Dados do Solar Distribution inválidos.');if(d.version!==VERSION)throw Error('Versão de dados do Solar Distribution incompatível.');for(const k of ['usinas','unidades','rateios'])if(!Array.isArray(d[k]))throw Error('Dados do Solar Distribution incompletos.');if(d.clientes!==undefined&&!Array.isArray(d.clientes))throw Error('Clientes do Solar Distribution inválidos.');for(const u of d.usinas)if(typeof u.id!=='string')throw Error('Usina inválida.');for(const u of d.unidades)if(typeof u.id!=='string'||!Array.isArray(u.usinas))throw Error('Unidade inválida.');return d;}
 
 /* ---------- Clientes ----------
@@ -120,7 +120,7 @@ function mesesGeracao(u){const a=Array.isArray(u.geracaoMeses)?u.geracaoMeses.ma
 function fonteGeracao(u){if(FONTES[u.fonteGeracao])return u.fonteGeracao;return ['apsystems','solaredge','outro'].includes(u.fonteGeracao)||u.usarGeracaoReal?'media3':'estimada';}
 /* Injeção e consumo da rede da geradora no período escolhido: últimos 3 meses (padrão, regra do Ivoney de 31/10) ou
    13 meses (média impressa na fatura, como a planilha v7). Sem as médias de 13 meses guardadas (usina lançada antes da
-   1.10.40), usa os 3 meses e avisa em "periodoUsado". */
+   1.10.41), usa os 3 meses e avisa em "periodoUsado". */
 function dadosGeradora(u,periodo){if(periodo===13&&num(u.mediaInjecao13)!==null&&num(u.mediaRede13)!==null)return {inj:num(u.mediaInjecao13),rede:num(u.mediaRede13),meses:13,periodo:13};
  return {inj:num(u.injecao3)??num(u.injecaoFatura),rede:num(u.consumoGeradora),meses:num(u.injecao3)!==null?(num(u.meses3)||3):1,periodo:3};}
 function periodoGeradora(d){return d&&Number(d.periodoGeradora)===13?13:3;}
@@ -137,7 +137,11 @@ function ampliacaoTexto(kwp){return 'cerca de '+fmt(kwp,1)+' kWp';}
 /* O mínimo (30/50/100 kWh) nunca é compensado: cada unidade só precisa de crédito para o que passa dele.
    Ex.: mínimo 100 e consumo médio 200 → a unidade precisa de 100 (usuário, 31/10/2026). É a base do rateio. */
 function minimoUnidade(un){return num(un.minimo)??MINIMO_FASES[un.fases]??0;}
-function necessidadeBase(un){const c=num(un.consumoMedio);if(c===null)return 0;return Math.max(0,c-minimoUnidade(un));}
+/* Consumo usado no rateio = média da fatura + ajuste manual (ex.: +334 kWh por dois ares novos). O ajuste é do usuário,
+   fica guardado ao lançar faturas novas e aparece no rateio e no relatório (pedido do usuário, 06/11/2026). */
+function ajusteConsumo(un){return num(un.consumoAjuste)||0;}
+function consumoConsiderado(un){const c=num(un.consumoMedio);if(c===null)return null;return Math.max(0,c+ajusteConsumo(un));}
+function necessidadeBase(un){const c=consumoConsiderado(un);if(c===null)return 0;return Math.max(0,c-minimoUnidade(un));}
 function necessidade(un,d){return coberta(un,d)?0:necessidadeBase(un);}
 /* Com o saldo: a unidade cujo saldo cobre 3 meses (90 dias) do que ela usa fica com 1% (o mínimo da Equatorial);
    as demais, mesmo com algum saldo, recebem normalmente pelo consumo − mínimo (usuário, 31/10/2026). */
@@ -205,7 +209,7 @@ function calcular(d,sugestao){
   if(negativos.length)alertas.push({tipo:'erro',usinaId:us.id,texto:us.nome+': cada unidade precisa de pelo menos 1% (regra da Equatorial). Ajuste até nenhuma ficar abaixo de 1%.'});
   for(const [id,v] of Object.entries(finais)){const c=r.energia.disponivel===null?null:(r.energia.liquida*v/100);if(c!==null){porUnidade[id].credito+=c;porUnidade[id].origens.push({usinaId:us.id,percentual:v,credito:c});}}
   porUsina.push({usinaId:us.id,energia:r.energia,sugerido:r.percentuais,final:finais,soma,alvo,ok:ok&&!negativos.length});}
- const unidades=d.unidades.map(un=>{const p=porUnidade[un.id],consumo=num(un.consumoMedio),minimo=minimoUnidade(un),saldo=num(un.saldo)??0;
+ const unidades=d.unidades.map(un=>{const p=porUnidade[un.id],consumo=consumoConsiderado(un),minimo=minimoUnidade(un),saldo=num(un.saldo)??0;
   const uso=consumo===null?null:Math.max(0,consumo-minimo),projetado=uso===null?null:saldo+p.credito-uso,cobertura=uso?p.credito/uso:null,meses=saldo>0&&uso>0?saldo/uso:null;
   const venc=(num(un.saldoExpira30)||0)+(num(un.saldoExpira60)||0);if(venc>0.5)alertas.push({tipo:'aviso',unidadeId:un.id,texto:un.nome+': '+fmt(venc,0)+' kWh de saldo vencem nos próximos 60 dias'+(num(un.saldoExpira30)>0.5?' ('+fmt(num(un.saldoExpira30),0)+' kWh em 30 dias)':'')+'. Use esse saldo antes: a porcentagem desta unidade pode baixar por um tempo.'});
   if(!un.usinas.length)alertas.push({tipo:'aviso',unidadeId:un.id,texto:un.nome+' não está ligada a nenhuma usina.'});
@@ -227,6 +231,6 @@ function calcular(d,sugestao){
  const ok=porUsina.every(u=>u.ok)&&!alertas.some(a=>a.tipo==='erro');
  return {usinas:porUsina,unidades,alertas,totalConsumo,totalEnergia,deficit,sistemas,ok};}
 
-const api={VERSION,MINIMO_FASES,periodoGeradora,dadosGeradora,GDS,gdNome,gdUnidade,cliente,docKey,organizarClientes,itensCliente,pendencias,resumoCliente,ampliacaoTexto,minimoUnidade,necessidade,necessidadeBase,coberta,inteirosMin,usaSaldo,mesesRevisao,FONTES,MONITORAMENTOS,mesesGeracao,MODOS,modo,fonteGeracao,fatorUsina,num,ucKey,ucFormat,linesFromItems,parseInvoice,fresh,usina,unidade,validate,energiaUsina,inteiros,sugerir,calcular,fmt,round2,clone,uid};
+const api={VERSION,MINIMO_FASES,ajusteConsumo,consumoConsiderado,periodoGeradora,dadosGeradora,GDS,gdNome,gdUnidade,cliente,docKey,organizarClientes,itensCliente,pendencias,resumoCliente,ampliacaoTexto,minimoUnidade,necessidade,necessidadeBase,coberta,inteirosMin,usaSaldo,mesesRevisao,FONTES,MONITORAMENTOS,mesesGeracao,MODOS,modo,fonteGeracao,fatorUsina,num,ucKey,ucFormat,linesFromItems,parseInvoice,fresh,usina,unidade,validate,energiaUsina,inteiros,sugerir,calcular,fmt,round2,clone,uid};
 root.SolarDistribution=api;if(typeof module!=='undefined'&&module.exports)module.exports=api;
 })(globalThis);

@@ -76,6 +76,7 @@
     'Exemplo: geração esperada 1.200 kWh, a fatura mostra 634 kWh injetados e 346 kWh de consumo da rede (mínimo 30): 1.200 − 566 − 316 = 319 kWh para o rateio. O cabeçalho de cada usina mostra essa conta ("1.200 kWh → 319 kWh para o rateio").',
     'Com a fatura da geradora lançada, a sobra fica igual a energia injetada − consumo da rede acima do mínimo; a geração esperada pesa de verdade quando não há fatura da geradora. Os valores da fatura são a média dos últimos 3 meses (ou dos meses que existirem).',
     'Cada unidade precisa de crédito só para o consumo médio menos o mínimo (30, 50 ou 100 kWh), que a Equatorial cobra de qualquer jeito. Ex.: mínimo 100 e consumo 200 → a unidade precisa de 100.',
+    'Ajuste de consumo: quando a média da fatura não mostra uma mudança que vem por aí (ex.: dois ares-condicionados novos), abra a unidade e use "Ajuste do consumo (previsão)": some ou tire kWh/mês e escreva o motivo. O rateio, a falta e o relatório passam a usar média + ajuste, e o ajuste fica guardado ao lançar faturas novas.',
     'Na tabela do rateio, a coluna "A compensar" mostra essa conta embaixo do valor (ex.: "264 − 30 (mínimo mono)" = 234 kWh). O mínimo é o custo de disponibilidade: 30 kWh monofásico, 50 bifásico, 100 trifásico.',
     'Classificação GD (Lei 14.300): o site lê da fatura ("INJEÇÃO SCEE … GD I") e mostra na usina (GD1, GD2 ou GD3); a unidade recebe os créditos na classificação de cada usina ligada a ela. Dá para corrigir na ficha da usina.']},
    {titulo:'Clientes e lateral',dicas:[
