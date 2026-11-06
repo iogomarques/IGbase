@@ -163,3 +163,14 @@ Opção nova na aba Rateio, "Período da média das geradoras": últimos 3 meses
 ## Ajuste de consumo por unidade (06/11/2026, versão 1.10.41)
 
 Pedido do usuário: a média da fatura não mostra mudanças futuras (Silas: dois ares-condicionados novos na casa do pai; a planilha do sócio usa 750 kWh contra 416 da fatura). Na ficha da unidade, "Ajuste do consumo (previsão)": kWh/mês a somar ou tirar e o motivo (`consumoAjuste`, `consumoAjusteMotivo`). Consumo considerado = média da fatura + ajuste (nunca abaixo de zero); vale para o "a compensar", a falta, o saldo e o relatório (coluna com "fatura 416 + 334" e nota em Pontos de atenção). O ajuste fica guardado ao lançar faturas novas. Silas com o plano do sócio (loja → casa do pai 99% / chácara 1%; casa → apartamento 100%) e +334: faltam 493 kWh/mês (≈ 4,3 kWp), contra 532 da planilha, que não desconta os mínimos.
+
+## Revisão de uso (06/11/2026, versão 1.10.42)
+
+Revisão de UX pedida pelo usuário, percorrendo o fluxo como um usuário novo (tela vazia → lançar faturas do Silas → rateio → ajustes → relatório), no computador e no celular. Nada muda no cálculo.
+
+- **Consumo previsto no lançamento:** no passo 2d, cada unidade tem "+ consumo previsto" embaixo do nome (kWh/mês a somar ou tirar e o motivo). Só altera o ajuste se o usuário mexer no campo; senão o ajuste guardado continua.
+- **Consumo previsto no rateio:** o mesmo "+ consumo previsto" (ou "mudar ajuste") fica embaixo do nome da unidade na tabela de cada usina, sem sair da tela; o rateio recalcula ao sair do campo. Vazio ou 0 tira o ajuste e o motivo. A ficha da unidade continua com o mesmo campo.
+- **Aplicar já salva na conta:** "Aplicar e ver o rateio" grava na conta e leva ao título do rateio (no celular a lateral fica em cima). Se a gravação falhar, fica o rascunho do navegador e o erro.
+- **Avisos:** mensagens de sucesso somem sozinhas em 7 s; avisos e erros ficam; clique fecha. Mensagens de leitura sem "fatura(s)"; textos "1 mês"/"N meses" e "geração esperada informada" no lugar de "média de 1 mês(es)".
+- **Barra de salvar** mais baixa e amarela quando há alterações não salvas.
+- Depois de ler faturas, a tela desce até o passo 2a.
