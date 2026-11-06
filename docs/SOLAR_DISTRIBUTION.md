@@ -153,3 +153,9 @@ Diretrizes do usuário:
 ## Consumo médio igual ao impresso na fatura (05/11/2026, versão 1.10.38)
 
 Conferência do Silas: a média do site deixava de fora os meses marcados "MÍNIMO" e a Equatorial os inclui (chácara: site 129,43 × fatura 121,25). Agora entram todos os 13 meses, igual à fatura. Silas: a compensar 712 kWh (era 720), faltam 158 kWh/mês (era 166), rateio da loja 49/32/19% (era 48/31/21%); casa continua 100%. A fatura "casa do seu pai 100%" (pasta GERADORA 02) é idêntica, byte a byte, à da pasta GERADORA 01: o site a ignora como repetida, corretamente.
+
+## Período da média das geradoras: 3 ou 13 meses (06/11/2026, versão 1.10.40)
+
+Comparação com a planilha v7 do sócio (aba "relatorio"): ela calcula "CONSUMO NA GERAÇÃO" = geração − média de injeção + média de consumo (médias de 13 meses impressas na fatura) e a falta = consumo da geradora + consumo das unidades − geração, **sem descontar os mínimos**. Para o Silas isso dá ≈ 479 kWh. Diferença para o site: mínimos (≈ 220 kWh, que as faturas mostram não serem compensados: loja abateu 370 de 400, casa 448 de 548) e período (≈ 100 kWh).
+
+Opção nova na aba Rateio, "Período da média das geradoras": últimos 3 meses (padrão, regra do Ivoney de 31/10) ou 13 meses (média impressa na fatura). Vale para injeção e consumo da rede das geradoras; o consumo das unidades é sempre a média da fatura. As médias de 13 meses (`mediaInjecao13`, `mediaRede13`) passam a ser guardadas ao lançar a fatura da geradora; usinas lançadas antes usam 3 meses e o site avisa para lançar de novo. Silas: 3 meses → 554 kWh, faltam 158 (49/32/19%); 13 meses → 454 kWh, faltam 258 (37/48/15%). Os mínimos continuam descontados nos dois casos.

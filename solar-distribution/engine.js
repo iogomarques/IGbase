@@ -118,11 +118,17 @@ function mesesGeracao(u){const a=Array.isArray(u.geracaoMeses)?u.geracaoMeses.ma
 /* Energia de uma usina para as unidades no mês. Padrão: potência × fator (115). Opcional: geração real
    do monitoramento (APsystems, SolarEdge ou outro) ou a energia injetada lida na fatura da geradora. */
 function fonteGeracao(u){if(FONTES[u.fonteGeracao])return u.fonteGeracao;return ['apsystems','solaredge','outro'].includes(u.fonteGeracao)||u.usarGeracaoReal?'media3':'estimada';}
-function energiaUsina(u){let fonte=fonteGeracao(u),bruta=null,meses=0;const est=()=>num(u.kwp)!==null?num(u.kwp)*(num(u.fator)??115):null;
+/* Injeção e consumo da rede da geradora no período escolhido: últimos 3 meses (padrão, regra do Ivoney de 31/10) ou
+   13 meses (média impressa na fatura, como a planilha v7). Sem as médias de 13 meses guardadas (usina lançada antes da
+   1.10.40), usa os 3 meses e avisa em "periodoUsado". */
+function dadosGeradora(u,periodo){if(periodo===13&&num(u.mediaInjecao13)!==null&&num(u.mediaRede13)!==null)return {inj:num(u.mediaInjecao13),rede:num(u.mediaRede13),meses:13,periodo:13};
+ return {inj:num(u.injecao3)??num(u.injecaoFatura),rede:num(u.consumoGeradora),meses:num(u.injecao3)!==null?(num(u.meses3)||3):1,periodo:3};}
+function periodoGeradora(d){return d&&Number(d.periodoGeradora)===13?13:3;}
+function energiaUsina(u,periodo=3){let fonte=fonteGeracao(u),bruta=null,meses=0;const g=dadosGeradora(u,periodo);const est=()=>num(u.kwp)!==null?num(u.kwp)*(num(u.fator)??115):null;
  if(fonte==='media3'){const v=mesesGeracao(u);meses=v.length;if(meses)bruta=v.reduce((a,b)=>a+b,0)/meses;else{fonte='estimada';bruta=est();}}
- else if(fonte==='fatura'){bruta=num(u.injecao3)??num(u.injecaoFatura);meses=num(u.injecao3)!==null?(num(u.meses3)||3):1;}
+ else if(fonte==='fatura'){bruta=g.inj;meses=g.meses;}
  else bruta=est();
- const real=fonte!=='estimada';if(bruta===null)return {bruta:null,autoconsumo:0,rede:0,consumoGeradora:0,liquida:null,reserva:0,disponivel:null,origem:real?'real':'estimada',fonte};const reserva=Math.max(0,Math.min(100,Math.round(num(u.reservaGeradora)||0))),inj=num(u.injecao3)??num(u.injecaoFatura),autoconsumo=fonte!=='fatura'&&inj!==null?Math.max(0,bruta-inj):0,rede=Math.max(0,(num(u.consumoGeradora)||0)-(num(u.minimoGeradora)||0)),consumoGeradora=autoconsumo+rede,liquida=Math.max(0,bruta-consumoGeradora);return {bruta,autoconsumo,rede,consumoGeradora,liquida,reserva,disponivel:liquida*(100-reserva)/100,origem:real?'real':'estimada',fonte,meses};}
+ const real=fonte!=='estimada';if(bruta===null)return {bruta:null,autoconsumo:0,rede:0,consumoGeradora:0,liquida:null,reserva:0,disponivel:null,origem:real?'real':'estimada',fonte,periodoUsado:g.periodo};const reserva=Math.max(0,Math.min(100,Math.round(num(u.reservaGeradora)||0))),inj=g.inj,autoconsumo=fonte!=='fatura'&&inj!==null?Math.max(0,bruta-inj):0,rede=Math.max(0,(g.rede||0)-(num(u.minimoGeradora)||0)),consumoGeradora=autoconsumo+rede,liquida=Math.max(0,bruta-consumoGeradora);return {bruta,autoconsumo,rede,consumoGeradora,liquida,reserva,disponivel:liquida*(100-reserva)/100,origem:real?'real':'estimada',fonte,meses,periodoUsado:g.periodo,injecao:inj,consumoRede:g.rede};}
 /* Como na planilha (v7: consumo na geração = produção − injeção + consumo da rede): geração para rateio = produção − o que a própria
    geradora consome. Esse consumo tem duas partes: o que ela usa na hora (produção − energia injetada, quando a fatura informa a injeção)
    e o consumo da rede (média dos últimos 3 meses) acima do mínimo dela: o mínimo nunca é compensado (usuário, 31/10/2026). */
@@ -172,7 +178,7 @@ function sugerir(d){
     que faltar fica para as outras); empate segue a ordem da lateral. A exibição continua na ordem da lateral. */
  const nLig=us=>unidades.filter(un=>un.usinas.includes(us.id)).length,ordem=usinas.map((us,i)=>({us,i})).sort((a,b)=>nLig(a.us)-nLig(b.us)||a.i-b.i).map(x=>x.us);
  ordem.forEach((us,idx)=>{
-  const en=energiaUsina(us),ligadas=unidades.filter(un=>un.usinas.includes(us.id));
+  const en=energiaUsina(us,periodoGeradora(d)),ligadas=unidades.filter(un=>un.usinas.includes(us.id));
   const r={usinaId:us.id,energia:en,percentuais:{},creditos:{},semEnergia:en.disponivel===null};
   if(!ligadas.length){resultado.push(r);return;}
   if(en.disponivel===null){alertas.push({tipo:'erro',usinaId:us.id,texto:'Informe a potência (kWp) ou a geração real da usina '+us.nome+'.'});resultado.push(r);return;}
@@ -221,6 +227,6 @@ function calcular(d,sugestao){
  const ok=porUsina.every(u=>u.ok)&&!alertas.some(a=>a.tipo==='erro');
  return {usinas:porUsina,unidades,alertas,totalConsumo,totalEnergia,deficit,sistemas,ok};}
 
-const api={VERSION,MINIMO_FASES,GDS,gdNome,gdUnidade,cliente,docKey,organizarClientes,itensCliente,pendencias,resumoCliente,ampliacaoTexto,minimoUnidade,necessidade,necessidadeBase,coberta,inteirosMin,usaSaldo,mesesRevisao,FONTES,MONITORAMENTOS,mesesGeracao,MODOS,modo,fonteGeracao,fatorUsina,num,ucKey,ucFormat,linesFromItems,parseInvoice,fresh,usina,unidade,validate,energiaUsina,inteiros,sugerir,calcular,fmt,round2,clone,uid};
+const api={VERSION,MINIMO_FASES,periodoGeradora,dadosGeradora,GDS,gdNome,gdUnidade,cliente,docKey,organizarClientes,itensCliente,pendencias,resumoCliente,ampliacaoTexto,minimoUnidade,necessidade,necessidadeBase,coberta,inteirosMin,usaSaldo,mesesRevisao,FONTES,MONITORAMENTOS,mesesGeracao,MODOS,modo,fonteGeracao,fatorUsina,num,ucKey,ucFormat,linesFromItems,parseInvoice,fresh,usina,unidade,validate,energiaUsina,inteiros,sugerir,calcular,fmt,round2,clone,uid};
 root.SolarDistribution=api;if(typeof module!=='undefined'&&module.exports)module.exports=api;
 })(globalThis);

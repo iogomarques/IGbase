@@ -169,3 +169,10 @@ test('classificação GD lida da fatura: da própria geradora e de cada usina qu
 
 test('consumo médio igual ao impresso na fatura: entram todos os meses, inclusive MÍNIMO',()=>{const f=E.parseInvoice(fatura().replace('MÊS/ANO CONSUMO FATURADO(kWh) DIAS FATURAMENTO\n700,00 30 LIDA\n600,00 31 MÉDIA\n800,00 30 LIDA','MÊS/ANO CONSUMO FATURADO(kWh) DIAS FATURAMENTO\n100,00 30 LIDA\n23,00 31 MÍNIMO\n130,00 30 MÉDIA'));
  assert.equal(f.consumoMedio,84.33);});
+
+test('período da geradora: 3 meses (padrão) ou 13 meses (média impressa); sem as médias de 13, usa 3',()=>{const u=E.usina('G1');Object.assign(u,{geracaoMeses:[1200],injecao3:634.33,consumoGeradora:345.67,minimoGeradora:30});
+ assert.equal(Math.round(E.energiaUsina(u).liquida),319);assert.equal(E.energiaUsina(u,13).periodoUsado,3);assert.equal(Math.round(E.energiaUsina(u,13).liquida),319);
+ Object.assign(u,{mediaInjecao13:669.92,mediaRede13:329.92});const e=E.energiaUsina(u,13);assert.equal(e.periodoUsado,13);assert.equal(Math.round(e.liquida),370);
+ const d=E.fresh();assert.equal(E.periodoGeradora(d),3);d.periodoGeradora=13;assert.equal(E.periodoGeradora(d),13);d.periodoGeradora='13';assert.equal(E.periodoGeradora(d),13);
+ const f=E.parseInvoice(fatura({extra:'99999999-9 ENERGIA GERAÇÃO - KWH ÚNICO 5000 5639 1,000000 639'}).replace('MÊS/ANO CONSUMO FATURADO(kWh) DIAS FATURAMENTO\n700,00 30 LIDA\n600,00 31 MÉDIA\n800,00 30 LIDA','MÊS/ANO CONSUMO FATURADO(kWh) DIAS FATURAMENTO\n329,92\n669,92\n400,00\n639,00 31 LIDA\n303,00\n697,00 29 LIDA\nTOTAL 10,00'));
+ assert.equal(f.mediaInjecaoImpressa,669.92);assert.equal(f.mediaConsumoImpressa,329.92);});

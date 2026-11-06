@@ -84,6 +84,7 @@ Os itens abaixo resumem mensagens reais de commits, não garantias de validaçã
 | 05/11/2026 (Claude) | Versão 1.10.37 (diretrizes do usuário): classificação GD lida da fatura ("INJEÇÃO SCEE … GD I") em usinas e unidades; "a compensar" com a conta à vista (consumo médio − mínimo); ampliação só em kWp, sem placas/inversores (campo de placa removido). Cálculo do rateio sem mudança. |
 | 05/11/2026 (Claude) | Versão 1.10.38: consumo médio da unidade = média impressa na fatura (inclui meses MÍNIMO). Silas: faltam 158 kWh (era 166), loja 49/32/19%. |
 | 05/11/2026 (Claude) | Versão 1.10.39 (pedido visual do usuário): rodapé só com IG Base, Empresas e Suporte; shared/navegacao.js tira o endereço dos links (data-ig-href, navegação por script; Ctrl/Shift/botão do meio e target=_blank abrem em outra aba; download e blob ficam como estão) para não aparecer a tarja do navegador; menu "Sistemas" ao lado do logo em todas as páginas menos a inicial. |
+| 06/11/2026 (Claude) | Versão 1.10.40 (pedido do usuário): opção "Período da média das geradoras" (3 meses padrão ou 13 meses, média impressa na fatura). Médias de 13 meses guardadas ao lançar a fatura da geradora. Mínimos continuam descontados (provado pelas faturas). Silas: 158 kWh (3 m) × 258 kWh (13 m). |
 
 Para conferir detalhes, use `git log --oneline` e `git show <commit>`. O histórico `.git` permanece na mesma pasta; não foi convertido em uma cópia nova.
 
