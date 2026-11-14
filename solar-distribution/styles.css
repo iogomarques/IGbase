@@ -145,3 +145,4 @@ a.button.primary{background:var(--green);color:#fff}
 .dist-aj-inline .tiny{margin:6px 0 0;white-space:normal}
 .dist-ajustado{white-space:normal;max-width:230px}
 .dist-matriz .dist-aj-inline input{width:100%;height:auto}
+@media(max-width:1024px),(hover:none){.dist-resolver{min-height:34px;padding:6px 12px;margin:4px 0 0 6px}}

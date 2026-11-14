@@ -15,12 +15,12 @@ const notify=(msg,type='success')=>{$('notice').className=type;$('notice').textC
 function timeout(p,ms=20000){let timer;return Promise.race([p,new Promise((_,r)=>timer=setTimeout(()=>r(Error('Tempo de conexão excedido. Tente novamente.')),ms))]).finally(()=>clearTimeout(timer));}
 async function lib(name,urls,test){if(test())return;for(const url of urls){try{await timeout(new Promise((resolve,reject)=>{const s=document.createElement('script');s.src=url;s.onload=()=>test()?resolve():reject(Error('Biblioteca inválida'));s.onerror=reject;document.head.append(s);}));return;}catch(e){}}throw Error('Não foi possível carregar '+name+'. Confira sua conexão e tente novamente.');}
 async function boot(){
- $('loading').hidden=false;$('auth').hidden=true;$('workspace').hidden=true;
+ $('loading').hidden=false;$('auth').hidden=true;$('workspace').hidden=true;$('retry').hidden=true;
  try{
   await lib('a conexão IG Base',['https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.js','https://unpkg.com/@supabase/supabase-js@2/dist/umd/supabase.js'],()=>!!window.supabase?.createClient);
   if(!db){db=window.supabase.createClient('https://zhkolwskpqhlovvdrbmv.supabase.co','sb_publishable_3bqhMMM6CndF6MKl5N1FoA_GaS_mq7E');db.auth.onAuthStateChange((event,session)=>{if(event==='SIGNED_OUT')activate(null);else if((event==='SIGNED_IN'||event==='TOKEN_REFRESHED')&&session?.user?.id!==user?.id)setTimeout(()=>{if(session?.user?.id!==user?.id)activate(session?.user);},0);});}
   const r=await timeout(db.auth.getSession());if(r.error)throw r.error;await activate(r.data.session?.user||null);
- }catch(e){$('loading').hidden=true;$('auth').hidden=false;notify(e.message,'error');}
+ }catch(e){$('loading').hidden=true;$('auth').hidden=false;$('retry').hidden=false;notify(e.message,'error');}
 }
 async function activate(next){
  const generation=++sessionGeneration;documentSnapshot=null;for(const id of ['preview-dialog','review-dialog','settings-page'])if($(id).open)$(id).close();$('document').innerHTML='';$('history').innerHTML='';$('quote-detail').innerHTML='';$('sources').innerHTML='';$('preview-company').innerHTML='';$('company-settings').innerHTML='';$('company-quote').innerHTML='';user=next;review=null;history=[];data=E.fresh();cloud=false;cloudVersions={};dirty=false;
@@ -311,7 +311,7 @@ document.addEventListener('click',async event=>{
   if(tr.dataset.context==='review'){$('review-content').innerHTML=offerTable(review.rows,review.supplierId,'review');return;}touch();render();
  }catch(e){notify(e.message,'error');}
 });
-$('login-form').addEventListener('submit',async event=>{event.preventDefault();if(busy)return;busy=true;const b=event.submitter||$('login-form').querySelector('button[type=submit]');b.disabled=true;try{if(!db)throw Error('Conexão indisponível. Tente novamente.');const r=await IGLogin.signIn(db,$('email').value,$('password').value);$('password').value='';await activate(r.data.user);}catch(e){notify(e.message,'error');}finally{busy=false;b.disabled=false;}});
+$('login-form').addEventListener('submit',async event=>{event.preventDefault();if(busy)return;busy=true;const b=event.submitter||$('login-form').querySelector('button[type=submit]');b.disabled=true;b.textContent='Entrando…';try{if(!db)throw Error('Conexão indisponível. Tente novamente.');const r=await IGLogin.signIn(db,$('email').value,$('password').value);$('password').value='';await activate(r.data.user);}catch(e){notify(e.message,'error');$('password').focus();$('password').select();}finally{busy=false;b.disabled=false;b.textContent='Entrar';}});
 $('logout').onclick=async()=>{if(busy){notify('Aguarde a operação em andamento.','warn');return;}try{const r=await db.auth.signOut();if(r.error)throw r.error;}catch(e){notify(e.message,'error');}};
 $('retry').onclick=boot;
 $('new').onclick=()=>{if(busy)return;if(dirty&&!confirm('Criar uma nova cotação? Salve o rascunho ou exporte um backup para preservar o trabalho atual.'))return;data=E.fresh();if(companyService){const c=companyService.selected('solar-budget');data.doc.companySnapshot=c;data.doc.companyId=c?.id||'';}touch();render();};

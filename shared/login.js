@@ -9,7 +9,7 @@ async function signIn(client,identifier,password,waitMs=20000){
   if(!/^[A-Za-z][A-Za-z0-9_.]{2,29}$/.test(entry))throw Error('Informe seu e-mail ou nome de usuário cadastrado.');
   let lookup;try{lookup=await timed(client.rpc('email_por_username',{p_username:entry.toLowerCase()}),waitMs);}catch(e){throw Error('Não foi possível verificar o nome de usuário. Tente novamente ou use seu e-mail.');}
   if(lookup?.error)throw Error('Não foi possível verificar o nome de usuário. Tente novamente ou use seu e-mail.');
-  if(typeof lookup?.data!=='string'||!lookup.data.trim().includes('@'))throw Error('Usuário ou senha inválidos.');
+  if(typeof lookup?.data!=='string'||!lookup.data.trim().includes('@'))throw Error('E-mail, usuário ou senha inválidos.');
   email=lookup.data.trim();
  }
  const result=await timed(client.auth.signInWithPassword({email:email.toLowerCase(),password}),waitMs);

@@ -85,3 +85,9 @@ a[data-ig-href]{cursor:pointer}
 .ig-sistemas>nav a{display:block;padding:9px 12px;border-radius:9px;color:#203b29;text-decoration:none;font-weight:500}
 .ig-sistemas>nav a:hover,.ig-sistemas>nav a:focus-visible{background:#eef6ec;outline:none}
 .ig-sistemas>nav a[aria-current="page"]{background:#2f663f;color:#fff;font-weight:600}
+/* 1.10.43: links do rodapé com área de toque confortável no celular e no tablet. */
+@media(max-width:1024px),(hover:none){.footer-links a{display:inline-flex;align-items:center;min-height:40px;padding:0 10px}}
+/* Celular: o nome ao lado do logo some no topo para caber o menu Sistemas e a conta. Telas de toque: abre/fecha (summary) mais altos. */
+@media(max-width:480px){.topbar .ig-brand span{display:none}}
+@media(max-width:1024px),(hover:none){summary{padding-top:8px;padding-bottom:8px}}
+@media(max-width:1024px),(hover:none){.hint>a:only-child{display:inline-block;padding:10px 0}label.check{min-height:40px}}

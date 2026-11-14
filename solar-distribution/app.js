@@ -30,7 +30,7 @@ async function boot(){const g=++generation;$('loading').hidden=false;$('auth').h
  if(!window.supabase)await lib('a conexão IG Base',['https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.js','https://unpkg.com/@supabase/supabase-js@2/dist/umd/supabase.js'],()=>!!window.supabase?.createClient);
  if(!db){db=supabase.createClient('https://zhkolwskpqhlovvdrbmv.supabase.co','sb_publishable_3bqhMMM6CndF6MKl5N1FoA_GaS_mq7E');db.auth.onAuthStateChange((ev,s)=>{if(ev==='SIGNED_OUT')activate(null);else if((ev==='SIGNED_IN'||ev==='TOKEN_REFRESHED')&&s?.user?.id!==user?.id)setTimeout(()=>activate(s?.user||null),0);});}
  const r=await timeout(db.auth.getSession());if(g!==generation)return;if(r.error)throw r.error;await activate(r.data.session?.user||null);
-}catch(e){if(g!==generation)return;$('loading').hidden=true;$('auth').hidden=false;notify(e.message||'Não foi possível conectar.','error');}}
+}catch(e){if(g!==generation)return;$('loading').hidden=true;$('auth').hidden=false;$('retry').hidden=false;notify(e.message||'Não foi possível conectar.','error');}}
 async function activate(next){const g=++generation;user=next;store=null;data=E.fresh();dirty=false;review=[];sel={cliente:null,usina:null,unidade:null};empresas=null;
  document.body.classList.toggle('signed-in',!!user);$('loading').hidden=!!user;$('auth').hidden=!!user;$('workspace').hidden=true;$('budget-navigation').hidden=!user;$('side-panel').hidden=!user;$('dist-account').innerHTML='';
  if(!user){$('loading').hidden=true;render();return;}
