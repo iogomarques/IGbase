@@ -183,3 +183,18 @@ test('ajuste de consumo: média da fatura + ajuste (ex.: 2 ares novos) entra no 
  const c=E.calcular(d);assert.ok(c.usinas[0].final[un.id]>antes.usinas[0].final[un.id]);assert.equal(c.unidades.find(x=>x.id===un.id).uso,604);
  un.consumoAjuste=-500;assert.equal(E.consumoConsiderado(un),0);assert.equal(E.necessidade(un,d),0);
  un.consumoMedio=null;assert.equal(E.consumoConsiderado(un),null);});
+
+test('unidade fora do rateio sai do cálculo e o pedido à Equatorial separa exclusão de inclusão/alteração (caso fictício no modelo do usuário)',()=>{
+ const d=E.fresh(),us=E.usina('Usina');us.uc='9.999.000.012-99';us.geracaoMeses=[1000,null,null];us.fonteGeracao='media3';d.usinas.push(us);
+ const mk=(nome,uc,consumo,atual)=>{const u=E.unidade(nome);Object.assign(u,{uc,fases:'MONO',minimo:30,consumoMedio:consumo,usinas:[us.id],fatura:{rateioCadastrado:atual===null?[]:[{uc:'9.999.000.012-99',percentual:atual}]}});d.unidades.push(u);return u;};
+ const casa=mk('Casa','9.999.001.012-01',330,20),antiga=mk('Loja antiga','9.999.002.012-02',1030,80),nova=mk('Loja nova','9.999.003.012-03',130,null);
+ let c=E.calcular(d),r=c.usinas[0];
+ assert.equal(Object.keys(r.final).length,3);
+ antiga.foraDoRateio=true;c=E.calcular(d);r=c.usinas[0];
+ assert.deepEqual(Object.keys(r.final).sort(),[casa.id,nova.id].sort(),'loja antiga não entra no rateio');
+ assert.equal(r.soma,100);assert.equal(r.final[casa.id],75);assert.equal(r.final[nova.id],25);
+ assert.ok(!c.alertas.some(a=>a.unidadeId===antiga.id),'unidade fora do rateio não gera avisos de falta');
+ const p=E.pedidoEquatorial(d,c,us.id);
+ assert.equal(p.inclusao,true,'loja nova não tem % hoje: inclusão');assert.equal(p.alteracao,true,'casa muda de 20% para 75%: alteração');
+ assert.deepEqual(p.exclusoes.map(x=>[x.nome,x.percentual]),[['Loja antiga',80]],'exclusão leva o % de hoje');
+ antiga.foraDoRateio=false;c=E.calcular(d);assert.equal(E.pedidoEquatorial(d,c,us.id).exclusoes.length,0,'voltar ao rateio desfaz a exclusão');});

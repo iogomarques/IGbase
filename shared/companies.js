@@ -4,7 +4,10 @@
 const clone=x=>JSON.parse(JSON.stringify(x)),escape=x=>String(x??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
 const fields=['nomeEmpresa','razaoSocial','documento','enderecoContato','email','textoRodape','corPrimaria'];
 const ordered=x=>Array.isArray(x)?x.map(ordered):x&&typeof x==='object'?Object.fromEntries(Object.keys(x).sort().map(k=>[k,ordered(x[k])])):x;
-function clean(raw){const c={id:String(raw.id||crypto.randomUUID()),telefones:[],logoBase64:null};for(const k of fields)c[k]=String(raw[k]||'').trim().slice(0,k==='textoRodape'?1500:500);c.corPrimaria=/^#[0-9a-f]{6}$/i.test(c.corPrimaria)?c.corPrimaria:'#1B4D3E';c.telefones=(Array.isArray(raw.telefones)?raw.telefones:[]).map(x=>String(x).trim().slice(0,100)).filter(Boolean).slice(0,10);if(raw.logoBase64){if(!/^data:image\/(png|jpeg);base64,[A-Za-z0-9+/=]+$/.test(raw.logoBase64)||raw.logoBase64.length>1250000)throw Error('Logo inválida. Use PNG ou JPG de até 900 KB.');c.logoBase64=raw.logoBase64;}return c;}
+/* Tamanho do logo nos PDFs (todos os sistemas): 50% a 150% do tamanho padrão de cada documento. Sem valor = 100%. */
+function escalaLogo(v){const n=Math.round(Number(v));return Number.isFinite(n)&&n>0?Math.min(150,Math.max(50,n)):100;}
+const logoEscala=c=>escalaLogo(c&&c.logoEscala)/100;
+function clean(raw){const c={id:String(raw.id||crypto.randomUUID()),telefones:[],logoBase64:null,logoEscala:escalaLogo(raw.logoEscala)};for(const k of fields)c[k]=String(raw[k]||'').trim().slice(0,k==='textoRodape'?1500:500);c.corPrimaria=/^#[0-9a-f]{6}$/i.test(c.corPrimaria)?c.corPrimaria:'#1B4D3E';c.telefones=(Array.isArray(raw.telefones)?raw.telefones:[]).map(x=>String(x).trim().slice(0,100)).filter(Boolean).slice(0,10);if(raw.logoBase64){if(!/^data:image\/(png|jpeg);base64,[A-Za-z0-9+/=]+$/.test(raw.logoBase64)||raw.logoBase64.length>1250000)throw Error('Logo inválida. Use PNG ou JPG de até 900 KB.');c.logoBase64=raw.logoBase64;}return c;}
 function lines(c){if(!c)return [];return [c.nomeEmpresa,c.razaoSocial&&c.razaoSocial!==c.nomeEmpresa?'Razão social: '+c.razaoSocial:'',c.documento?'CPF/CNPJ: '+c.documento:'',c.enderecoContato,c.email,...(c.telefones||[])].filter(Boolean);}
 function clientLines(c){c=c||{};return [['Cliente',c.nome||c.name],['CPF/CNPJ',c.documento||c.cpf||c.cnpj],['Contato',c.contato],['E-mail',c.email],['Telefone',c.telefone],['Endereço',c.endereco],['Projeto',c.projeto],['UC',c.uc]].filter(x=>x[1]).map(([k,v])=>k+': '+v);}
 function service(db,user){
@@ -21,5 +24,5 @@ function service(db,user){
  return api;
 }
 function picker(service,selected,label='Empresa emissora'){return '<label>'+escape(label)+'<select class="ig-company-select"><option value="">Sem empresa selecionada</option>'+service.companies.map(c=>'<option value="'+escape(c.id)+'" '+(c.id===selected?'selected':'')+'>'+escape(c.nomeEmpresa)+'</option>').join('')+'</select></label><p class="hint"><a href="/empresas/">Cadastrar ou editar empresas no IG Base</a></p>';}
-root.IGCompanies={service,clean,lines,clientLines,picker,escape,clone};
+root.IGCompanies={service,clean,logoEscala,escalaLogo,lines,clientLines,picker,escape,clone};
 })(globalThis);

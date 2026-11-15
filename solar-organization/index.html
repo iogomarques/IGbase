@@ -4,7 +4,7 @@
 <meta charset="UTF-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1.0" />
 <title>Solar Organization | IG Base</title>
-<link rel="icon" type="image/png" sizes="64x64" href="/favicon-ig-base.png?v=1.10.44">
+<link rel="icon" type="image/png" sizes="64x64" href="/favicon-ig-base.png?v=1.10.45">
 <!-- O SDK é carregado sem bloquear a renderização da página, no início do app. -->
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -464,7 +464,7 @@
 
 @media screen{.vigencia-linha input[type=month]{width:100%;min-height:44px;padding:9px;border:1px solid var(--line);border-radius:8px;background:#fff;font:inherit}.vigencia-linha .vigencia-remover{margin-top:10px}#m-vigencias{margin-top:16px}}
 </style>
-<script src="/shared/companies.js?v=1.10.44"></script><link rel="stylesheet" href="/shared/presentation.css?v=1.10.44"><script src="/shared/account.js?v=1.10.44"></script><script src="/shared/login.js?v=1.10.44"></script><script src="/shared/falta.js?v=1.10.44"></script><script src="/shared/navegacao.js?v=1.10.44"></script><script src="/shared/version.js?v=1.10.44"></script></head>
+<script src="/shared/companies.js?v=1.10.45"></script><link rel="stylesheet" href="/shared/presentation.css?v=1.10.45"><script src="/shared/account.js?v=1.10.45"></script><script src="/shared/login.js?v=1.10.45"></script><script src="/shared/falta.js?v=1.10.45"></script><script src="/shared/navegacao.js?v=1.10.45"></script><script src="/shared/version.js?v=1.10.45"></script></head>
 <body>
 
 <div id="auth-root"><div class="auth-screen startup-screen"><div class="startup-card" aria-busy="true"><div class="startup-brand"><img width="713" height="340" draggable="false" src="/assets/logo-ig-base.png" alt="IG Base"></div><div class="startup-spinner" aria-hidden="true"></div><h1 class="startup-title">Carregando o sistema</h1><p class="startup-message" role="status" aria-live="polite">Preparando seu ambiente…</p><noscript>Ative o JavaScript no navegador para utilizar o sistema.</noscript></div></div></div>
@@ -479,7 +479,7 @@
 </div>
 <footer class="app-footer ig-footer" id="app-footer" style="display:none">
   <div class="footer-links"><a href="/">IG Base</a><a href="/empresas/">Empresas</a><a href="/suporte/">Suporte</a></div>
-  <div class="version" data-ig-version>IG Base v1.10.44</div>
+  <div class="version" data-ig-version>IG Base v1.10.45</div>
 </footer>
 
 <div id="modal-root"></div>
@@ -2849,7 +2849,7 @@ function construirHtmlFatura(client,profile,draft,dc,qrDataUrl){
   var estilo='<style>.fatura-cliente{font-family:Arial,Helvetica,sans-serif;max-width:698px;color:#16241d;font-size:12px;line-height:1.25;overflow-wrap:anywhere;box-sizing:border-box;background:#fff}.fatura-cliente *{box-sizing:border-box}.fatura-cliente .fatura-header{display:flex;justify-content:space-between;gap:18px;align-items:center;margin-bottom:8px}.fatura-cliente .fatura-header>div{flex:1;min-width:0}.fatura-cliente .fatura-logo{width:300px;max-width:44%;max-height:187px;object-fit:contain;flex-shrink:0}.fatura-cliente .fatura-tipo{font-size:12px;font-weight:700;color:'+escapeHtml(cor)+';letter-spacing:.6px}.fatura-cliente .fatura-muted{font-size:12px;color:#5c6f63}.fatura-cliente .fatura-cliente-id{margin:10px 0}.fatura-cliente .fatura-cliente-id strong{font-size:16px;display:block;margin-bottom:4px}.fatura-cliente .fatura-total{display:flex;flex-wrap:wrap;justify-content:space-between;align-items:center;gap:12px;border-top:1px solid #dde5da;border-bottom:1px solid #dde5da;padding:8px 0;font-weight:700}.fatura-cliente .fatura-total strong{margin-left:auto;font-size:17px;color:'+escapeHtml(cor)+'}.fatura-cliente .fatura-metricas{display:grid;grid-template-columns:1fr 1fr;background:#f4f7f3;border-radius:5px;padding:10px;gap:9px 14px;margin:8px 0}.fatura-cliente .fatura-metricas strong{display:block;font-size:15px;color:'+escapeHtml(cor)+';margin-top:2px}.fatura-cliente .fatura-nota{font-size:12px;color:#5c6f63;margin:8px 0}.fatura-cliente h3{font-size:12px;color:'+escapeHtml(cor)+';margin:10px 0 5px;font-weight:700}.fatura-cliente .fatura-tabela{width:100%;border-collapse:collapse}.fatura-cliente .fatura-tabela td{padding:4px 0;vertical-align:top}.fatura-cliente .fatura-tabela td:first-child{width:75%;color:#5c6f63;padding-right:12px}.fatura-cliente .fatura-tabela td:last-child{text-align:right;font-weight:600}.fatura-cliente .fatura-extras{display:grid;grid-template-columns:1fr 1fr;gap:5px 12px;color:#5c6f63}.fatura-cliente .fatura-observacoes{white-space:pre-wrap;margin:0;color:#5c6f63}.fatura-cliente .fatura-pagamento{display:flex;justify-content:space-between;align-items:center;gap:16px;border:2px solid '+escapeHtml(cor)+';border-radius:8px;background:#f7faf6;padding:14px 16px;margin-top:12px;break-inside:avoid}.fatura-cliente .fatura-pagar-rotulo{font-size:12px;font-weight:700;color:'+escapeHtml(cor)+';letter-spacing:.4px}.fatura-cliente .fatura-pagar-valor{font-size:34px;font-weight:700;color:'+escapeHtml(cor)+';line-height:1.15;margin:2px 0 4px}.fatura-cliente .fatura-pagar-aviso{font-size:12px;color:#5c6f63;margin:0 0 10px}.fatura-cliente .fatura-pagar-pix{font-size:11px;font-weight:700;color:#5c6f63;margin-bottom:2px}.fatura-cliente .fatura-total-linha{display:flex;justify-content:space-between;gap:12px;border-top:1px solid #dde5da;margin-top:4px;padding-top:6px;font-weight:700;font-size:13px}.fatura-cliente .fatura-total-linha strong{color:'+escapeHtml(cor)+'}.fatura-cliente .fatura-pagamento>div{flex:1;min-width:0}.fatura-cliente .fatura-pagamento img{width:173px;height:173px;flex:none}.fatura-cliente .fatura-contatos{border-top:1px solid #dde5da;margin-top:10px;padding-top:6px;break-inside:avoid}.fatura-cliente .fatura-contatos p{margin:3px 0}.fatura-cliente .fatura-rodape{font-size:12px;color:#859387;margin:8px 0 0}@page{size:A4;margin:12mm}@media print{.fatura-cliente{max-width:none;width:100%;font-size:9pt;line-height:1.2;print-color-adjust:exact;-webkit-print-color-adjust:exact}.fatura-cliente .fatura-logo{width:225pt;max-height:140pt}.fatura-cliente .fatura-pagamento img{width:130pt;height:130pt}.fatura-cliente .fatura-muted,.fatura-cliente .fatura-nota,.fatura-cliente h3,.fatura-cliente .fatura-rodape{font-size:9pt}.fatura-cliente .fatura-header,.fatura-cliente .fatura-metricas,.fatura-cliente .fatura-pagamento,.fatura-cliente tr{break-inside:avoid}.fatura-cliente .fatura-tabela td{padding:3pt 0}.fatura-cliente .fatura-header img{max-width:44%}}</style>';
   return estilo+'<article class="fatura-cliente" aria-label="Fatura do cliente">'+
     '<header class="fatura-header"><div>'+IGCompanies.lines(dc).map(function(l,i){return i?'<div class="fatura-muted">'+textoExibicao(l)+'</div>':'<strong>'+textoExibicao(l)+'</strong>';}).join('')+'</div>'+
-    (dc.logoBase64?'<img draggable="false" class="fatura-logo" style="max-height:125px;max-width:333px" src="'+escapeHtml(dc.logoBase64)+'" alt="Logo da empresa">':'')+'</header>'+
+    (dc.logoBase64?'<img draggable="false" class="fatura-logo" style="max-height:'+Math.round(125*(IGCompanies.logoEscala?IGCompanies.logoEscala(dc):1))+'px;max-width:'+Math.round(333*(IGCompanies.logoEscala?IGCompanies.logoEscala(dc):1))+'px" src="'+escapeHtml(dc.logoBase64)+'" alt="Logo da empresa">':'')+'</header>'+
     '<section class="fatura-cliente-id"><h3>IDENTIFICAÇÃO DO CLIENTE</h3>'+linhasIdentificacaoCliente(client).map(function(l){return '<div class="fatura-muted">'+textoExibicao(l)+'</div>';}).join('')+'<div class="fatura-muted">Referência: '+textoExibicao(m.referencia)+'</div></section>'+
     '<div class="fatura-metricas">'+linhasResumoEnergia(m.energia).map(function(l){return '<div><span class="fatura-muted">'+escapeHtml(l.rotulo)+'</span><strong>'+escapeHtml(l.valor)+'</strong></div>';}).join('')+'</div>'+
     '<p class="fatura-nota">'+escapeHtml(notaResumoEnergia(m.energia))+'</p>'+
@@ -3553,7 +3553,7 @@ function criarPdfClienteUmaPagina(m, qr, logoDim){
       });
     }
     try{
-      var inicio=y,logoW=logoDim?Math.min(LOGO_PDF_MAX_W,LOGO_PDF_MAX_H*logoDim.w/logoDim.h):0,logoH=logoDim?logoW*logoDim.h/logoDim.w:0;
+      var escLogo=IGCompanies.logoEscala?IGCompanies.logoEscala(m.dc):1,inicio=y,logoW=logoDim?Math.min(LOGO_PDF_MAX_W*escLogo,LOGO_PDF_MAX_H*escLogo*logoDim.w/logoDim.h,largura*0.6):0,logoH=logoDim?logoW*logoDim.h/logoDim.w:0;
       var nomeW=largura-(logoW?logoW+18:0);
       IGCompanies.lines(m.dc).forEach(function(l,i){paragrafo(l,nomeW,margem,i?9:12,!i,cinza);});
       if(logoDim)doc.addImage(m.dc.logoBase64,formatoImagemBase64(m.dc.logoBase64),pw-margem-logoW,inicio-8,logoW,logoH,undefined,'FAST');
@@ -3561,7 +3561,7 @@ function criarPdfClienteUmaPagina(m, qr, logoDim){
       titulo('IDENTIFICAÇÃO DO CLIENTE');
       linhasIdentificacaoCliente(m.client).forEach(function(l){paragrafo(l,largura,margem,9,false,cinza);});
       paragrafo('Referência: '+m.referencia,largura,margem,9,false,cinza);
-      /* 1.10.44: o valor a pagar saiu do topo (fica no fim da composição e no quadro do QR Code): menos repetição e mais folga para caber em 1 página. */
+      /* 1.10.45: o valor a pagar saiu do topo (fica no fim da composição e no quadro do QR Code): menos repetição e mais folga para caber em 1 página. */
       y+=f.espaco;
       var metricas=linhasResumoEnergia(m.energia),metade=largura/2;
       var celulas=metricas.map(function(l){return {rotulo:dividir(l.rotulo,metade-20,9,false),valor:dividir(l.valor,metade-20,11,true)};});
@@ -3576,7 +3576,7 @@ function criarPdfClienteUmaPagina(m, qr, logoDim){
       });y+=altura+f.linha;
       paragrafo(notaResumoEnergia(m.energia),largura,margem,9,false,cinza);
       titulo('COMPOSIÇÃO DA COBRANÇA');tabela(m.financeiro);
-      /* 1.10.44: a composição fecha com o total, para o último número da lista ser o valor a pagar
+      /* 1.10.45: a composição fecha com o total, para o último número da lista ser o valor a pagar
          (cliente pagou só o repasse da concessionária, último item, em vez do total). */
       cabe(f.linha+12);doc.setDrawColor(221,229,218);doc.setLineWidth(.5);doc.line(margem,y-f.linha+4,pw-margem,y-f.linha+4);y+=4;
       fonte(f.fonte+1,true);escreve('TOTAL A PAGAR',margem,y);fonte(f.fonte+1,true,cor);escreve(m.total,pw-margem,y,{align:'right'});y+=f.linha+f.espaco;
@@ -3592,7 +3592,7 @@ function criarPdfClienteUmaPagina(m, qr, logoDim){
         titulo('OBSERVAÇÕES');
         String(m.observacoes).split(/\r?\n/).forEach(function(l){if(l.trim())paragrafo(l,largura,margem,9,false,cinza);else{cabe(f.linha);y+=f.linha;}});
       }
-      /* 1.10.44: quadro de pagamento com o VALOR A PAGAR em destaque, ao lado do QR Code (pedido do usuário, 14/11/2026). */
+      /* 1.10.45: quadro de pagamento com o VALOR A PAGAR em destaque, ao lado do QR Code (pedido do usuário, 14/11/2026). */
       y+=f.espaco;
       var qrSize=[130,120,110][tentativa],pad=12,pixW=largura-2*pad-(qr?qrSize+16:0);
       var banco=[m.client.banco,m.client.beneficiario].filter(Boolean).join(' · ');
@@ -3611,7 +3611,7 @@ function criarPdfClienteUmaPagina(m, qr, logoDim){
       fonte(9,false,cinza);lBanco.forEach(function(t){escreve(t,cx,cy);cy+=f.linha;});
       if(qr)doc.addImage(qr,formatoImagemBase64(qr),pw-margem-pad-qrSize,y+(hBox-qrSize)/2,qrSize,qrSize);
       y+=hBox+f.linha;
-      /* 1.10.44: endereço, e-mail e telefones já estão no cabeçalho; o bloco repetido no fim saiu (fatura mais enxuta). */
+      /* 1.10.45: endereço, e-mail e telefones já estão no cabeçalho; o bloco repetido no fim saiu (fatura mais enxuta). */
       if(m.dc.textoRodape){y+=f.espaco;paragrafo(m.dc.textoRodape,largura,margem,9,false,cinza);}
       cabe(10);fonte(9,false,cinza);escreve('Página 1 de 1',pw-margem,ph-20,{align:'right'});
       return {doc:doc,fonteMinima:9,alturaUtilizada:y,formato:tentativa};
@@ -4690,14 +4690,14 @@ async function onSignOut(){
    O aviso aparece uma vez por versão por navegador (localStorage compartilhado
    entre o site principal e os subsites, pois ficam no mesmo domínio).
    ============================================================ */
-var IG_BASE_VERSION = window.IGBaseRelease?.version || '1.10.44';
-var IG_BASE_RELEASE_ID = window.IGBaseRelease?.releaseId || '1.10.44-2026-10-30';
+var IG_BASE_VERSION = window.IGBaseRelease?.version || '1.10.45';
+var IG_BASE_RELEASE_ID = window.IGBaseRelease?.releaseId || '1.10.45-2026-10-30';
 var IG_BASE_CHANGELOG = [
+  "Solar Distribution: tirar uma unidade do rateio com um clique (e voltar), e o site gera o pedido de exclusão da Equatorial para quem tem % hoje; o formulário marca sozinho Inclusão e Alteração.",
+  "Empresas: ajuste o tamanho do logo nos PDFs (50% a 150%) vendo a prévia da fatura, do relatório e do orçamento.",
+  "Solar Distribution: geração considerada no resumo, relatório sem página quase vazia e tabela de faturas lidas arrumada.",
   "Solar Organization: fatura do cliente mais enxuta e sempre em 1 página — o valor a pagar não se repete no topo (fica no fim da composição e no quadro do QR Code) e os contatos da empresa aparecem só no cabeçalho.",
   "Solar Organization: na fatura do cliente, o VALOR A PAGAR agora aparece grande num quadro ao lado do QR Code, e a composição da cobrança termina com o TOTAL A PAGAR — para ninguém pagar só o último item da lista.",
-  "Login mais claro em todos os sistemas: o botão mostra \"Entrando…\", a mensagem de erro é a mesma em todo lugar e, ao entrar pelo IG Base vindo de um sistema, você volta para ele.",
-  "Celular e tablet: topo do IG Base numa linha só, campo de senha do Organization corrigido e botões e links maiores para o toque.",
-  "Solar Distribution: mais prático de usar — consumo previsto (ex.: dois ares novos) direto no lançamento e na tabela do rateio, \"Aplicar\" já salva na conta, avisos que somem sozinhos e barra de salvar que fica amarela quando há algo a salvar.",
 ];
 function igbMostrarChangelog(){
   var KEY = 'igbase_changelog_visto';

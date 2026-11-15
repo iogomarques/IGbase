@@ -174,3 +174,14 @@ Revisão de UX pedida pelo usuário, percorrendo o fluxo como um usuário novo (
 - **Avisos:** mensagens de sucesso somem sozinhas em 7 s; avisos e erros ficam; clique fecha. Mensagens de leitura sem "fatura(s)"; textos "1 mês"/"N meses" e "geração esperada informada" no lugar de "média de 1 mês(es)".
 - **Barra de salvar** mais baixa e amarela quando há alterações não salvas.
 - Depois de ler faturas, a tela desce até o passo 2a.
+
+## Retirada de unidade e pedido de exclusão (15/11/2026, versão 1.10.45)
+
+Caso real de um cliente (residência, loja nova e loja antiga; a loja antiga sai do rateio). Modelos do usuário: formulários "A RETIRAR" e "ALTERAR E INCLUIR" (fora do repositório).
+
+- **Tirar do rateio:** botão "tirar do rateio" embaixo do nome da unidade na tabela da usina (ou "Fora do rateio" na ficha). Campo `foraDoRateio` na unidade; as ligações continuam, então "Voltar ao rateio" desfaz. O motor (`noRateio`) tira a unidade de `sugerir`, `calcular` (sem avisos de falta), da falta total, dos sistemas e das pendências.
+- **Pedido à Equatorial (`pedidoEquatorial`):** compara o rateio novo com o cadastrado hoje (fatura da unidade, "CADASTRO RATEIO GERAÇÃO"). Formulário principal: marca **Inclusão** se alguma UC não tem % hoje e **Alteração** se alguma muda de %; lista só quem fica. **Pedido de exclusão** (PDF separado): marca Exclusão e lista as UCs com % hoje que saem (marcadas fora do rateio ou desligadas da usina), com o % de hoje, sem linha de total. O seletor manual "Tipo de solicitação" da usina saiu.
+- Histórico guarda o pedido (`pedido`) para emitir os dois formulários de novo; o relatório mostra "Sai do rateio desta usina (pedido de exclusão à Equatorial)".
+- Caso testado no simulado (3 meses): sem a loja antiga e com +1.921 kWh previstos na loja nova (herda o consumo), residência 25% e loja nova 75% (planilha do usuário: 24,02/75,98; o site usa inteiros).
+
+Também: "Geração considerada" no resumo (tela e relatório, quadro em 3 colunas); a nota "valores estimados" foi para junto do resumo (o relatório do caso deixava uma página 2 só com ela); tabela "Faturas lidas" com o que foi lido embaixo do arquivo e o nome novo sem invadir a coluna ao lado; faturas com nome só de números viram "Unidade UC …"; tamanho do logo (Empresas, `logoEscala` 50–150%) vale no relatório.

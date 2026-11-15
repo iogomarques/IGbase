@@ -4,7 +4,7 @@
 <meta charset="UTF-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1.0" />
 <title>IG Base</title>
-<link rel="icon" type="image/png" sizes="64x64" href="/favicon-ig-base.png?v=1.10.44">
+<link rel="icon" type="image/png" sizes="64x64" href="/favicon-ig-base.png?v=1.10.45">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@600;700;800&display=swap" rel="stylesheet">
@@ -135,13 +135,13 @@ body{background:#f6f8f7}body::before,.glow{display:none}
 .card.soon{border-style:solid;opacity:1}.card.soon h2{color:var(--ink-soft)}
 .enter-link,.icon-btn{min-height:44px}.modules{gap:20px}
 @media(max-width:560px){.card{width:100%;max-width:380px}main{padding-top:32px}.modules{margin-top:28px}}
-/* 1.10.44: topo do Hub numa linha só no celular (o menu Sistemas tinha empurrado Empresas e a conta para fora da barra). */
+/* 1.10.45: topo do Hub numa linha só no celular (o menu Sistemas tinha empurrado Empresas e a conta para fora da barra). */
 @media(max-width:600px){.topbar{flex-wrap:nowrap!important;gap:8px;padding:0 12px}.topbar .ig-brand span{display:none}.topbar .ig-sistemas{margin:0}.topbar-right{gap:8px;flex-wrap:nowrap!important}}
 @media(max-width:430px){.topbar-right a.enter-link{display:none!important}}
 }
 #hub-login{width:min(420px,calc(100vw - 32px));box-sizing:border-box;border:1px solid #dbe7d8;border-radius:20px;padding:28px;color:#203b29;background:#fff;box-shadow:0 24px 80px #16351f30}#hub-login::backdrop{background:#16351f66;backdrop-filter:blur(4px)}#hub-login h2{font:600 23px Poppins,"Segoe UI",sans-serif;margin:0 0 12px}#hub-login p{font-size:14px;line-height:1.6;color:#5b6c60}#hub-login label{display:grid;gap:8px;font-size:13px;margin:18px 0}#hub-login input{box-sizing:border-box;width:100%;min-height:46px;border:1px solid #dbe7d8;border-radius:10px;padding:10px 12px;font:14px -apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Helvetica,Arial,sans-serif}#hub-login .login-close{float:right;border:0;background:transparent;font-size:24px;cursor:pointer;color:#5b6c60}#hub-login button[type=submit]{width:100%;margin-top:8px}#hub-login-message{color:#963c2d!important}#hub-login-message:empty{display:none}
 </style>
-<script defer src="/shared/companies.js?v=1.10.44"></script><link rel="stylesheet" href="/shared/presentation.css?v=1.10.44"><script src="/shared/account.js?v=1.10.44"></script><script src="/shared/login.js?v=1.10.44"></script><script src="/shared/falta.js?v=1.10.44"></script><script src="/shared/navegacao.js?v=1.10.44"></script><script src="/shared/version.js?v=1.10.44"></script></head>
+<script defer src="/shared/companies.js?v=1.10.45"></script><link rel="stylesheet" href="/shared/presentation.css?v=1.10.45"><script src="/shared/account.js?v=1.10.45"></script><script src="/shared/login.js?v=1.10.45"></script><script src="/shared/falta.js?v=1.10.45"></script><script src="/shared/navegacao.js?v=1.10.45"></script><script src="/shared/version.js?v=1.10.45"></script></head>
 <body>
   <nav class="topbar">
     <a class="topbar-brand ig-brand" href="/" aria-label="IG Base — início"><img draggable="false" src="/Logo_IG_Base.png" alt=""><span>IG Base</span></a>
@@ -192,7 +192,7 @@ body{background:#f6f8f7}body::before,.glow{display:none}
   <footer class="ig-footer">
     <div class="footer-links"><a href="/" aria-current="page">IG Base</a><a href="/empresas/">Empresas</a><a href="/suporte/">Suporte</a></div>
     <div class="status"><span class="dot"></span>Todos os sistemas operacionais</div>
-    <div class="version" data-ig-version>IG Base v1.10.44</div>
+    <div class="version" data-ig-version>IG Base v1.10.45</div>
   </footer>
 
   <div class="modal-overlay" id="settings-overlay">
@@ -330,14 +330,14 @@ document.getElementById('settings-signout').addEventListener('click', sairDaCont
    O aviso aparece uma vez por versão por navegador (localStorage compartilhado
    entre o site principal e os subsites, pois ficam no mesmo domínio).
    ============================================================ */
-var IG_BASE_VERSION = window.IGBaseRelease?.version || '1.10.44';
-var IG_BASE_RELEASE_ID = window.IGBaseRelease?.releaseId || '1.10.44-2026-10-30';
+var IG_BASE_VERSION = window.IGBaseRelease?.version || '1.10.45';
+var IG_BASE_RELEASE_ID = window.IGBaseRelease?.releaseId || '1.10.45-2026-10-30';
 var IG_BASE_CHANGELOG = [
+  "Solar Distribution: tirar uma unidade do rateio com um clique (e voltar), e o site gera o pedido de exclusão da Equatorial para quem tem % hoje; o formulário marca sozinho Inclusão e Alteração.",
+  "Empresas: ajuste o tamanho do logo nos PDFs (50% a 150%) vendo a prévia da fatura, do relatório e do orçamento.",
+  "Solar Distribution: geração considerada no resumo, relatório sem página quase vazia e tabela de faturas lidas arrumada.",
   "Solar Organization: fatura do cliente mais enxuta e sempre em 1 página — o valor a pagar não se repete no topo (fica no fim da composição e no quadro do QR Code) e os contatos da empresa aparecem só no cabeçalho.",
   "Solar Organization: na fatura do cliente, o VALOR A PAGAR agora aparece grande num quadro ao lado do QR Code, e a composição da cobrança termina com o TOTAL A PAGAR — para ninguém pagar só o último item da lista.",
-  "Login mais claro em todos os sistemas: o botão mostra \"Entrando…\", a mensagem de erro é a mesma em todo lugar e, ao entrar pelo IG Base vindo de um sistema, você volta para ele.",
-  "Celular e tablet: topo do IG Base numa linha só, campo de senha do Organization corrigido e botões e links maiores para o toque.",
-  "Solar Distribution: mais prático de usar — consumo previsto (ex.: dois ares novos) direto no lançamento e na tabela do rateio, \"Aplicar\" já salva na conta, avisos que somem sozinhos e barra de salvar que fica amarela quando há algo a salvar.",
 ];
 function igbMostrarChangelog(){
   var KEY = 'igbase_changelog_visto';

@@ -23,10 +23,12 @@ async function relatorio(model,empresa,opcoes={}){const doc=new root.jspdf.jsPDF
  const paragrafo=(s,size=9,c=CINZA,gap=2)=>{fonte(size,false,c);for(const l of doc.splitTextToSize(texto(s),W-2*M)){espaco(size*.42+1);escrever(l,M,y);y+=size*.42+1;}y+=gap;};
  /* Cabeçalho: dados da empresa na metade esquerda; o logo ocupa a metade direita, centralizado e maior
     (até 40 mm de altura), para ter destaque (usuário, 05/11/2026). */
- const dim=empresa?.logoBase64?await dimensoes(empresa.logoBase64):null,topo=y-5,colW=dim?(W-2*M)*0.5:W-2*M;
+ /* Tamanho do logo (Empresas): acima de 100% a área do logo cresce para a esquerda (até 62% da largura); em 100% fica igual a antes. */
+ const escL=root.IGCompanies&&root.IGCompanies.logoEscala?root.IGCompanies.logoEscala(empresa):1;
+ const dim=empresa?.logoBase64?await dimensoes(empresa.logoBase64):null,topo=y-5,zonaW=Math.min((W-2*M)*0.62,((W-2*M)*0.5-6)*Math.max(1,escL)),colW=dim?W-2*M-zonaW-6:W-2*M;
  const linhasEmpresa=empresa&&root.IGCompanies?root.IGCompanies.lines(empresa):[];
  linhasEmpresa.forEach((l,i)=>{fonte(i?8.5:12,!i,i?CINZA:TINTA);for(const t of doc.splitTextToSize(texto(l),colW)){escrever(t,M,y);y+=i?4:5.5;}});
- if(dim){const zx=M+colW+6,zw=W-M-zx,lw=Math.min(zw,40*dim.w/dim.h),lh=lw*dim.h/dim.w,bloco=Math.max(y-topo,lh);
+ if(dim){const zx=M+colW+6,zw=W-M-zx,esc=escL,lw=Math.min(zw,40*esc*dim.w/dim.h),lh=lw*dim.h/dim.w,bloco=Math.max(y-topo,lh);
   doc.addImage(empresa.logoBase64,formatoImg(empresa.logoBase64),zx+(zw-lw)/2,topo+(bloco-lh)/2,lw,lh,undefined,'FAST');y=topo+bloco+5;}
  else y+=4;
  doc.setFillColor(...cor);doc.rect(M,y,W-2*M,.8,'F');y+=9;
@@ -34,12 +36,14 @@ async function relatorio(model,empresa,opcoes={}){const doc=new root.jspdf.jsPDF
  titulo('CLIENTE');
  const cl=model.cliente;[['Cliente',cl.nome],['CPF/CNPJ',cl.documento],['E-mail',cl.email],['Telefone',cl.telefone]].filter(x=>x[1]).forEach(([k,v])=>{fonte(9,true);escrever(k+':',M,y);fonte(9,false);escrever(v,M+doc.getTextWidth(k+': ')+.5,y);y+=4.8;});
  paragrafo(model.usinas.length+(model.usinas.length>1?' usinas geradoras':' usina geradora')+' e '+model.unidades+(model.unidades>1?' unidades':' unidade')+' recebendo os créditos. '+model.metodo,8.5,CINZA,3);
- /* Quadro de resumo 2 × 2, como o resumo de energia da fatura. */
- titulo('RESUMO');espaco(26);doc.setFillColor(244,247,243);doc.roundedRect(M,y,W-2*M,22,2,2,'F');
- const r=model.resumo,met=[['Energia das usinas para o rateio',kwh(r.energia)+'/mês'],['A compensar das unidades (consumo médio − mínimo)',kwh(r.compensar)+'/mês'],['Situação',r.deficit>0.5?'Faltam '+kwh(r.deficit)+'/mês':'A geração atende o consumo'],['Rateio',r.ok?'Fechado em 100% por usina':'Em ajuste']];
- met.forEach(([k,v],i)=>{const x=M+5+(i%2)*((W-2*M)/2),yy=y+6+Math.floor(i/2)*10;fonte(7.5,false,CINZA);escrever(k,x,yy);fonte(10.5,true,i===2&&r.deficit>0.5?[153,55,37]:cor);escrever(v,x,yy+4.6);});y+=27;
+ /* Quadro de resumo 3 colunas: a geração considerada vem primeiro (pedido do usuário, 15/11/2026: "geração esperada 1.870 →
+    para o rateio 1.323 → a compensar → situação → rateio"). Relatórios antigos sem a geração ficam com 4 quadros. */
+ const r=model.resumo,met=[...(r.geracao>0?[['Geração considerada das usinas',kwh(r.geracao)+'/mês']]:[]),['Energia das usinas para o rateio',kwh(r.energia)+'/mês'],['A compensar (consumo médio − mínimo)',kwh(r.compensar)+'/mês'],['Situação',r.deficit>0.5?'Faltam '+kwh(r.deficit)+'/mês':'A geração atende o consumo'],['Rateio',r.ok?'Fechado em 100% por usina':'Em ajuste']];
+ const nc=met.length>4?3:2,cw=(W-2*M)/nc,linhasR=Math.ceil(met.length/nc),hR=6+linhasR*10.5;
+ titulo('RESUMO');espaco(hR+4);doc.setFillColor(244,247,243);doc.roundedRect(M,y,W-2*M,hR,2,2,'F');
+ met.forEach(([k,v],i)=>{const x=M+5+(i%nc)*cw,yy=y+6+Math.floor(i/nc)*10.5;fonte(7.5,false,CINZA);escrever(doc.splitTextToSize(texto(k),cw-7)[0],x,yy);fonte(10.5,true,v.startsWith('Faltam')?[153,55,37]:cor);escrever(v,x,yy+4.6);});y+=hR+5;
  if(r.deficit>0.5&&r.ampliacao)paragrafo('Para atender todo o consumo, faltam '+kwh(r.deficit)+'/mês, o equivalente a '+r.ampliacao+' de geração.',8.5,[139,76,30]);
- paragrafo('"A compensar" de cada unidade = consumo médio − mínimo não compensado (custo de disponibilidade: 30 kWh monofásico, 50 bifásico, 100 trifásico). O mínimo a Equatorial cobra mesmo com créditos, por isso não entra no rateio.',7.8,CINZA,2);
+ paragrafo('"A compensar" de cada unidade = consumo médio − mínimo não compensado (custo de disponibilidade: 30 kWh monofásico, 50 bifásico, 100 trifásico). O mínimo a Equatorial cobra mesmo com créditos, por isso não entra no rateio. Valores estimados com a geração e o consumo médio informados; a Equatorial aplica o rateio a partir do ciclo seguinte ao pedido. Créditos de energia valem por 60 meses.',7.8,CINZA,2);
  /* Uma seção por usina: geração, barra do rateio e tabela das unidades. */
  const cols=[{k:'nome',t:'Unidade',w:44},{k:'consumo',t:'Consumo médio',w:19},{k:'compensar',t:'A compensar',w:19},{k:'atual',t:'Rateio atual',w:15},{k:'final',t:'Novo rateio',w:15},{k:'credito',t:'Crédito/mês',w:19},{k:'saldo',t:'Saldo hoje',w:16},{k:'depois',t:'Saldo após o mês',w:31}];
  for(const us of model.usinas){espaco(60);titulo('USINA '+us.nome.toUpperCase());
@@ -60,15 +64,16 @@ async function relatorio(model,empresa,opcoes={}){const doc=new root.jspdf.jsPDF
    /* Consumo ajustado (previsão): mostra a média da fatura e o ajuste embaixo do consumo considerado. */
    if(l.ajuste){fonte(6.3,false,[139,76,30]);escrever('fatura '+fmt(l.consumoFatura)+(l.ajuste>0?' + ':' - ')+fmt(Math.abs(l.ajuste)),M+cols[0].w+cols[1].w-1,y+3.6,{align:'right'});}
    y+=h;doc.setDrawColor(236,240,234);doc.line(M,y-2.8,W-M,y-2.8);});
-  fonte(8,true);escrever('Total',M+4,y+.5);escrever(us.linhas.reduce((a,l)=>a+l.final,0)+(us.reserva||0)+'%',M+cols.slice(0,5).reduce((a,c)=>a+c.w,0)-1,y+.5,{align:'right'});escrever(kwh(us.linhas.reduce((a,l)=>a+(l.credito||0),0)),M+cols.slice(0,6).reduce((a,c)=>a+c.w,0)-1,y+.5,{align:'right'});y+=8;}
+  fonte(8,true);escrever('Total',M+4,y+.5);escrever(us.linhas.reduce((a,l)=>a+l.final,0)+(us.reserva||0)+'%',M+cols.slice(0,5).reduce((a,c)=>a+c.w,0)-1,y+.5,{align:'right'});escrever(kwh(us.linhas.reduce((a,l)=>a+(l.credito||0),0)),M+cols.slice(0,6).reduce((a,c)=>a+c.w,0)-1,y+.5,{align:'right'});y+=8;
+  /* Unidades que saem do rateio desta usina (pedido de exclusão à Equatorial, com o % de hoje). */
+  if(us.exclusoes&&us.exclusoes.length)paragrafo('Sai do rateio desta usina (pedido de exclusão à Equatorial): '+us.exclusoes.map(x=>x.nome+' (UC '+(x.uc||'—')+', hoje '+fmt(x.percentual,x.percentual%1?2:0)+'%)').join('; ')+'.',8.5,[139,76,30],3);}
  if(model.avisos.length){titulo('PONTOS DE ATENÇÃO');model.avisos.forEach(a=>paragrafo('• '+a,8.5,[92,71,16],1));y+=2;}
- /* Sem "próximos passos": quem monta a usina decide e analisa isso (usuário, 05/11/2026). */
- y+=2; paragrafo('Valores estimados com a geração e o consumo médio informados; a Equatorial aplica o rateio a partir do ciclo seguinte ao pedido. Créditos de energia valem por 60 meses.',7.5,CINZA,0);
+ /* Sem "próximos passos": quem monta a usina decide e analisa isso (usuário, 05/11/2026). A nota "valores estimados" fica junto do resumo. */
  /* Os formulários da Equatorial saem em PDFs separados (um por usina): o cliente não os envia. */
  rodape();doc.setProperties({title:texto(model.titulo+' - '+model.cliente.nome)});return doc;}
 
 /* Desenha o formulário da Equatorial na página atual de "doc". */
-function formulario(doc,us,linhas,reserva,quando){const dt=new Date(quando||Date.now());let y=16;
+function formulario(doc,us,linhas,reserva,quando,tipos){const dt=new Date(quando||Date.now());let y=16;
  const t=(txt,x,yy,o={})=>{doc.setFont('helvetica',o.bold?'bold':'normal');doc.setFontSize(o.size||9.5);doc.setTextColor(0,0,0);doc.text(texto(txt),x,yy,o.align?{align:o.align}:undefined);};
  /* Texto longo (ex.: classe comercial) diminui a letra até caber; só corta abaixo de 6,5 pt. */
  const campo=(rot,val,x,yy,larg)=>{t(rot,x,yy,{bold:true});const w=doc.getTextWidth(rot)+1.5,s=texto(val||'—');doc.setFont('helvetica','normal');let fs=9.5;doc.setFontSize(fs);while(fs>6.5&&doc.getTextWidth(s)>larg-w){fs-=0.5;doc.setFontSize(fs);}t(doc.splitTextToSize(s,larg-w)[0],x+w,yy,{size:fs});doc.setDrawColor(190);doc.line(x+w,yy+1,x+larg,yy+1);doc.setDrawColor(0);};
@@ -83,14 +88,15 @@ function formulario(doc,us,linhas,reserva,quando){const dt=new Date(quando||Date
  campo('Bairro:',us.bairro,M,y,lg);campo('Cidade:',[us.cidade,us.cidade?(us.uf||'GO'):''].filter(Boolean).join(' - '),c2,y,W-M-c2);y+=7.5;
  campo('E-mail:',us.email,M,y,lg);campo('Telefone:',us.telefone,c2,y,W-M-c2);y+=7.5;
  campo('Celular:',us.celular,M,y,lg);y+=10;
- const ts=us.tipoSolicitacao||'alteracao',cp=us.compensacao||'normal';
- caixa(ts==='inclusao','Inclusão',M,y);caixa(ts==='alteracao','Alteração',M+32,y);caixa(ts==='exclusao','Exclusão',M+66,y);
+ /* Tipo: vem do pedido calculado (inclusão/alteração no principal, exclusão no pedido separado); rateios antigos sem isso usam o que estava na usina. */
+ const tp=tipos||{[us.tipoSolicitacao||'alteracao']:true},cp=us.compensacao||'normal';
+ caixa(!!tp.inclusao,'Inclusão',M,y);caixa(!!tp.alteracao,'Alteração',M+32,y);caixa(!!tp.exclusao,'Exclusão',M+66,y);
  t('Tipo de compensação:',c2,y,{bold:true});caixa(cp==='normal','Normal',c2+38,y);caixa(cp==='consorcio','Consórcio',c2+62,y);y+=12;
  t('2. Lista de unidades consumidoras participantes do sistema de compensação',M,y,{bold:true,size:10.5});y+=5;t('indicando a porcentagem de rateio dos créditos e o enquadramento:',M,y);y+=4.5;t('(Conforme incisos VI a VIII do art. 2º da Resolução Normativa nº 482/2012)',M,y,{size:8.5});y+=7;
  const cols=[M,M+44,M+104,W-M];t('UC',cols[0],y,{bold:true});t('Unidade',cols[1],y,{bold:true});t('CNPJ/CPF',cols[2],y,{bold:true});t('Rateio',cols[3],y,{bold:true,align:'right'});y+=2;doc.line(M,y,W-M,y);y+=5.5;
  const rows=[...(reserva?[{uc:us.uc,nome:'Própria geradora',documento:us.documento,percentual:reserva}]:[]),...linhas];
  for(const l of rows){if(y>255){doc.addPage();y=20;}t('UC: '+(l.uc||'—'),cols[0],y);t(doc.splitTextToSize(texto(l.nome||''),56)[0],cols[1],y);t(l.documento||'—',cols[2],y);t(l.percentual+'%',cols[3],y,{bold:true,align:'right'});y+=6.5;}
- doc.line(M,y-3.5,W-M,y-3.5);t('Total',cols[1],y+1,{bold:true});t(rows.reduce((a,l)=>a+l.percentual,0)+'%',cols[3],y+1,{bold:true,align:'right'});y+=11;
+ doc.line(M,y-3.5,W-M,y-3.5);if(!tp.exclusao){t('Total',cols[1],y+1,{bold:true});t(rows.reduce((a,l)=>a+l.percentual,0)+'%',cols[3],y+1,{bold:true,align:'right'});}y+=11;
  if(y>235){doc.addPage();y=20;}
  t('IMPORTANTE',W/2,y,{bold:true,size:10,align:'center'});y+=6;
  for(const p of ['• Caso a leitura da unidade beneficiária ocorra antes ou no mesmo dia que a unidade geradora, os créditos serão faturados apenas no próximo faturamento.','• Para solicitação de acesso o formulário de rateio é opcional e, caso não seja fornecido, será considerada a inexistência de unidades beneficiárias. O modelo deste formulário trata-se apenas de uma sugestão, sendo que o cliente poderá apresentar as informações de rateio por qualquer outro meio.']){doc.setFont('helvetica','normal');doc.setFontSize(9);for(const part of doc.splitTextToSize(p,W-2*M)){t(part,M,y,{size:9});y+=4.3;}y+=1.5;}

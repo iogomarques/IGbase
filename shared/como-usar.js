@@ -69,7 +69,8 @@
     ['3. Aplicar','Clique em "Aplicar e ver o rateio". O site já salva na sua conta e abre o rateio do cliente com as etapas (Faturas, Geração, Ligações, Ajuste 100%, Relatório) e a lista "O que falta para fechar o rateio", com um link para resolver cada item.'],
     ['Confira e ajuste','No "Mapa do rateio", cada usina aparece numa barra com a porcentagem de cada unidade. Na tabela da usina, ajuste em pontos (+ ou −) na coluna Ajuste: a soma aparece na hora e cada usina precisa fechar 100%, com pelo menos 1% por unidade.'],
     ['Relatório do cliente','No fim da página, escolha a empresa do cabeçalho e clique em "Relatório do cliente (PDF)". É o documento para o cliente, no estilo da fatura do Solar Organization: a sua empresa e o logo no cabeçalho, a situação de cada usina, o rateio de cada unidade e os pontos de atenção.'],
-    ['Formulários da Equatorial','Logo abaixo, em "Formulários da Equatorial", gere o formulário de cada usina: um PDF separado por usina, para quem faz o pedido de rateio à distribuidora (não vai para o cliente). Precisa do e-mail ou de um telefone da usina.'],
+    ['Formulários da Equatorial','Logo abaixo, em "Formulários da Equatorial", gere o formulário de cada usina: um PDF separado por usina, para quem faz o pedido de rateio à distribuidora (não vai para o cliente). Precisa do e-mail ou de um telefone da usina. O site marca sozinho Inclusão (UC nova) e Alteração (UC que muda de %), comparando com o rateio cadastrado hoje (lido das faturas).'],
+    ['Tirar uma unidade do rateio','Na tabela da usina, clique em "tirar do rateio" embaixo do nome da unidade (ou marque "Fora do rateio" na ficha dela). O rateio é recalculado sem ela, e nada é apagado: "Voltar ao rateio" desfaz. Se ela tem % cadastrado hoje na Equatorial, aparece também o "Pedido de exclusão (PDF)", com Exclusão marcada e o % de hoje, para enviar junto do formulário novo.'],
     ['Salve','Clique em "Salvar este rateio no histórico" e em "Salvar na conta" (a barra de salvar fica amarela quando há algo a salvar). O histórico guarda as porcentagens e o relatório daquele dia, para emitir de novo igual.']]},
    {titulo:'Como o site chega na energia do rateio',dicas:[
     'A geradora também consome. Só a sobra vai para as unidades: geração − o que a geradora usa na hora (geração − energia injetada) − o consumo da rede dela acima do mínimo. É o mesmo "GERAÇÃO CICLO" que aparece nas faturas das unidades.',
@@ -101,6 +102,7 @@
    {titulo:'Passo a passo',passos:[
     ['Nova empresa','Clique em "+ Cadastrar empresa".'],
     ['Dados','Preencha nome, razão social, CPF/CNPJ, endereço, e-mail, telefones (um por linha), o texto do rodapé dos documentos e a cor de destaque. Envie a logo em PNG ou JPG de até 900 KB.'],
+    ['Tamanho do logo','Em "Tamanho do logo nos PDFs", ajuste de 50% a 150%. A prévia mostra o topo da fatura do Solar Organization, do relatório do Solar Distribution e do orçamento do Solar Budget, na proporção real da folha A4. O texto da empresa se ajusta ao lado do logo.'],
     ['Salve','Clique em "Salvar empresa na conta". Para alterar depois, selecione a empresa na lista e use "Editar empresa".'],
     ['Use nos documentos','Escolha a empresa padrão nas Configurações do Solar Organization e em "Cliente e projeto" no Solar Budget.']]},
    {titulo:'Bom saber',dicas:[

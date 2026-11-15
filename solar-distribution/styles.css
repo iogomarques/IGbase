@@ -146,3 +146,18 @@ a.button.primary{background:var(--green);color:#fff}
 .dist-ajustado{white-space:normal;max-width:230px}
 .dist-matriz .dist-aj-inline input{width:100%;height:auto}
 @media(max-width:1024px),(hover:none){.dist-resolver{min-height:34px;padding:6px 12px;margin:4px 0 0 6px}}
+/* 1.10.45: tirar unidade do rateio e pedido de exclusão. */
+.dist-tirar{display:block;margin-top:4px;padding:2px 0;border:0;background:none;color:#8a5a00;font:600 12px inherit;cursor:pointer;text-decoration:underline}
+.dist-tirar:hover{color:#a33}
+.dist-saem{margin:10px 0 0;padding:10px 14px;border:1px dashed #d9b779;border-radius:12px;background:#fffaf0}
+.dist-saem ul{list-style:none;margin:6px 0 0;padding:0;display:grid;gap:6px}
+.dist-saem li{display:flex;justify-content:space-between;align-items:center;gap:10px;flex-wrap:wrap}
+.dist-forms-botoes{display:flex;gap:8px;flex-wrap:wrap}
+.dist-fora{grid-column:1/-1}
+/* 2b. Faturas lidas: o que foi lido fica embaixo do arquivo; o campo de nome não invade a coluna ao lado. */
+.dist-lido{min-width:220px}
+.dist-destino{min-width:190px}
+.dist-destino label,.dist-destino{font-size:12px}
+.dist-destino label{display:flex;flex-direction:column;gap:3px;color:var(--muted)}
+.dist-destino strong{display:block;font-size:13px}
+.dist-destino input{box-sizing:border-box;width:100%;min-width:0;min-height:36px;padding:6px 8px;border:1px solid var(--border);border-radius:8px;font:inherit;font-size:13px;color:var(--ink)}
