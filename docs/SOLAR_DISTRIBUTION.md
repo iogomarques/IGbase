@@ -185,3 +185,7 @@ Caso real de um cliente (residência, loja nova e loja antiga; a loja antiga sai
 - Caso testado no simulado (3 meses): sem a loja antiga e com +1.921 kWh previstos na loja nova (herda o consumo), residência 25% e loja nova 75% (planilha do usuário: 24,02/75,98; o site usa inteiros).
 
 Também: "Geração considerada" no resumo (tela e relatório, quadro em 3 colunas); a nota "valores estimados" foi para junto do resumo (o relatório do caso deixava uma página 2 só com ela); tabela "Faturas lidas" com o que foi lido embaixo do arquivo e o nome novo sem invadir a coluna ao lado; faturas com nome só de números viram "Unidade UC …"; tamanho do logo (Empresas, `logoEscala` 50–150%) vale no relatório.
+
+## Relatório do cliente em uma folha (15/11/2026, versão 1.10.46)
+
+Pedido do usuário: duas folhas ficam cheias demais e a segunda com poucas linhas fica feia. `relatorio()` desenha no nível normal e, se passar de uma folha, tenta níveis compactos (`NIVEIS`: letra ×0,94…×0,78, espaços ×0,86…×0,55, logo até 30/24/18/15 mm de altura; letra mínima 6 pt). Distâncias usam `dm()` (sem piso) e letras `fs()` (piso de 6 pt). Cliente e CPF/CNPJ na mesma linha. Pontos de atenção agrupados: uma linha para "a geração não cobre todo o consumo" e uma para "não compensado acima do mínimo", com as unidades listadas. Medido: 3 unidades no nível normal; 8 e 12 unidades (logo 150% inclusive) cabem em 1 folha nos níveis compactos. Se nem o mais compacto couber, sai em mais folhas e o site avisa.
