@@ -4,7 +4,7 @@
 <meta charset="UTF-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1.0" />
 <title>Solar Organization | IG Base</title>
-<link rel="icon" type="image/png" sizes="64x64" href="/favicon-ig-base.png?v=1.10.46">
+<link rel="icon" type="image/png" sizes="64x64" href="/favicon-ig-base.png?v=1.10.47">
 <!-- O SDK é carregado sem bloquear a renderização da página, no início do app. -->
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -464,7 +464,7 @@
 
 @media screen{.vigencia-linha input[type=month]{width:100%;min-height:44px;padding:9px;border:1px solid var(--line);border-radius:8px;background:#fff;font:inherit}.vigencia-linha .vigencia-remover{margin-top:10px}#m-vigencias{margin-top:16px}}
 </style>
-<script src="/shared/companies.js?v=1.10.46"></script><link rel="stylesheet" href="/shared/presentation.css?v=1.10.46"><script src="/shared/account.js?v=1.10.46"></script><script src="/shared/login.js?v=1.10.46"></script><script src="/shared/falta.js?v=1.10.46"></script><script src="/shared/navegacao.js?v=1.10.46"></script><script src="/shared/version.js?v=1.10.46"></script></head>
+<script src="/shared/companies.js?v=1.10.47"></script><link rel="stylesheet" href="/shared/presentation.css?v=1.10.47"><script src="/shared/account.js?v=1.10.47"></script><script src="/shared/login.js?v=1.10.47"></script><script src="/shared/falta.js?v=1.10.47"></script><script src="/shared/navegacao.js?v=1.10.47"></script><script src="/shared/version.js?v=1.10.47"></script></head>
 <body>
 
 <div id="auth-root"><div class="auth-screen startup-screen"><div class="startup-card" aria-busy="true"><div class="startup-brand"><img width="713" height="340" draggable="false" src="/assets/logo-ig-base.png" alt="IG Base"></div><div class="startup-spinner" aria-hidden="true"></div><h1 class="startup-title">Carregando o sistema</h1><p class="startup-message" role="status" aria-live="polite">Preparando seu ambiente…</p><noscript>Ative o JavaScript no navegador para utilizar o sistema.</noscript></div></div></div>
@@ -479,7 +479,7 @@
 </div>
 <footer class="app-footer ig-footer" id="app-footer" style="display:none">
   <div class="footer-links"><a href="/">IG Base</a><a href="/empresas/">Empresas</a><a href="/suporte/">Suporte</a></div>
-  <div class="version" data-ig-version>IG Base v1.10.46</div>
+  <div class="version" data-ig-version>IG Base v1.10.47</div>
 </footer>
 
 <div id="modal-root"></div>
@@ -1494,10 +1494,10 @@ function organizarLancamento(){
     if(name==='Observações / Adendo (entra no documento do cliente)')recolher(f,'lancamento-observacoes','Observações para o cliente');
   });
   if(!document.getElementById('lancamento-cobranca')){
-    var cobranca=document.createElement('fieldset');cobranca.id='lancamento-cobranca';cobranca.innerHTML='<legend>Conferência da cobrança</legend><p class="hint" id="lancamento-tarifas"></p><p class="hint" id="lancamento-seguranca-tarifas"><strong>Você controla os valores.</strong> O site usa as tarifas do cadastro e os dados lançados ou conferidos. Não cria valores de 2027: uma tarifa programada só é usada quando confirmada e válida para o mês escolhido. Na importação, confira os dados antes de aplicar; o PDF não fornece a geração total GD2 do APsystems.</p><div id="lancamento-condicao-saldo"></div><p class="hint" id="lancamento-saldo-explicacao" role="status"></p>';
+    var cobranca=document.createElement('details');cobranca.id='lancamento-cobranca';cobranca.className='panel lancamento-recolhido';cobranca.innerHTML='<summary>Conferência da cobrança e tarifas</summary><p class="hint" id="lancamento-tarifas"></p><p class="hint" id="lancamento-seguranca-tarifas"><strong>Você controla os valores.</strong> O site usa as tarifas do cadastro e os dados lançados ou conferidos. Não cria valores de 2027: uma tarifa programada só é usada quando confirmada e válida para o mês escolhido. Na importação, confira os dados antes de aplicar; o PDF não fornece a geração total GD2 do APsystems.</p><div id="lancamento-condicao-saldo"></div><p class="hint" id="lancamento-saldo-explicacao" role="status"></p>';
     var anchor=document.getElementById('lancamento-dados');if(anchor)anchor.before(cobranca);else col.append(cobranca);
     var check=col.querySelector('.in-mensal[data-chave="saldoCobreNegativo"],.in-mensal[data-chave="saldoJaCobrado"]');
-    if(check){var field=check.closest('.field');document.getElementById('lancamento-condicao-saldo').append(field);}
+    if(check){var field=check.closest('.field');document.getElementById('lancamento-condicao-saldo').append(field);if(check.checked)cobranca.open=true;}
   }
   var saldo=document.getElementById('saldo-dados'),cobranca=document.getElementById('lancamento-cobranca');if(saldo && cobranca)cobranca.before(saldo);
   if(cobranca && !document.getElementById('lancamento-tarifas-detalhes')){var detalhes=document.createElement('details');detalhes.id='lancamento-tarifas-detalhes';detalhes.innerHTML='<summary>Tarifas e orientações da cobrança</summary>';cobranca.append(detalhes);['lancamento-tarifas','lancamento-seguranca-tarifas'].forEach(function(id){var el=document.getElementById(id);if(el)detalhes.append(el);});}
@@ -1515,15 +1515,19 @@ function atualizarModoLancamento(){
   var c=selectedClient(),p=c && getProfile(c.profileId),button=document.querySelector('[data-action="variacao-conta-gd2"]');if(button){button.hidden=!pdf && !(p && p.possuiItensMultiplos);button.textContent=pdf?'Aplicar geração ao modelo GD2':'Copiar geração para a base do rateio';}
   atualizarResumoLancamento();
 }
+/* 1.10.47 (pedido do usuário): no GD1, o preço do kWh e a bandeira do mês vêm da fatura importada e conferida.
+   Valem só para o mês e a UC da fatura; o cadastro do cliente não muda. GD2 continua com os valores do cadastro. */
+function tarifasDaFaturaAtivas(c,p,referencia){var m=importacaoFormulario;if(!m || !m.tarifasFatura || !p || !perfilConsumoGD1(p))return null;if(m.referencia!==referencia || m.identidade!==identidadeSaldoFormulario())return null;return m.tarifasFatura;}
 function atualizarResumoLancamento(){
   atualizarPendenciasLancamento();
   var c=selectedClient(),p=c && getProfile(c.profileId),host=document.getElementById('lancamento-tarifas');if(!p || !host)return;
-  var tarifasPeriodo=resolverTarifasPeriodo(c,p,getReferenciaAtual());
-  var fixos=tarifasPeriodo.valores,preco=(fixos.precoBase || 0)*(1-(fixos.desconto || 0))+(fixos.taxaBandeira || 0);
+  var tarifasPeriodo=resolverTarifasPeriodo(c,p,getReferenciaAtual()),tf=tarifasDaFaturaAtivas(c,p,getReferenciaAtual());
+  var fixos=tf?Object.assign({},tarifasPeriodo.valores,tf):tarifasPeriodo.valores,preco=(fixos.precoBase || 0)*(1-(fixos.desconto || 0))+(fixos.taxaBandeira || 0);
   host.textContent='Tarifas do cadastro: energia R$ '+Number(fixos.precoBase || 0).toLocaleString('pt-BR',{minimumFractionDigits:6,maximumFractionDigits:6})+'/kWh; bandeira R$ '+Number(fixos.taxaBandeira || 0).toLocaleString('pt-BR',{minimumFractionDigits:6,maximumFractionDigits:6})+'/kWh; desconto '+fmtNum((fixos.desconto || 0)*100,2)+'%. Valor com desconto R$ '+Number(preco).toLocaleString('pt-BR',{minimumFractionDigits:6,maximumFractionDigits:6})+'/kWh. Confira em Valores fixos ou Editar cliente.';
   if(tarifasPeriodo.aplicadas.length)host.textContent+=' Programação conferida aplicada desde '+tarifasPeriodo.aplicadas[tarifasPeriodo.aplicadas.length-1].inicio+'.';
   if(!tarifasPeriodo.aplicadas.length && !tarifasPeriodo.erro)host.textContent+=' Nenhuma alteração de tarifa por período aplicada a este mês.';
   if(tarifasPeriodo.erro)host.textContent='Confira a programação de tarifas: '+tarifasPeriodo.erro;
+  if(tf)host.textContent='Tarifas da fatura de '+getReferenciaAtual()+' (lidas e conferidas na importação): energia R$ '+Number(fixos.precoBase || 0).toLocaleString('pt-BR',{minimumFractionDigits:6,maximumFractionDigits:6})+'/kWh; bandeira R$ '+Number(fixos.taxaBandeira || 0).toLocaleString('pt-BR',{minimumFractionDigits:6,maximumFractionDigits:6})+'/kWh; desconto '+fmtNum((fixos.desconto || 0)*100,2)+'%. Valem só para este mês; o cadastro do cliente não muda.';
   var lista=document.getElementById('fixos-lancamento');if(lista)lista.innerHTML=Object.keys(fixos).map(function(k){var def=p.variaveis.find(function(v){return v.chave===k;});return '<div class="breakdown-row"><span class="lbl">'+escapeHtml(apresentacaoCampoFatura(def,p,null).rotulo)+'</span><span class="val tabular">'+formatarValorFatura(fixos[k],apresentacaoCampoFatura(def,p,null).formato,true)+'</span></div>';}).join('');
   var el=document.getElementById('lancamento-saldo-explicacao');if(!el)return;
   var v=readMensaisFromForm(),uso=p.distribuicaoAutomaticaPontos?Math.max(0,(v.energiaAtiva || 0)+(v.consumoTotal || 0)-(v.injecaoNaConta || 0)-(v.injecaoTotal || 0)):Math.max(0,-(v.saldoDelta || 0));
@@ -1665,7 +1669,7 @@ function lerFormularioBruto(){
     observacoes: txt('f-observacoes'),
     energiaDocumento: lerEnergiaDocumento(),
     saldoTransferencia: saldoContextoFormulario ? copiarDados(saldoContextoFormulario) : null,
-    importacaoEquatorial:importacaoFormulario ? copiarDados(importacaoFormulario) : null,
+    importacaoEquatorial:importacaoFormulario ? copiarDados(importacaoFormulario) : null,historicoId:historicoAutomatico ? historicoAutomatico.id : null,
     confirmarSaldoConta:!!(document.getElementById('confirmar-saldo-conta') && document.getElementById('confirmar-saldo-conta').checked),
     motivoConciliacaoSaldo:txt('motivo-conciliacao-saldo'),
     mensais: {}, itens: null
@@ -1730,6 +1734,7 @@ function restaurarRascunhoSeExistir(client, profile){
   saldoContextoFormulario=rascunho.saldoTransferencia ? copiarDados(rascunho.saldoTransferencia) : {modo:'manual',identidade:identidadeSaldoFormulario(),referencia:getReferenciaAtual(),motivo:'Rascunho anterior recuperado',aviso:'Saldo do rascunho preservado. Confira a origem antes de emitir.'};
   setIf('saldo-correcao-motivo',saldoContextoFormulario.motivo || '');
   importacaoFormulario=rascunho.importacaoEquatorial ? copiarDados(rascunho.importacaoEquatorial) : null;
+  historicoAutomatico=rascunho.historicoId ? {id:rascunho.historicoId} : null;
   modoLancamentoFormulario=rascunho.modoLancamento || (importacaoFormulario?'fatura':'manual');
   document.getElementById('confirmar-saldo-conta').checked=!!rascunho.confirmarSaldoConta;
   setIf('motivo-conciliacao-saldo',rascunho.motivoConciliacaoSaldo || '');
@@ -1841,7 +1846,7 @@ function refletirValoresCalculadosNoFormulario(profile, itens){
   });
 }
 
-function onCalcular(){
+function onCalcular(){var opcoes=arguments[0];
   if(modoLancamentoFormulario==='fatura' && !importacaoFormulario){faltaCampo(document.getElementById('eq-arquivo')&&document.getElementById('eq-arquivo').closest('fieldset'),'Leia a fatura e aplique os dados conferidos antes de calcular, ou escolha Lançamento manual.');return;}
   if(completarVariacaoContaGd2(true)===false)return;
   /* Campo do mês vazio conta como 0. Antes de calcular, destaca os vazios: o usuário preenche ou clica de novo para usar 0. */
@@ -1857,7 +1862,8 @@ function onCalcular(){
   var observacoes = txt('f-observacoes');
   var tarifasPeriodo = resolverTarifasPeriodo(c,profile,referencia);
   if(tarifasPeriodo.erro){toast(tarifasPeriodo.erro);return;}
-  var fixos = tarifasPeriodo.valores;
+  var tarifasFatura = typeof tarifasDaFaturaAtivas === "function" ? tarifasDaFaturaAtivas(c,profile,referencia) : null; /* o teste de regressão roda só este trecho */
+  var fixos = tarifasFatura ? Object.assign({},tarifasPeriodo.valores,tarifasFatura) : tarifasPeriodo.valores;
   var mensais = readMensaisFromForm();
   if(perfilConsumoGD1(profile) && (mensais.energiaAtiva < 0 || mensais.injecaoTotal < 0)){
     toast('No GD1, o consumo não compensado e a injeção precisam ser iguais ou maiores que zero. A variação de saldo pode ser negativa.'); return;
@@ -1974,7 +1980,26 @@ function onCalcular(){
   state.lastDraft = novoDraft;
   state.faturaDesatualizada = false;
   renderPreview();
+  if(opcoes && opcoes.salvar)salvarHistoricoAutomatico();
 }
+/* 1.10.47 (pedido do usuário): calcular já salva no histórico. Recalcular o mesmo cliente e mês nesta sessão (ou corrigir uma
+   fatura pelo histórico) substitui o mesmo registro, sem duplicar. Em outra sessão, um novo cálculo vira um registro novo. */
+var historicoAutomatico=null;
+async function salvarHistoricoAutomatico(){
+  var d=state.lastDraft;if(!d || salvandoHistorico)return;
+  var alvo=historicoAutomatico && state.quotes.find(function(x){return x.id===historicoAutomatico.id && x.clientId===d.clientId && x.referencia===d.referencia;});
+  var q=copiarDados(d);q.id=alvo?alvo.id:uid();q.createdAt=alvo?alvo.createdAt:new Date().toISOString();if(alvo)q.updatedAt=new Date().toISOString();
+  var outros=state.quotes.filter(function(x){return !alvo || x.id!==alvo.id;});
+  if(q.saldoTransferencia && q.saldoTransferencia.modo === 'automatico' && verificarOrigemSaldo(q,[q].concat(outros),{})){statusHistorico('A origem do saldo mudou: calcule de novo com o saldo conferido para salvar no histórico.',true);return;}
+  salvandoHistorico=true;
+  try{
+    var quotes=[q].concat(outros);
+    if(!await saveQuotes(quotes)){statusHistorico('Calculado, mas não foi possível salvar no histórico. Confira a conexão e clique em "Salvar no histórico".',true);return;}
+    state.quotes=quotes;historicoAutomatico={id:q.id};limparRascunho(q.clientId);
+    statusHistorico(alvo?'Fatura atualizada no histórico.':'Calculado e salvo no histórico.',false);
+  }finally{salvandoHistorico=false;}
+}
+function statusHistorico(texto,erro){var b=document.querySelector('[data-action="salvar-historico"]');if(b){b.textContent=erro?'Salvar no histórico':'Salvo no histórico ✓';b.classList.toggle('btn-salvo',!erro);}var st=document.getElementById('emissao-status');if(st)st.textContent=texto;toast(texto);}
 
 /* Grandezas físicas do documento. Não altera scope, fórmulas ou total em reais. */
 function valorEnergiaInformado(v){
@@ -2224,16 +2249,16 @@ function analisarContaEquatorial(texto, profile){
   if(new Set(prices).size===1)put('valorFatura',prices[0],'Total da fatura, indicado por R$ no cabeçalho');
   else uniqueCapture('valorFatura',/(?:TOTAL\s+A\s+PAGAR|VALOR\s+DA\s+FATURA)\s*[:\s]*(?:R\$\s*)?([\d.,]+)/g);
   if(valores.valorFatura===undefined){var totalRef=/\b(?:JAN|FEV|MAR|ABR|MAI|JUN|JUL|AGO|SET|OUT|NOV|DEZ)\s*\/\s*20\d{2}\s+R\$\s*\**\s*([\d.,]+)/.exec(t);if(totalRef)put('valorFatura',numeroConta(totalRef[1]),totalRef[0]);}
-  var sums={bandeira:[],fioB:[],multas:[],adicionais:[]}, generation=[], temLancamentosPdf=/^LANCAMENTO FINANCEIRO \|/m.test(t);
+  var precosBandeira=[], sums={bandeira:[],fioB:[],multas:[],adicionais:[]}, generation=[], temLancamentosPdf=/^LANCAMENTO FINANCEIRO \|/m.test(t);
   linhas.forEach(function(line){
     var medidor=/ENERGIA\s+ATIVA\s*-\s*KWH\s+\S+\s+([\d.,]+)\s+([\d.,]+)\s+([\d.,]+)\s+([\d.,]+)/.exec(line);
     if(medidor){var anterior=numeroConta(medidor[1]),atual=numeroConta(medidor[2]),coef=numeroConta(medidor[3]),medido=numeroConta(medidor[4]);
       if(anterior!==null && atual!==null && coef>0 && medido!==null && Math.abs((atual-anterior)*coef-medido)<0.02){put('consumoRealKwh',medido,line);if(profile && profile.possuiItensMultiplos)put('consumoTotal',medido,line);}}
     var row=/\bKWH\b\s+([\d.,]+)\s+([\d.,]+)\s+(-?[\d.,]+)/.exec(line);
     if(row){var qty=numeroConta(row[1]), amount=numeroConta(row[3]);
-      if(/CONSUMO\s+NAO\s+COMPENSADO/.test(line)){put('energiaAtiva',qty,line);put('gastoNaoCompensado',amount,line);}
+      if(/CONSUMO\s+NAO\s+COMPENSADO/.test(line)){put('energiaAtiva',qty,line);put('gastoNaoCompensado',amount,line);var unit=numeroConta(row[2]);if(unit!==null&&unit>0)put('precoKwhFatura',unit,'Preço unitário com tributos do CONSUMO NÃO COMPENSADO');}
       if(/CONSUMO\s+SCEE/.test(line))put('compensadoKwh',qty,line);
-      if(/ADC\s+BANDEIRA|ADICIONAL\s+BANDEIRA/.test(line) && amount !== null)sums.bandeira.push(amount);
+      if(/ADC\s+BANDEIRA|ADICIONAL\s+BANDEIRA/.test(line) && amount !== null){sums.bandeira.push(amount);var unitB=numeroConta(row[2]);if(unitB!==null && unitB>0)precosBandeira.push(unitB);}
       if(/PARC\s+INJET\s+S\s*\/\s*DESC|FIO\s*B/.test(line) && amount !== null)sums.fioB.push(amount);
     }
     var nonTable=/CONTRIB.*ILUM.*?(?:PUBLICA|MUNICIPAL)\s*[-:]?\s*([\d.,]+)/.exec(line);
@@ -2256,6 +2281,9 @@ function analisarContaEquatorial(texto, profile){
       if(dataFiltroValida(start)&&dataFiltroValida(end)&&days>0&&days<=90){valores.leituraInicio=start;valores.leituraFim=end;evidencias.leituraInicio=evidencias.leituraFim='Datas do cabeçalho — confirme anterior e atual';}}
   });
   Object.keys(sums).forEach(function(key){if(sums[key].length)put(key,sums[key].reduce(function(a,b){return a+b;},0),'Soma dos lançamentos identificados, conferência obrigatória');});
+  /* 1.10.47: bandeira por kWh do mês = adicional de bandeira ÷ consumo não compensado (as linhas ADC usam essa mesma quantidade).
+     Sem linha de bandeira (bandeira verde) = 0. Só quando há consumo não compensado, para ter a base. */
+  if(valores.precoKwhFatura!==undefined&&valores.energiaAtiva>0){var adc=sums.bandeira.reduce(function(a,b){return a+b;},0);if(precosBandeira.length===1&&sums.bandeira.length===1)put('taxaBandeiraFatura',precosBandeira[0],'Preço unitário com tributos do ADC BANDEIRA');else put('taxaBandeiraFatura',Math.round(adc/valores.energiaAtiva*1e6)/1e6,sums.bandeira.length?'Mais de uma bandeira no mês: adicional total ÷ consumo não compensado':'Sem adicional de bandeira na fatura (bandeira verde)');}
   var cycle=/GERACAO\s+CICLO[^\n]*?KWH\s*:\s*([\s\S]*?)(?=EXCEDENTE\s+RECEBIDO|CREDITO\s+RECEBIDO|SALDO\s+KWH|$)/.exec(t);
   if(cycle){Array.from(cycle[1].matchAll(/UC\s+([\d.\-]+)\s*:\s*([\d.,]+)/g)).forEach(function(m){var value=numeroConta(m[2]);if(value !== null)generation.push({uc:m[1],kwh:value});});}
   var excedentes=[],porUc={},conflitoExcedente=false;
@@ -2352,7 +2380,7 @@ async function lerContaEquatorial(ocr){
   }catch(e){if(seq===importacaoSequencia)statusImportacaoConta(e.name==='PasswordException'?'O PDF está protegido por senha. Abra uma cópia desbloqueada para importar.':(e.message || 'Falha ao ler a fatura. Tente novamente.'));}
   finally{if(leitura.worker)try{await leitura.worker.terminate();}catch(e){};if(leitura.task)try{await leitura.task.destroy();}catch(e){};if(leituraEquatorial===leitura)leituraEquatorial=null;}
 }
-var CAMPOS_CONTA=[['uc','UC da conta'],['referencia','Mês de referência'],['leituraInicio','Leitura anterior'],['leituraFim','Leitura atual'],['valorFatura','Total da fatura (R$)'],['energiaAtiva','Consumo não compensado (kWh)'],['compensadoKwh','Energia compensada na conta (kWh)'],['consumoTotal','Leitura total da conta principal (kWh)'],['consumoRealKwh','Consumo bruto real (kWh)'],['injecaoTotal','Geração/injeção do ciclo — GD1 (kWh)'],['injecaoCicloKwh','Injeção na rede no ciclo (kWh) — dado da conta'],['gastoNaoCompensado','Gasto não compensado (R$)'],['bandeira','Adicional de bandeira (R$)'],['fioB','Fio B (R$)'],['iluminacao','Iluminação pública (R$)'],['multas','Multas (R$)'],['adicionais','Juros e correção (R$)'],['excedenteRecebidoKwh','Excedente recebido (kWh)'],['saldoFinalContaKwh','Saldo final indicado na distribuidora (kWh)']];
+var CAMPOS_CONTA=[['uc','UC da conta'],['referencia','Mês de referência'],['leituraInicio','Leitura anterior'],['leituraFim','Leitura atual'],['valorFatura','Total da fatura (R$)'],['energiaAtiva','Consumo não compensado (kWh)'],['compensadoKwh','Energia compensada na conta (kWh)'],['consumoTotal','Leitura total da conta principal (kWh)'],['consumoRealKwh','Consumo bruto real (kWh)'],['injecaoTotal','Geração/injeção do ciclo — GD1 (kWh)'],['injecaoCicloKwh','Injeção na rede no ciclo (kWh) — dado da conta'],['gastoNaoCompensado','Gasto não compensado (R$)'],['bandeira','Adicional de bandeira (R$)'],['fioB','Fio B (R$)'],['iluminacao','Iluminação pública (R$)'],['multas','Multas (R$)'],['adicionais','Juros e correção (R$)'],['excedenteRecebidoKwh','Excedente recebido (kWh)'],['saldoFinalContaKwh','Saldo final indicado na distribuidora (kWh)'],['precoKwhFatura','Preço do kWh sem bandeira deste mês (R$/kWh)'],['taxaBandeiraFatura','Bandeira por kWh deste mês (R$/kWh)']];
 /* Comparação de importação apenas: preservar as chaves históricas do saldo. */
 function ucEquivalenteConta(a,b){
   var x=chaveUcSaldo(a),y=chaveUcSaldo(b);
@@ -2382,7 +2410,7 @@ function atualizarConferenciaUcConta(){
 }
 function renderRevisaoConta(){
   var data=importacaoEquatorial.dados,c=selectedClient(),p=getProfile(c.profileId),v=data.valores;
-  var rows=CAMPOS_CONTA.filter(function(pair){var keys=(p.variaveis || []).map(function(v){return v.chave;});if(data.gd2 && pair[0]==='consumoRealKwh')return false;if(['gastoNaoCompensado','multas','adicionais','fioB','iluminacao'].includes(pair[0]) && !keys.includes(pair[0]))return false;if(pair[0]==='bandeira' && !keys.includes('adicionalBandeira'))return false;return !((p.possuiItensMultiplos && pair[0]==='energiaAtiva') || (data.gd2 && pair[0]==='injecaoTotal') || (pair[0]==='consumoTotal') || (!data.gd2 && pair[0]==='injecaoCicloKwh'));}).map(function(pair){
+  var rows=CAMPOS_CONTA.filter(function(pair){var keys=(p.variaveis || []).map(function(v){return v.chave;});if(data.gd2 && pair[0]==='consumoRealKwh')return false;if(['gastoNaoCompensado','multas','adicionais','fioB','iluminacao'].includes(pair[0]) && !keys.includes(pair[0]))return false;if(pair[0]==='bandeira' && !keys.includes('adicionalBandeira'))return false;if(pair[0]==='precoKwhFatura' && (data.gd2 || !keys.includes('precoBase')))return false;if(pair[0]==='taxaBandeiraFatura' && (data.gd2 || !keys.includes('taxaBandeira')))return false;return !((p.possuiItensMultiplos && pair[0]==='energiaAtiva') || (data.gd2 && pair[0]==='injecaoTotal') || (pair[0]==='consumoTotal') || (!data.gd2 && pair[0]==='injecaoCicloKwh'));}).map(function(pair){
     var key=pair[0],known=v[key] !== undefined, value=known?(typeof v[key]==='number'?numeroParaFormulario(v[key]):v[key]):'';
     var type=/^leitura/.test(key)?'date':'text';
     return '<div class="eq-revisao-campo"><label class="checkbox-field"><input type="checkbox" data-eq-usar="'+key+'"'+(key==='uc'?' checked disabled':(known?' checked':''))+'> '+escapeHtml(pair[1])+'</label><input type="'+type+'" data-eq-valor="'+key+'" aria-label="Conferir '+escapeHtml(pair[1])+'" value="'+escapeHtml(value)+'"><small>'+escapeHtml(data.evidencias[key] || 'Não identificado: confira o PDF e complete somente se necessário.')+'</small></div>';
@@ -2426,6 +2454,7 @@ function aplicarContaEquatorial(){
   if(imported.dados.gd2 && chosen.injecaoCicloKwh!==undefined && chosen.compensadoKwh!==undefined)mensal('saldoDelta',p.possuiItensMultiplos?chosen.compensadoKwh-chosen.injecaoCicloKwh:chosen.injecaoCicloKwh-chosen.compensadoKwh);
   importacaoFormulario={schema:'importacao-equatorial-v1',metodo:imported.metodo,arquivo:imported.nomeArquivo,titular:imported.dados.titular || '',uc:chosen.uc,identidade:identidadeSaldoFormulario(),referencia:getReferenciaAtual(),leituraInicio:chosen.leituraInicio || '',leituraFim:chosen.leituraFim || '',usarGeracaoBase:true,vinculoUcPonto:vincular?{indice:dest.indice,uc:chosen.uc,nome:dest.nome}:null,camposConferidos:copiarDados(chosen),conferidoEm:new Date().toISOString()};
   if(imported.dados.tributosConferencia && imported.dados.tributosConferencia.length)importacaoFormulario.tributosConferencia=copiarDados(imported.dados.tributosConferencia);
+  if(!imported.dados.gd2 && (chosen.precoKwhFatura!==undefined || chosen.taxaBandeiraFatura!==undefined)){importacaoFormulario.tarifasFatura={};if(chosen.precoKwhFatura!==undefined)importacaoFormulario.tarifasFatura.precoBase=chosen.precoKwhFatura;if(chosen.taxaBandeiraFatura!==undefined)importacaoFormulario.tarifasFatura.taxaBandeira=chosen.taxaBandeiraFatura;}
   if(chosen.excedenteRecebidoKwh!==undefined){importacaoFormulario.excedenteRecebidoKwh=chosen.excedenteRecebidoKwh;importacaoFormulario.excedentesRecebidos=copiarDados(imported.dados.excedentesRecebidos || []);importacaoFormulario.exibirExcedenteResumo=true;importacaoFormulario.exibirExcedenteInterno=true;}
   var detalhes=document.getElementById('eq-revisao-detalhes');if(detalhes)detalhes.open=false;
   modoLancamentoFormulario='fatura';var modo=document.getElementById('lancamento-modo');if(modo)modo.value='fatura';atualizarModoLancamento();renderPeriodoConta();marcarFaturaDesatualizada();salvarRascunhoAtual();toast('Dados conferidos aplicados. Complete os campos restantes e calcule o orçamento.');
@@ -2882,7 +2911,7 @@ function registroImportacaoHtml(d){var m=d.importacaoEquatorial,r=d.resumoEnergi
   return out;
 }
 function linhasIdentificacaoCliente(client){return IGCompanies.clientLines(Object.assign({},client,{endereco:client.endereco||client.local,projeto:client.projeto||client.nomeUsina}));}
-function emissaoEmpresaHtml(d){return '<section class="panel"><h2>Empresa e cliente deste documento</h2><div id="organization-company-issue">'+(companyService?IGCompanies.picker(companyService,configDoDocumento(d).id,'Empresa deste PDF'):'<a href="/empresas/">Cadastrar empresas no IG Base</a>')+'</div><p class="hint">Confira os dados antes de emitir. Alterações nesta prévia não modificam o cadastro do cliente nem faturas anteriores.</p><div class="field-row">'+[['nome','Cliente'],['documento','CPF/CNPJ'],['contato','Contato'],['email','E-mail'],['telefone','Telefone'],['local','Endereço'],['projeto','Projeto / unidade'],['uc','UC']].map(function(pair){var c=clienteDoDocumento(d)||{};return '<div class="field"><label>'+pair[1]+'</label><input data-issue-client="'+pair[0]+'" value="'+escapeHtml(c[pair[0]]||'')+'" maxlength="500"></div>';}).join('')+'</div></section>';}
+function emissaoEmpresaHtml(d){var cd=clienteDoDocumento(d)||{},emp=configDoDocumento(d)||{};return '<details class="panel emissao-empresa"'+(emp.nomeEmpresa?'':' open')+'><summary><strong>Empresa e cliente do PDF:</strong> '+escapeHtml(emp.nomeEmpresa||'nenhuma empresa escolhida')+' · '+escapeHtml(cd.nome||'cliente')+' <span class="hint">(alterar)</span></summary><div id="organization-company-issue">'+(companyService?IGCompanies.picker(companyService,configDoDocumento(d).id,'Empresa deste PDF'):'<a href="/empresas/">Cadastrar empresas no IG Base</a>')+'</div><p class="hint">Confira os dados antes de emitir. Alterações nesta prévia não modificam o cadastro do cliente nem faturas anteriores.</p><div class="field-row">'+[['nome','Cliente'],['documento','CPF/CNPJ'],['contato','Contato'],['email','E-mail'],['telefone','Telefone'],['local','Endereço'],['projeto','Projeto / unidade'],['uc','UC']].map(function(pair){var c=clienteDoDocumento(d)||{};return '<div class="field"><label>'+pair[1]+'</label><input data-issue-client="'+pair[0]+'" value="'+escapeHtml(c[pair[0]]||'')+'" maxlength="500"></div>';}).join('')+'</div></details>';}
 function renderPreview(){
   var col = document.getElementById('preview-col');
   if(!col || !state.lastDraft) return;
@@ -2912,19 +2941,19 @@ function renderPreview(){
     fmtBRL(d.scope[profile.chaveTotalFinal]) + '</span></div></div>';
 
   var botoesHtml = '<div class="emissao-toolbar"><button class="btn btn-primary" data-action="baixar-pdf">Baixar fatura PDF · 1 página</button><button class="btn" data-action="salvar-historico">Salvar no histórico</button></div>'+
-    '<p class="hint" id="emissao-status" role="status">Confira a prévia abaixo. No iPad ou iPhone, o arquivo pronto terá opções para abrir, salvar ou compartilhar.</p>';
+    '<p class="hint" id="emissao-status" role="status">Confira a prévia abaixo.</p>';
   var secundariosHtml='<details class="panel exportacoes-secundarias"><summary>Outros formatos e conferência interna</summary><p class="hint">Para envio e impressão em uma folha, use o PDF do cliente. O documento interno mantém a conferência completa.</p><div class="btn-row"><button class="btn" data-action="baixar-png">PNG</button><button class="btn" data-action="baixar-doc">Word</button><button class="btn" data-action="baixar-pdf-interno">PDF interno</button></div></details>';
 
   var r = resumoEnergiaDoDocumento(profile,d);
   var avisos = modeloDocumento(clienteDoDocumento(d),profile,d,configDoDocumento(d),false).avisos;
   var avisoHtml = avisos.length ? '<div class="panel" style="border-color:#d5ad72"><b>Conferir dados de energia</b>' +
     avisos.map(function(a){return '<p class="hint">' + escapeHtml(a) + '</p>';}).join('') + '</div>' : '';
-  var historicoAviso = d.id ? '<div class="panel"><b>Fatura do histórico</b><p class="hint">Valores originais salvos. Calcular novamente gera um novo orçamento com as configurações atuais.</p>'+saldoRegistroHtml(d)+registroImportacaoHtml(d)+'</div>' : '';
+  var historicoAviso = d.id ? '<div class="panel"><b>Fatura do histórico</b><p class="hint">Valores originais salvos. Para mudar algum valor, use "Corrigir esta fatura".</p>'+saldoRegistroHtml(d)+registroImportacaoHtml(d)+'</div>' : '';
   var client = clienteDoDocumento(d);
   var documentoHtml = construirHtmlFatura(client,profile,d,configDoDocumento(d),null);
-  col.innerHTML = emissaoEmpresaHtml(d) + historicoAviso + avisoHtml + registroTarifarioHtml(d) + botoesHtml +
+  col.innerHTML = historicoAviso + avisoHtml + botoesHtml +
     '<details class="panel" open><summary style="font-weight:600;cursor:pointer">Prévia da fatura do cliente</summary>' +
-    '<div data-fatura-previa style="padding-top:14px">' + documentoHtml + '</div></details>' +
+    '<div data-fatura-previa style="padding-top:14px">' + documentoHtml + '</div></details>' + emissaoEmpresaHtml(d) + registroTarifarioHtml(d) +
     '<details class="panel"><summary style="font-weight:600;cursor:pointer">Escolher detalhes extras</summary>' + checklistHtml + '</details>' + secundariosHtml;
 
   var emissaoSelect=col.querySelector('.ig-company-select');if(emissaoSelect)emissaoSelect.addEventListener('change',function(e){state.lastDraft=copiarDados(state.lastDraft);state.lastDraft.docConfigSnapshot=Object.assign(docConfigPadrao(),companyService.get(e.target.value)||{});renderPreview();});
@@ -2955,6 +2984,7 @@ async function salvarCamposComoPadrao(){
    ============================================================ */
 var salvandoHistorico = false;
 async function onSalvarHistorico(){
+  if(state.lastDraft && !state.faturaDesatualizada && historicoAutomatico && state.quotes.some(function(x){return x.id===historicoAutomatico.id && x.clientId===state.lastDraft.clientId && x.referencia===state.lastDraft.referencia;})){await salvarHistoricoAutomatico();return;}
   if(!state.lastDraft){ faltaCampo('[data-action="calcular"]','Calcule um orçamento antes de salvar.'); return; }
   if(state.faturaDesatualizada){faltaCampo('[data-action="calcular"]','Os dados mudaram. Calcule novamente antes de salvar no histórico.');return;}
   if(salvandoHistorico) return;
@@ -2983,6 +3013,7 @@ function abrirQuote(id){
   renderSidebar(); renderTopbar(); renderTabs();
   document.getElementById('tab-content').innerHTML =
     '<div class="btn-row" style="margin-bottom:16px">' +
+      '<button class="btn btn-primary" data-action="corrigir-quote" data-id="' + q.id + '">Corrigir esta fatura</button>' +
       '<button class="btn" data-action="duplicar-quote" data-id="' + q.id + '">Usar como base para novo orçamento</button>' +
       '<button class="btn" data-action="set-tab" data-tab="historico">Voltar ao histórico</button>' +
     '</div>'+avisoSaldoHistorico(q)+'<div id="preview-col" style="max-width:720px"></div>';
@@ -3056,6 +3087,7 @@ function historicoItemHtml(q){
     '<span>Salvo em ' + dataStr + '</span> ' +
     '<span><strong>Saldo disponível após a fatura:</strong> ' + escapeHtml(energiaTexto(saldo)) + '</span></div>' + avisoSaldoHistorico(q) +
     '<div class="btn-row"><button class="btn" data-action="abrir-quote" data-id="' + escapeHtml(q.id) + '">Abrir fatura</button>' +
+    '<button class="btn" data-action="corrigir-quote" data-id="' + escapeHtml(q.id) + '">Corrigir</button>' +
     '<button class="btn" data-action="duplicar-quote" data-id="' + escapeHtml(q.id) + '">Usar como base</button>' +
     '<button class="btn btn-danger" data-action="delete-quote-confirm" data-id="' + escapeHtml(q.id) + '">Excluir</button></div></div>';
 }
@@ -3127,6 +3159,11 @@ function atualizarFiltroLista(target){
 function limparFiltrosClientes(){state.buscaCliente='';state.tipoCliente='';state.ordemCliente='cliente-az';state.situacaoCliente='';renderSidebar();}
 function limparFiltrosHistorico(){state.buscaHistorico='';state.filtrosHistorico=filtrosHistoricoPadrao();renderHistorico();}
 
+function corrigirQuote(id){
+  var q=state.quotes.find(function(x){return x.id===id;});if(!q)return;
+  if(!confirm('Corrigir a fatura de '+q.referencia+'?\n\nOs dados dela voltam para o lançamento. Ao calcular de novo, a fatura salva é substituída pela corrigida.'))return;
+  duplicarQuote(id);historicoAutomatico={id:q.id};toast('Dados da fatura de '+q.referencia+' carregados. Altere o que precisar e clique em Calcular orçamento: a fatura salva será substituída.');
+}
 function duplicarQuote(id){
   var q = state.quotes.find(function(x){ return x.id === id; });
   if(!q) return;
@@ -3561,7 +3598,7 @@ function criarPdfClienteUmaPagina(m, qr, logoDim){
       titulo('IDENTIFICAÇÃO DO CLIENTE');
       linhasIdentificacaoCliente(m.client).forEach(function(l){paragrafo(l,largura,margem,9,false,cinza);});
       paragrafo('Referência: '+m.referencia,largura,margem,9,false,cinza);
-      /* 1.10.46: o valor a pagar saiu do topo (fica no fim da composição e no quadro do QR Code): menos repetição e mais folga para caber em 1 página. */
+      /* 1.10.47: o valor a pagar saiu do topo (fica no fim da composição e no quadro do QR Code): menos repetição e mais folga para caber em 1 página. */
       y+=f.espaco;
       var metricas=linhasResumoEnergia(m.energia),metade=largura/2;
       var celulas=metricas.map(function(l){return {rotulo:dividir(l.rotulo,metade-20,9,false),valor:dividir(l.valor,metade-20,11,true)};});
@@ -3576,7 +3613,7 @@ function criarPdfClienteUmaPagina(m, qr, logoDim){
       });y+=altura+f.linha;
       paragrafo(notaResumoEnergia(m.energia),largura,margem,9,false,cinza);
       titulo('COMPOSIÇÃO DA COBRANÇA');tabela(m.financeiro);
-      /* 1.10.46: a composição fecha com o total, para o último número da lista ser o valor a pagar
+      /* 1.10.47: a composição fecha com o total, para o último número da lista ser o valor a pagar
          (cliente pagou só o repasse da concessionária, último item, em vez do total). */
       cabe(f.linha+12);doc.setDrawColor(221,229,218);doc.setLineWidth(.5);doc.line(margem,y-f.linha+4,pw-margem,y-f.linha+4);y+=4;
       fonte(f.fonte+1,true);escreve('TOTAL A PAGAR',margem,y);fonte(f.fonte+1,true,cor);escreve(m.total,pw-margem,y,{align:'right'});y+=f.linha+f.espaco;
@@ -3592,7 +3629,7 @@ function criarPdfClienteUmaPagina(m, qr, logoDim){
         titulo('OBSERVAÇÕES');
         String(m.observacoes).split(/\r?\n/).forEach(function(l){if(l.trim())paragrafo(l,largura,margem,9,false,cinza);else{cabe(f.linha);y+=f.linha;}});
       }
-      /* 1.10.46: quadro de pagamento com o VALOR A PAGAR em destaque, ao lado do QR Code (pedido do usuário, 14/11/2026). */
+      /* 1.10.47: quadro de pagamento com o VALOR A PAGAR em destaque, ao lado do QR Code (pedido do usuário, 14/11/2026). */
       y+=f.espaco;
       var qrSize=[130,120,110][tentativa],pad=12,pixW=largura-2*pad-(qr?qrSize+16:0);
       var banco=[m.client.banco,m.client.beneficiario].filter(Boolean).join(' · ');
@@ -3611,7 +3648,7 @@ function criarPdfClienteUmaPagina(m, qr, logoDim){
       fonte(9,false,cinza);lBanco.forEach(function(t){escreve(t,cx,cy);cy+=f.linha;});
       if(qr)doc.addImage(qr,formatoImagemBase64(qr),pw-margem-pad-qrSize,y+(hBox-qrSize)/2,qrSize,qrSize);
       y+=hBox+f.linha;
-      /* 1.10.46: endereço, e-mail e telefones já estão no cabeçalho; o bloco repetido no fim saiu (fatura mais enxuta). */
+      /* 1.10.47: endereço, e-mail e telefones já estão no cabeçalho; o bloco repetido no fim saiu (fatura mais enxuta). */
       if(m.dc.textoRodape){y+=f.espaco;paragrafo(m.dc.textoRodape,largura,margem,9,false,cinza);}
       cabe(10);fonte(9,false,cinza);escreve('Página 1 de 1',pw-margem,ph-20,{align:'right'});
       return {doc:doc,fonteMinima:9,alturaUtilizada:y,formato:tentativa};
@@ -4690,14 +4727,14 @@ async function onSignOut(){
    O aviso aparece uma vez por versão por navegador (localStorage compartilhado
    entre o site principal e os subsites, pois ficam no mesmo domínio).
    ============================================================ */
-var IG_BASE_VERSION = window.IGBaseRelease?.version || '1.10.46';
-var IG_BASE_RELEASE_ID = window.IGBaseRelease?.releaseId || '1.10.46-2026-10-30';
+var IG_BASE_VERSION = window.IGBaseRelease?.version || '1.10.47';
+var IG_BASE_RELEASE_ID = window.IGBaseRelease?.releaseId || '1.10.47-2026-10-30';
 var IG_BASE_CHANGELOG = [
+  "Solar Organization: calcular já salva no histórico (recalcular o mesmo mês substitui, sem duplicar) e "Corrigir" no histórico abre a fatura preenchida para alterar.",
+  "Solar Organization: no GD1, o preço do kWh e a bandeira do mês vêm da fatura importada; prévia da fatura no topo, com menos campos na frente.",
+  "Solar Distribution: remover uma fatura lida por engano e rateio mais limpo, com as configurações recolhidas.",
   "Solar Distribution: o relatório do cliente sai sempre em uma folha — se não couber, o site compacta logo, letra e espaços sozinho, e os pontos de atenção ficam agrupados em poucas linhas.",
   "Solar Distribution: tirar uma unidade do rateio com um clique (e voltar), e o site gera o pedido de exclusão da Equatorial para quem tem % hoje; o formulário marca sozinho Inclusão e Alteração.",
-  "Empresas: ajuste o tamanho do logo nos PDFs (50% a 150%) vendo a prévia da fatura, do relatório e do orçamento.",
-  "Solar Distribution: geração considerada no resumo, relatório sem página quase vazia e tabela de faturas lidas arrumada.",
-  "Solar Organization: fatura do cliente mais enxuta e sempre em 1 página — o valor a pagar não se repete no topo (fica no fim da composição e no quadro do QR Code) e os contatos da empresa aparecem só no cabeçalho.",
 ];
 function igbMostrarChangelog(){
   var KEY = 'igbase_changelog_visto';
@@ -4947,7 +4984,7 @@ document.addEventListener('click', function(e){
     case 'cancelar-importacao': cancelarLeituraConta();break;
     case 'aplicar-conta-equatorial': aplicarContaEquatorial();break;
     case 'variacao-conta-gd2': completarVariacaoContaGd2();break;
-    case 'calcular': onCalcular(); break;
+    case 'calcular': onCalcular({salvar:true}); break;
     case 'salvar-historico': onSalvarHistorico(); break;
     case 'baixar-doc': baixarDoc(); break;
     case 'baixar-png': baixarPng(); break;
@@ -4956,6 +4993,7 @@ document.addEventListener('click', function(e){
 
     case 'abrir-quote': abrirQuote(id); break;
     case 'duplicar-quote': duplicarQuote(id); break;
+    case 'corrigir-quote': corrigirQuote(id); break;
     case 'delete-quote-confirm': handleConfirmClick(el, function(){ deleteQuote(id); }); break;
 
     case 'new-profile': onNewProfile(); break;

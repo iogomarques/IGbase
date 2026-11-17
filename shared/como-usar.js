@@ -22,11 +22,11 @@
    {titulo:'Todo mês: emitir a fatura',passos:[
     ['Escolha o cliente','Selecione o cliente na lateral. Use a busca, o filtro de tipo de usina e a ordenação para achar mais rápido. O lápis ao lado do nome edita o cadastro.'],
     ['Referência','Na aba "Novo orçamento", confira o mês e o ano da fatura.'],
-    ['Lance os dados','Em "Forma de lançamento", escolha "Importar fatura da Equatorial" e clique em "Ler PDF". Se o PDF for uma imagem escaneada, use "Ler PDF escaneado (OCR)". Confira o que foi lido e clique em "Aplicar dados conferidos". Também é possível digitar tudo em "Lançamento manual".'],
+    ['Lance os dados','Em "Forma de lançamento", escolha "Importar fatura da Equatorial" e clique em "Ler PDF". Se o PDF for uma imagem escaneada, use "Ler PDF escaneado (OCR)". Confira o que foi lido e clique em "Aplicar dados conferidos". No GD1, o preço do kWh sem bandeira e a bandeira por kWh do mês também vêm da fatura e são usados só naquele mês (o cadastro do cliente não muda); no GD2 continuam os valores do cadastro. Também é possível digitar tudo em "Lançamento manual".'],
     ['Saldo de energia','Confira o saldo anterior. Use "Recuperar saldo do histórico" ou "Usar apuração automática de saldo". Créditos novos só entram depois de confirmados. Se a sobra já foi cobrada antes, marque essa opção para não cobrar duas vezes.'],
     ['Confira a cobrança','Revise a "Conferência da cobrança" e a prévia da fatura ao lado. Em qualquer campo numérico dá para digitar uma conta, por exemplo 120+35.'],
     ['Emita','Clique em "Baixar fatura PDF". Ela sai em uma página; se não couber, o site avisa e não corta nada. Também há PNG, Word e o PDF interno.'],
-    ['Salve no histórico','Clique em "Salvar no histórico" para guardar a fatura emitida.']]},
+    ['Histórico','Ao clicar em "Calcular orçamento", a fatura já fica salva no histórico. Calcular de novo o mesmo mês substitui a mesma fatura, sem duplicar. Para mudar uma fatura já feita, abra o Histórico e use "Corrigir": os dados voltam preenchidos e o novo cálculo substitui a fatura salva.']]},
    {titulo:'Histórico',passos:[
     ['Encontre faturas','Na aba Histórico, filtre por cliente, mês da fatura ou tipo de usina.'],
     ['Abra ou reaproveite','"Abrir fatura" mostra o documento exatamente como foi emitido, sem recalcular com tarifas novas. "Usar como base" começa o mês seguinte a partir dela.']]},
@@ -63,7 +63,7 @@
    {titulo:'Passo a passo (um cliente por vez)',passos:[
     ['Escolha as faturas','Em "Lançar faturas", clique em "Escolher faturas (PDF)" e selecione a fatura da usina geradora e as faturas das unidades do cliente. Dá para escolher em várias vezes (uma pasta por geradora, por exemplo): as faturas somam na lista, e a mesma fatura repetida entra uma vez só.'],
     ['2a. Cliente','O site acha o cliente pelo CPF/CNPJ das faturas. Se for a primeira vez, cria um cliente novo com o nome do titular (dá para trocar o nome ali). Também dá para escolher outro cliente já cadastrado.'],
-    ['2b. Faturas lidas','Confira o que foi lido de cada PDF e se cada fatura está como "Unidade" ou "Usina geradora". Desmarque o que não quiser aplicar.'],
+    ['2b. Faturas lidas','Confira o que foi lido de cada PDF e se cada fatura está como "Unidade" ou "Usina geradora". Escolheu uma fatura errada? Clique em "Remover" na linha dela.'],
     ['2c. Geração de cada usina','Informe a geração esperada da UFV (kWh/mês) ou a potência (kWp; o site usa kWp × 115, fator que pode ser trocado na usina). Pode deixar para depois: o rateio pede de novo.'],
     ['2d. Quem recebe de qual usina','A tabela já vem marcada pelo cadastro atual da Equatorial (o que aparece nas faturas). Se o plano novo for diferente, marque e desmarque aqui. Uma unidade pode receber de mais de uma usina. Se o consumo de uma unidade vai subir e a fatura ainda não mostra (ex.: dois ares-condicionados novos), clique em "+ consumo previsto" embaixo do nome dela e some os kWh/mês, com o motivo.'],
     ['3. Aplicar','Clique em "Aplicar e ver o rateio". O site já salva na sua conta e abre o rateio do cliente com as etapas (Faturas, Geração, Ligações, Ajuste 100%, Relatório) e a lista "O que falta para fechar o rateio", com um link para resolver cada item.'],

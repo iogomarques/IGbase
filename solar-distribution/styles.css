@@ -161,3 +161,11 @@ a.button.primary{background:var(--green);color:#fff}
 .dist-destino label{display:flex;flex-direction:column;gap:3px;color:var(--muted)}
 .dist-destino strong{display:block;font-size:13px}
 .dist-destino input{box-sizing:border-box;width:100%;min-width:0;min-height:36px;padding:6px 8px;border:1px solid var(--border);border-radius:8px;font:inherit;font-size:13px;color:var(--ink)}
+/* 1.10.47: rateio mais limpo (configurações recolhidas no fim do quadro) e remover fatura lida. */
+.dist-resumo{display:flex;flex-direction:column}
+.dist-resumo>.dist-config{order:1;margin-top:10px;border-top:1px solid var(--border);padding-top:8px}
+.dist-config>summary{cursor:pointer;font-size:13px;color:var(--muted)}
+.dist-config>summary strong{color:var(--ink)}
+.dist-config[open]>summary{margin-bottom:10px}
+.dist-remover-lida{min-height:32px;padding:4px 10px;font-size:12px;white-space:nowrap}
+.dist-resumo #summary{grid-template-columns:repeat(auto-fit,minmax(150px,1fr))}
