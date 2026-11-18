@@ -4,7 +4,7 @@
 <meta charset="UTF-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1.0" />
 <title>Solar Organization | IG Base</title>
-<link rel="icon" type="image/png" sizes="64x64" href="/favicon-ig-base.png?v=1.10.47">
+<link rel="icon" type="image/png" sizes="64x64" href="/favicon-ig-base.png?v=1.10.48">
 <!-- O SDK é carregado sem bloquear a renderização da página, no início do app. -->
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -464,7 +464,7 @@
 
 @media screen{.vigencia-linha input[type=month]{width:100%;min-height:44px;padding:9px;border:1px solid var(--line);border-radius:8px;background:#fff;font:inherit}.vigencia-linha .vigencia-remover{margin-top:10px}#m-vigencias{margin-top:16px}}
 </style>
-<script src="/shared/companies.js?v=1.10.47"></script><link rel="stylesheet" href="/shared/presentation.css?v=1.10.47"><script src="/shared/account.js?v=1.10.47"></script><script src="/shared/login.js?v=1.10.47"></script><script src="/shared/falta.js?v=1.10.47"></script><script src="/shared/navegacao.js?v=1.10.47"></script><script src="/shared/version.js?v=1.10.47"></script></head>
+<script src="/shared/companies.js?v=1.10.48"></script><link rel="stylesheet" href="/shared/presentation.css?v=1.10.48"><script src="/shared/account.js?v=1.10.48"></script><script src="/shared/login.js?v=1.10.48"></script><script src="/shared/falta.js?v=1.10.48"></script><script src="/shared/navegacao.js?v=1.10.48"></script><script src="/shared/version.js?v=1.10.48"></script></head>
 <body>
 
 <div id="auth-root"><div class="auth-screen startup-screen"><div class="startup-card" aria-busy="true"><div class="startup-brand"><img width="713" height="340" draggable="false" src="/assets/logo-ig-base.png" alt="IG Base"></div><div class="startup-spinner" aria-hidden="true"></div><h1 class="startup-title">Carregando o sistema</h1><p class="startup-message" role="status" aria-live="polite">Preparando seu ambiente…</p><noscript>Ative o JavaScript no navegador para utilizar o sistema.</noscript></div></div></div>
@@ -479,7 +479,7 @@
 </div>
 <footer class="app-footer ig-footer" id="app-footer" style="display:none">
   <div class="footer-links"><a href="/">IG Base</a><a href="/empresas/">Empresas</a><a href="/suporte/">Suporte</a></div>
-  <div class="version" data-ig-version>IG Base v1.10.47</div>
+  <div class="version" data-ig-version>IG Base v1.10.48</div>
 </footer>
 
 <div id="modal-root"></div>
@@ -1515,7 +1515,7 @@ function atualizarModoLancamento(){
   var c=selectedClient(),p=c && getProfile(c.profileId),button=document.querySelector('[data-action="variacao-conta-gd2"]');if(button){button.hidden=!pdf && !(p && p.possuiItensMultiplos);button.textContent=pdf?'Aplicar geração ao modelo GD2':'Copiar geração para a base do rateio';}
   atualizarResumoLancamento();
 }
-/* 1.10.47 (pedido do usuário): no GD1, o preço do kWh e a bandeira do mês vêm da fatura importada e conferida.
+/* 1.10.48 (pedido do usuário): no GD1, o preço do kWh e a bandeira do mês vêm da fatura importada e conferida.
    Valem só para o mês e a UC da fatura; o cadastro do cliente não muda. GD2 continua com os valores do cadastro. */
 function tarifasDaFaturaAtivas(c,p,referencia){var m=importacaoFormulario;if(!m || !m.tarifasFatura || !p || !perfilConsumoGD1(p))return null;if(m.referencia!==referencia || m.identidade!==identidadeSaldoFormulario())return null;return m.tarifasFatura;}
 function atualizarResumoLancamento(){
@@ -1982,7 +1982,7 @@ function onCalcular(){var opcoes=arguments[0];
   renderPreview();
   if(opcoes && opcoes.salvar)salvarHistoricoAutomatico();
 }
-/* 1.10.47 (pedido do usuário): calcular já salva no histórico. Recalcular o mesmo cliente e mês nesta sessão (ou corrigir uma
+/* 1.10.48 (pedido do usuário): calcular já salva no histórico. Recalcular o mesmo cliente e mês nesta sessão (ou corrigir uma
    fatura pelo histórico) substitui o mesmo registro, sem duplicar. Em outra sessão, um novo cálculo vira um registro novo. */
 var historicoAutomatico=null;
 async function salvarHistoricoAutomatico(){
@@ -2281,7 +2281,7 @@ function analisarContaEquatorial(texto, profile){
       if(dataFiltroValida(start)&&dataFiltroValida(end)&&days>0&&days<=90){valores.leituraInicio=start;valores.leituraFim=end;evidencias.leituraInicio=evidencias.leituraFim='Datas do cabeçalho — confirme anterior e atual';}}
   });
   Object.keys(sums).forEach(function(key){if(sums[key].length)put(key,sums[key].reduce(function(a,b){return a+b;},0),'Soma dos lançamentos identificados, conferência obrigatória');});
-  /* 1.10.47: bandeira por kWh do mês = adicional de bandeira ÷ consumo não compensado (as linhas ADC usam essa mesma quantidade).
+  /* 1.10.48: bandeira por kWh do mês = adicional de bandeira ÷ consumo não compensado (as linhas ADC usam essa mesma quantidade).
      Sem linha de bandeira (bandeira verde) = 0. Só quando há consumo não compensado, para ter a base. */
   if(valores.precoKwhFatura!==undefined&&valores.energiaAtiva>0){var adc=sums.bandeira.reduce(function(a,b){return a+b;},0);if(precosBandeira.length===1&&sums.bandeira.length===1)put('taxaBandeiraFatura',precosBandeira[0],'Preço unitário com tributos do ADC BANDEIRA');else put('taxaBandeiraFatura',Math.round(adc/valores.energiaAtiva*1e6)/1e6,sums.bandeira.length?'Mais de uma bandeira no mês: adicional total ÷ consumo não compensado':'Sem adicional de bandeira na fatura (bandeira verde)');}
   var cycle=/GERACAO\s+CICLO[^\n]*?KWH\s*:\s*([\s\S]*?)(?=EXCEDENTE\s+RECEBIDO|CREDITO\s+RECEBIDO|SALDO\s+KWH|$)/.exec(t);
@@ -3598,7 +3598,7 @@ function criarPdfClienteUmaPagina(m, qr, logoDim){
       titulo('IDENTIFICAÇÃO DO CLIENTE');
       linhasIdentificacaoCliente(m.client).forEach(function(l){paragrafo(l,largura,margem,9,false,cinza);});
       paragrafo('Referência: '+m.referencia,largura,margem,9,false,cinza);
-      /* 1.10.47: o valor a pagar saiu do topo (fica no fim da composição e no quadro do QR Code): menos repetição e mais folga para caber em 1 página. */
+      /* 1.10.48: o valor a pagar saiu do topo (fica no fim da composição e no quadro do QR Code): menos repetição e mais folga para caber em 1 página. */
       y+=f.espaco;
       var metricas=linhasResumoEnergia(m.energia),metade=largura/2;
       var celulas=metricas.map(function(l){return {rotulo:dividir(l.rotulo,metade-20,9,false),valor:dividir(l.valor,metade-20,11,true)};});
@@ -3613,7 +3613,7 @@ function criarPdfClienteUmaPagina(m, qr, logoDim){
       });y+=altura+f.linha;
       paragrafo(notaResumoEnergia(m.energia),largura,margem,9,false,cinza);
       titulo('COMPOSIÇÃO DA COBRANÇA');tabela(m.financeiro);
-      /* 1.10.47: a composição fecha com o total, para o último número da lista ser o valor a pagar
+      /* 1.10.48: a composição fecha com o total, para o último número da lista ser o valor a pagar
          (cliente pagou só o repasse da concessionária, último item, em vez do total). */
       cabe(f.linha+12);doc.setDrawColor(221,229,218);doc.setLineWidth(.5);doc.line(margem,y-f.linha+4,pw-margem,y-f.linha+4);y+=4;
       fonte(f.fonte+1,true);escreve('TOTAL A PAGAR',margem,y);fonte(f.fonte+1,true,cor);escreve(m.total,pw-margem,y,{align:'right'});y+=f.linha+f.espaco;
@@ -3629,7 +3629,7 @@ function criarPdfClienteUmaPagina(m, qr, logoDim){
         titulo('OBSERVAÇÕES');
         String(m.observacoes).split(/\r?\n/).forEach(function(l){if(l.trim())paragrafo(l,largura,margem,9,false,cinza);else{cabe(f.linha);y+=f.linha;}});
       }
-      /* 1.10.47: quadro de pagamento com o VALOR A PAGAR em destaque, ao lado do QR Code (pedido do usuário, 14/11/2026). */
+      /* 1.10.48: quadro de pagamento com o VALOR A PAGAR em destaque, ao lado do QR Code (pedido do usuário, 14/11/2026). */
       y+=f.espaco;
       var qrSize=[130,120,110][tentativa],pad=12,pixW=largura-2*pad-(qr?qrSize+16:0);
       var banco=[m.client.banco,m.client.beneficiario].filter(Boolean).join(' · ');
@@ -3648,7 +3648,7 @@ function criarPdfClienteUmaPagina(m, qr, logoDim){
       fonte(9,false,cinza);lBanco.forEach(function(t){escreve(t,cx,cy);cy+=f.linha;});
       if(qr)doc.addImage(qr,formatoImagemBase64(qr),pw-margem-pad-qrSize,y+(hBox-qrSize)/2,qrSize,qrSize);
       y+=hBox+f.linha;
-      /* 1.10.47: endereço, e-mail e telefones já estão no cabeçalho; o bloco repetido no fim saiu (fatura mais enxuta). */
+      /* 1.10.48: endereço, e-mail e telefones já estão no cabeçalho; o bloco repetido no fim saiu (fatura mais enxuta). */
       if(m.dc.textoRodape){y+=f.espaco;paragrafo(m.dc.textoRodape,largura,margem,9,false,cinza);}
       cabe(10);fonte(9,false,cinza);escreve('Página 1 de 1',pw-margem,ph-20,{align:'right'});
       return {doc:doc,fonteMinima:9,alturaUtilizada:y,formato:tentativa};
@@ -4727,14 +4727,14 @@ async function onSignOut(){
    O aviso aparece uma vez por versão por navegador (localStorage compartilhado
    entre o site principal e os subsites, pois ficam no mesmo domínio).
    ============================================================ */
-var IG_BASE_VERSION = window.IGBaseRelease?.version || '1.10.47';
-var IG_BASE_RELEASE_ID = window.IGBaseRelease?.releaseId || '1.10.47-2026-10-30';
+var IG_BASE_VERSION = window.IGBaseRelease?.version || '1.10.48';
+var IG_BASE_RELEASE_ID = window.IGBaseRelease?.releaseId || '1.10.48-2026-10-30';
 var IG_BASE_CHANGELOG = [
+  "Solar Distribution: "Editar dados do cliente" num lugar só (cliente, usinas, contato do formulário e unidades); ao mudar um dado, rateio, relatório e formulários já usam o novo.",
+  "Solar Distribution: documentos todos no fim da página, sem botões repetidos, e excluir rateios do histórico.",
   "Solar Organization: calcular já salva no histórico (recalcular o mesmo mês substitui, sem duplicar) e "Corrigir" no histórico abre a fatura preenchida para alterar.",
   "Solar Organization: no GD1, o preço do kWh e a bandeira do mês vêm da fatura importada; prévia da fatura no topo, com menos campos na frente.",
   "Solar Distribution: remover uma fatura lida por engano e rateio mais limpo, com as configurações recolhidas.",
-  "Solar Distribution: o relatório do cliente sai sempre em uma folha — se não couber, o site compacta logo, letra e espaços sozinho, e os pontos de atenção ficam agrupados em poucas linhas.",
-  "Solar Distribution: tirar uma unidade do rateio com um clique (e voltar), e o site gera o pedido de exclusão da Equatorial para quem tem % hoje; o formulário marca sozinho Inclusão e Alteração.",
 ];
 function igbMostrarChangelog(){
   var KEY = 'igbase_changelog_visto';
