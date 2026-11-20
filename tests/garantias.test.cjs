@@ -15,9 +15,10 @@ test('ressarcimento: dentro da carência é zero; aberto conta até hoje; sem ta
  const aberto=G.chamado(d,{usinaId:us.id,potenciaAfetadaKw:2,datas:{abertura:G.hojeIso()}});const r=G.ressarcimento(aberto,d,us);assert.equal(r.emAberto,true);assert.equal(r.parados,0);
  const semTarifa=G.chamado(d,{usinaId:us.id,potenciaAfetadaKw:2});const r2=G.ressarcimento(semTarifa,d,G.usina({fator:4.8}));assert.equal(r2.valor,null);assert.ok(r2.faltam.includes('tarifa'));});
 
-test('ressarcimento: com "contar até o backup", a perda para no dia em que o backup foi instalado',()=>{
+test('ressarcimento: padrão conta até a instalação do backup (decisão de 20/11/2026); opção "até a troca final" conta até a troca',()=>{
  const {d,us}=base();const ch=G.chamado(d,{usinaId:us.id,potenciaAfetadaKw:2,datas:{abertura:'2026-01-01',backup:'2026-02-15',conclusao:'2026-03-17'}});
- assert.equal(G.ressarcimento(ch,d,us).parados,75);d.config.contarAte='backup';const r=G.ressarcimento(ch,d,us);assert.equal(r.parados,45);assert.equal(r.diasIndenizaveis,15);assert.equal(r.ateBackup,true);});
+ const r=G.ressarcimento(ch,d,us);assert.equal(d.config.contarAte,'backup');assert.equal(r.parados,45);assert.equal(r.diasIndenizaveis,15);assert.equal(r.ateBackup,true);
+ d.config.contarAte='troca';assert.equal(G.ressarcimento(ch,d,us).parados,75);});
 
 test('estoque: instalar backup e concluir a troca devolvem o backup ao estoque e ativam o serial novo na usina',()=>{
  const {d,us}=base();const bk=G.equipamento({serial:'111122223333',backup:true,status:'BACKUP_DISPONIVEL'});d.equipamentos.push(bk);

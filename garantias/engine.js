@@ -21,7 +21,7 @@ const TESTES=[['t01','Verificação de tensão CC/CA e conectores MC4'],['t02','
 /* Catálogo inicial: os dois modelos citados na ideia. Potência e entradas editáveis; o usuário cadastra os demais. */
 const MODELOS_INICIAIS=[{marca:'APsystems',modelo:'DS3-D',tipo:'MICROINVERSOR',potenciaKw:2.0,entradas:2},{marca:'APsystems',modelo:'QS1-A',tipo:'MICROINVERSOR',potenciaKw:1.5,entradas:4}];
 
-function fresh(){return {version:VERSION,config:{carenciaDias:30,contarAte:'troca',fatorPadrao:4.8},usinas:[],modelos:MODELOS_INICIAIS.map(m=>Object.assign({id:uid()},m)),equipamentos:[],chamados:[],proximoNumero:1};}
+function fresh(){return {version:VERSION,config:{carenciaDias:30,contarAte:'backup',fatorPadrao:4.8},usinas:[],modelos:MODELOS_INICIAIS.map(m=>Object.assign({id:uid()},m)),equipamentos:[],chamados:[],proximoNumero:1};}
 function usina(o={}){return Object.assign({id:uid(),idMonitoramento:'',nome:'',cliente:'',marca:'',kwp:null,fator:null,tarifa:null,observacoes:''},o);}
 function modelo(o={}){return Object.assign({id:uid(),marca:'',modelo:'',tipo:'MICROINVERSOR',potenciaKw:null,entradas:1},o);}
 function equipamento(o={}){return Object.assign({id:uid(),serial:'',tipo:'MICROINVERSOR',marca:'',modelo:'',potenciaKw:null,backup:false,status:'ATIVO',usinaId:null,chamadoId:null},o);}
@@ -30,7 +30,7 @@ function chamado(d,o={}){const n=d.proximoNumero||1;d.proximoNumero=n+1;return O
  serialBackup:'',backupId:null,serialNovo:'',destino:'GARANTIA',fator:null,tarifa:null,carenciaDias:null,
  datas:{abertura:hojeIso(),caso:null,backup:null,deposito:null,conclusao:null}},o);}
 
-function validate(d){if(!d||typeof d!=='object')throw Error('Dados de garantias inválidos.');for(const k of ['usinas','modelos','equipamentos','chamados'])if(!Array.isArray(d[k]))throw Error('Dados de garantias incompletos ('+k+').');d.config=Object.assign({carenciaDias:30,contarAte:'troca',fatorPadrao:4.8},d.config||{});if(!(d.proximoNumero>0))d.proximoNumero=d.chamados.reduce((m,c)=>Math.max(m,c.numero||0),0)+1;return d;}
+function validate(d){if(!d||typeof d!=='object')throw Error('Dados de garantias inválidos.');for(const k of ['usinas','modelos','equipamentos','chamados'])if(!Array.isArray(d[k]))throw Error('Dados de garantias incompletos ('+k+').');d.config=Object.assign({carenciaDias:30,contarAte:'backup',fatorPadrao:4.8},d.config||{});if(!(d.proximoNumero>0))d.proximoNumero=d.chamados.reduce((m,c)=>Math.max(m,c.numero||0),0)+1;return d;}
 
 /* Etapa atual, pelo que já aconteceu (o backup é opcional: sem perda de geração, pula a etapa 3). */
 function etapa(ch){const t=ch.datas||{};if(t.conclusao)return 5;if(t.deposito)return 4;if(t.backup)return 3;if(String(ch.casoFabricante||'').trim()||t.caso)return 2;return 1;}

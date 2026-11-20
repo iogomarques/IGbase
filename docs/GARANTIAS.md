@@ -23,8 +23,8 @@ Storage, API de OCR); aqui ela foi adaptada à estrutura do IG Base. O nome do s
   → 4 peça no depósito → 5 troca concluída.
 - **Estoque de backup**: instalar backup marca "em uso" na usina; a troca final devolve o backup ao estoque, ativa o serial novo
   na usina e marca o defeituoso como em garantia (ou sucata).
-- **Ressarcimento**: perda/dia = potência afetada × fator; dias parados = abertura → troca final (ou instalação do backup, opção
-  em Ajustes); dias indenizáveis = dias parados − carência (30 dias por padrão); valor = dias × perda/dia × tarifa, arredondado
+- **Ressarcimento**: perda/dia = potência afetada × fator; dias parados = abertura → instalação do backup (padrão; sem backup, até a troca final;
+  a opção "até a troca final" fica em Ajustes); dias indenizáveis = dias parados − carência (30 dias por padrão); valor = dias × perda/dia × tarifa, arredondado
   em centavos. Exemplo da ideia: 2,0 kW, fator 4,83, R$ 1,25, 45 dias indenizáveis = R$ 543,38 (0,5 kW = R$ 135,84).
 
 ## Próximas partes (ordem sugerida no plano)
@@ -34,7 +34,9 @@ Storage, API de OCR); aqui ela foi adaptada à estrutura do IG Base. O nome do s
    ativo / em garantia / substituído / backup de outra usina).
 3. Relatório por usina e período; preparação para outras integradoras.
 
-## Decisões em aberto
+## Decisões
 
-Nome; até quando conta a perda (padrão atual: troca final, como na ideia); carência fixa ou por fabricante; um login por
-empresa ou vários; vídeo por link ou armazenado; impressora e tamanho da etiqueta.
+Definidas em 20/11/2026: perda contada até a instalação do backup; carência de 30 dias para todos (pode mudar depois);
+um login para a empresa toda no início.
+
+Em aberto: nome; vídeo por link ou guardado no IG Base; impressora e tamanho da etiqueta.
