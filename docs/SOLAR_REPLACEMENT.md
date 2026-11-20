@@ -1,16 +1,18 @@
-# Garantias (nome provisório) — base do subsite
+# Solar Replacement — base do subsite
 
 Pedido do usuário em 20/11/2026: começar um subsite de acompanhamento de garantias a partir de uma ideia do sócio
 (texto "Pacote MVP" + parte de RMA, fora do repositório). A ideia foi escrita como sistema novo (Next.js, banco próprio,
-Storage, API de OCR); aqui ela foi adaptada à estrutura do IG Base. O nome do subsite ainda não foi decidido.
+Storage, API de OCR); aqui ela foi adaptada à estrutura do IG Base. Nome definido pelo usuário em 20/11/2026: **Solar Replacement**
+(troca solar). Além dos chamados de garantia, o subsite cobre rastreabilidade dos seriais por usina, estoque de backup,
+logística reversa/depósito, conferência pelo monitoramento, ressarcimento e documentos.
 
 ## Onde está
 
-- Pasta `garantias/` (`index.html`, `engine.js`, `store.js`, `app.js`, `styles.css`), no modelo do Solar Distribution.
-- Publicada em `/garantias/` **sem link** no Hub nem no menu Sistemas (`meta robots noindex`), até o usuário decidir lançar.
-- Dados na linha da conta (`configuracoes_documento`), área própria `solarGarantias`. A gravação relê a linha e preserva
+- Pasta `solar-replacement/` (`index.html`, `engine.js`, `store.js`, `app.js`, `styles.css`), no modelo do Solar Distribution.
+- Publicada em `/solar-replacement/` **sem link** no Hub nem no menu Sistemas (`meta robots noindex`), até o usuário decidir lançar.
+- Dados na linha da conta (`configuracoes_documento`), área própria `solarReplacement`. A gravação relê a linha e preserva
   as demais áreas (empresas, Budget, Distribution etc.), como no `solar-distribution/store.js`. Grava sozinho ~1 s após cada mudança.
-- Testes: `tests/garantias.test.cjs`.
+- Testes: `tests/replacement.test.cjs`.
 
 ## O que a base faz
 
@@ -39,4 +41,6 @@ Storage, API de OCR); aqui ela foi adaptada à estrutura do IG Base. O nome do s
 Definidas em 20/11/2026: perda contada até a instalação do backup; carência de 30 dias para todos (pode mudar depois);
 um login para a empresa toda no início.
 
-Em aberto: nome; vídeo por link ou guardado no IG Base; impressora e tamanho da etiqueta.
+Nome: Solar Replacement (20/11/2026).
+
+Em aberto: vídeo por link ou guardado no IG Base; impressora e tamanho da etiqueta.

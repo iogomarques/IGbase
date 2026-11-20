@@ -280,7 +280,7 @@ document.getElementById('hub-login').addEventListener('cancel',closeLogin);
 window.addEventListener('hashchange',function(){if(location.hash==='#entrar'&&!sessionUser)openLogin();});
 document.getElementById('hub-login-form').addEventListener('submit',async function(event){event.preventDefault();if(loginBusy)return;loginBusy=true;var button=document.getElementById('hub-login-submit');button.disabled=true;button.textContent='Entrando…';document.getElementById('hub-login-message').textContent='';try{await IGLogin.signIn(supabaseClient,document.getElementById('hub-login-identifier').value,document.getElementById('hub-login-password').value);var voltar=destinoDepoisDoLogin();if(voltar){location.href=voltar;return;}await initAuth();}catch(e){document.getElementById('hub-login-message').textContent=e.message;var senha=document.getElementById('hub-login-password');senha.focus();senha.select();}finally{loginBusy=false;button.disabled=false;button.textContent='Entrar';}});
 /* Quem veio de um sistema ("Entrar pelo IG Base") volta para ele depois de entrar. Só caminhos do próprio site. */
-function destinoDepoisDoLogin(){var v=new URLSearchParams(location.search).get('voltar')||'';return /^\/(solar-organization|solar-budget|solar-distribution|empresas|suporte)\/[A-Za-z0-9#\/._-]*$/.test(v)?v:'';}
+function destinoDepoisDoLogin(){var v=new URLSearchParams(location.search).get('voltar')||'';return /^\/(solar-organization|solar-budget|solar-distribution|solar-replacement|empresas|suporte)\/[A-Za-z0-9#\/._-]*$/.test(v)?v:'';}
 
 function openSettings(){
   document.getElementById('settings-email').textContent = IGAccount.name(currentUsername || sessionUser?.user_metadata?.username);

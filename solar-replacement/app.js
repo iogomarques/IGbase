@@ -1,7 +1,7 @@
-/* Garantias (nome provisório): telas no modelo do Solar Distribution (lateral, título, abas).
+/* Solar Replacement: telas no modelo do Solar Distribution (lateral, título, abas).
    Grava sozinho na conta, um pouco depois de cada mudança. Base da ideia do sócio, 20/11/2026. */
 (function(){'use strict';
-const G=SolarGarantias,$=id=>document.getElementById(id),esc=x=>String(x??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+const G=SolarReplacement,$=id=>document.getElementById(id),esc=x=>String(x??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
 const TABS=['painel','chamado','usinas','estoque','ajustes'];
 const val=v=>v===null||v===undefined?'':String(v).replace('.',',');
 const brl=v=>v===null||v===undefined||!Number.isFinite(v)?'—':'R$ '+G.fmt(v,2);
@@ -24,8 +24,8 @@ async function activate(next){const g=++generation;user=next;store=null;data=G.f
  if(!user){$('loading').hidden=true;return;}
  let name=user.user_metadata?.username;try{const p=await timeout(db.from('perfis_usuario').select('username').eq('user_id',user.id).maybeSingle());name=p.data?.username||name;}catch(e){}
  if(g!==generation)return;$('g-account').innerHTML=IGAccount.html(name,'<button type="button" id="g-settings">Configurações</button><a href="/#configuracoes">Configurações da conta no IG Base</a><button type="button" id="g-signout">Sair da conta</button>');
- $('g-settings').onclick=()=>IGAccount.openSettings(name,'garantias');$('g-signout').onclick=async()=>{const r=await db.auth.signOut();if(r.error)notify(r.error.message,'error');};
- try{const s=IGGarantiasStore.service(db,user);await timeout(s.load());if(g!==generation)return;store=s;data=s.data;}catch(e){if(g!==generation)return;$('loading').hidden=true;notify('Não foi possível abrir as garantias. '+e.message,'error');return;}
+ $('g-settings').onclick=()=>IGAccount.openSettings(name,'solar-replacement');$('g-signout').onclick=async()=>{const r=await db.auth.signOut();if(r.error)notify(r.error.message,'error');};
+ try{const s=IGReplacementStore.service(db,user);await timeout(s.load());if(g!==generation)return;store=s;data=s.data;}catch(e){if(g!==generation)return;$('loading').hidden=true;notify('Não foi possível abrir o Solar Replacement. '+e.message,'error');return;}
  sel.chamado=data.chamados[0]?.id||null;sel.usina=data.usinas[0]?.id||null;$('loading').hidden=true;$('workspace').hidden=false;render();}
 
 /* ---------- Gravação automática ---------- */

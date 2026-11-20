@@ -1,6 +1,6 @@
-/* Garantias (subsite em construção): cálculo do ressarcimento e movimentação do estoque de backup. Dados fictícios. */
+/* Solar Replacement (subsite em construção): cálculo do ressarcimento e movimentação do estoque de backup. Dados fictícios. */
 const test=require('node:test');const assert=require('node:assert/strict');
-const G=require('../garantias/engine.js');
+const G=require('../solar-replacement/engine.js');
 
 function base(){const d=G.fresh();const us=G.usina({idMonitoramento:'TESTE/001',nome:'Usina teste',fator:4.83,tarifa:1.25});d.usinas.push(us);return {d,us};}
 
