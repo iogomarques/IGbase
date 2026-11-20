@@ -1,0 +1,40 @@
+# Garantias (nome provisório) — base do subsite
+
+Pedido do usuário em 20/11/2026: começar um subsite de acompanhamento de garantias a partir de uma ideia do sócio
+(texto "Pacote MVP" + parte de RMA, fora do repositório). A ideia foi escrita como sistema novo (Next.js, banco próprio,
+Storage, API de OCR); aqui ela foi adaptada à estrutura do IG Base. O nome do subsite ainda não foi decidido.
+
+## Onde está
+
+- Pasta `garantias/` (`index.html`, `engine.js`, `store.js`, `app.js`, `styles.css`), no modelo do Solar Distribution.
+- Publicada em `/garantias/` **sem link** no Hub nem no menu Sistemas (`meta robots noindex`), até o usuário decidir lançar.
+- Dados na linha da conta (`configuracoes_documento`), área própria `solarGarantias`. A gravação relê a linha e preserva
+  as demais áreas (empresas, Budget, Distribution etc.), como no `solar-distribution/store.js`. Grava sozinho ~1 s após cada mudança.
+- Testes: `tests/garantias.test.cjs`.
+
+## O que a base faz
+
+- **Usinas**: ID no monitoramento (âncora, ex.: IOGO/EMA), nome, cliente, marca, kWp, fator de geração (kWh/kWp/dia) e tarifa (R$/kWh).
+- **Modelos** (Ajustes): marca, modelo, tipo, potência (kW) e número de entradas. Começa com DS3-D (2,0 kW, 2 entradas) e QS1-A (1,5 kW, 4 entradas).
+- **Chamado**: usina, serial com defeito (12–15 dígitos), modelo, potência afetada (equipamento inteiro, 1 entrada ou outra),
+  checklist 01–04 com a legenda da ideia, perda de geração confirmada, nº do caso no fabricante, link do vídeo, backup,
+  depósito (destino garantia ou sucata) e troca final.
+- **Etapas** pelo que já aconteceu: 1 visita e testes → 2 aguardando o fabricante (nº do caso) → 3 backup instalado (opcional)
+  → 4 peça no depósito → 5 troca concluída.
+- **Estoque de backup**: instalar backup marca "em uso" na usina; a troca final devolve o backup ao estoque, ativa o serial novo
+  na usina e marca o defeituoso como em garantia (ou sucata).
+- **Ressarcimento**: perda/dia = potência afetada × fator; dias parados = abertura → troca final (ou instalação do backup, opção
+  em Ajustes); dias indenizáveis = dias parados − carência (30 dias por padrão); valor = dias × perda/dia × tarifa, arredondado
+  em centavos. Exemplo da ideia: 2,0 kW, fator 4,83, R$ 1,25, 45 dias indenizáveis = R$ 543,38 (0,5 kW = R$ 135,84).
+
+## Próximas partes (ordem sugerida no plano)
+
+1. Dossiê PDF para o fabricante (testes, fotos reduzidas, QR do vídeo) e etiquetas térmica 100×50 mm e A4.
+2. Leitura do serial pela câmera e conferência de prints do monitoramento por OCR no navegador (`situacaoSerial` já classifica
+   ativo / em garantia / substituído / backup de outra usina).
+3. Relatório por usina e período; preparação para outras integradoras.
+
+## Decisões em aberto
+
+Nome; até quando conta a perda (padrão atual: troca final, como na ideia); carência fixa ou por fabricante; um login por
+empresa ou vários; vídeo por link ou armazenado; impressora e tamanho da etiqueta.

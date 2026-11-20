@@ -1,0 +1,34 @@
+/* Garantias (nome provisório): complementa os estilos do Solar Budget, como o Solar Distribution. */
+.g-salvo{margin:0 0 12px;font-size:13px;color:var(--muted)}
+.g-salvo.salvando{color:#8a5a00}
+.g-salvo.erro{color:#a33;font-weight:600}
+.g-metrics{grid-template-columns:repeat(auto-fit,minmax(150px,1fr))}
+.g-table{width:100%;border-collapse:collapse;font-size:14px}
+.g-table th,.g-table td{text-align:left;padding:9px 10px;border-bottom:1px solid var(--border);vertical-align:top}
+.g-table th{font-size:12px;color:var(--muted);font-weight:600}
+.g-linha{cursor:pointer}
+.g-linha:hover,.g-linha.ativa{background:#f2f7f0}
+.g-pill{display:inline-block;padding:3px 10px;border-radius:999px;font-size:12px;font-weight:600;white-space:nowrap;background:#eef3ee;color:#2f663f}
+.g-pill.e1{background:#fff3d6;color:#8a5a00}
+.g-pill.e2{background:#eef3fb;color:#2d4f7a}
+.g-pill.e3{background:#f1ecfa;color:#5b3d8c}
+.g-pill.e4{background:#f6efe6;color:#7a4f1d}
+.g-pill.e5{background:#e6f3e8;color:#2f663f}
+.g-etapas{list-style:none;margin:10px 0 0;padding:0;display:flex;flex-wrap:wrap;gap:8px}
+.g-etapas li{display:flex;align-items:center;gap:6px;padding:6px 10px;border:1px solid var(--border);border-radius:999px;font-size:13px;color:var(--muted);background:#fff}
+.g-etapas li span{display:grid;place-items:center;width:22px;height:22px;border-radius:50%;background:#eef3ee;font-weight:700;font-size:12px}
+.g-etapas li.feita{color:#2f663f;border-color:#bcd8c2}
+.g-etapas li.feita span{background:#2f663f;color:#fff}
+.g-etapas li.atual{color:#1f2a22;border-color:#2f663f;font-weight:600}
+.g-opcoes{display:flex;flex-wrap:wrap;gap:8px;align-items:flex-end}
+.g-opcoes button{min-height:40px;padding:8px 14px;border-radius:999px;border:1px solid var(--border);background:#fff;color:#2f663f;font-weight:600;cursor:pointer}
+.g-opcoes button[aria-pressed="true"]{background:#2f663f;color:#fff;border-color:#2f663f}
+.g-outra{display:flex;flex-direction:column;gap:3px;font-size:12px;color:var(--muted);min-width:150px}
+.g-outra input{min-height:40px}
+.g-testes{display:grid;gap:8px;margin-bottom:10px}
+.g-testes label.check,.g-perda{display:flex;gap:8px;align-items:flex-start;min-height:36px;font-size:14px}
+.g-testes b{color:#2f663f;min-width:20px}
+.g-perda{padding:10px 12px;border:1px dashed #d9b779;border-radius:10px;background:#fffaf0;margin-bottom:12px}
+.g-modelos input,.g-modelos select{width:100%;min-width:70px;min-height:36px;padding:5px 8px;border:1px solid var(--border);border-radius:8px;font:inherit}
+.g-page h3{margin:14px 0 8px;font-size:15px}
+.dist-aviso{margin:8px 0;padding:8px 12px;border-radius:10px;background:#fff3d6;color:#7a5200;font-size:13px}
