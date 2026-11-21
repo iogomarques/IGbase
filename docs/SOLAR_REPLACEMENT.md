@@ -47,4 +47,6 @@ Evidências por fotos, sem vídeo (20/11/2026: vídeo ocupa muito espaço e bagu
 
 Fotos: armazenamento do Supabase, pasta privada `solar-replacement` (autorizado em 20/11/2026). Cada conta só acessa a própria pasta (id do usuário); só imagens de até 2 MB; o site reduz cada foto para cerca de 100 a 300 KB e aceita até 20 por chamado. Script único: `docs/solar-replacement-fotos.sql` (rodar no SQL Editor do Supabase; o conector automático não conseguiu entrar no banco). O dossiê em PDF leva as fotos e é a cópia definitiva.
 
+Espaço criado em 21/11/2026 pelo SQL Editor (projeto IG Base), com o usuário logado no painel. O SQL Editor avisa "operação destrutiva" por causa dos `drop policy if exists`: eles só apagam as quatro regras do próprio Solar Replacement, então pode confirmar. Testado na conta real: envio e leitura funcionam; pasta de outra conta, acesso sem login e arquivo que não é imagem são recusados.
+
 Em aberto: impressora e tamanho da etiqueta.
