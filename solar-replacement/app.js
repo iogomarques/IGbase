@@ -81,10 +81,10 @@ function renderChamado(){const host=document.querySelector('[data-page=chamado]'
   (m&&m.entradas>1&&porEntrada!==null?'<button type="button" data-potencia="entrada" aria-pressed="'+(modo==='entrada')+'">1 entrada de '+m.entradas+' · '+G.fmt(porEntrada,3)+' kW</button>':'')+
   '<label class="g-outra">Outra (kW)<input data-ch="potenciaAfetadaKw" inputmode="decimal" value="'+esc(val(ch.potenciaAfetadaKw))+'" placeholder="ex.: 0,5"></label></div>'+
   (pot===null?'<p class="hint">Escolha o modelo para o site preencher a potência. Modelos novos entram em Ajustes.</p>':'')+'</section>';
- /* 2. Testes */
- h+='<section class="panel"><h2>2. Testes em campo</h2><div class="g-testes">'+G.TESTES.map(([k,t])=>'<label class="check"><input type="checkbox" data-teste="'+k+'" '+(ch.testes[k]?'checked':'')+'> <b>'+k.slice(1)+'</b> '+esc(t)+'</label>').join('')+'</div>'+
+ /* 2. Testes e fotos */
+ h+='<section class="panel"><h2>2. Testes e fotos</h2><div class="g-testes">'+G.TESTES.map(([k,t])=>'<label class="check"><input type="checkbox" data-teste="'+k+'" '+(ch.testes[k]?'checked':'')+'> <b>'+k.slice(1)+'</b> '+esc(t)+'</label>').join('')+'</div>'+
   '<label class="check g-perda"><input type="checkbox" data-ch-bool="perdaGeracao" '+(ch.perdaGeracao?'checked':'')+'> Perda de geração confirmada nos testes (libera instalar um backup)</label>'+
-  '<div class="settings-grid">'+field('Data da visita / abertura','data-data="abertura"',ch.datas.abertura,'date')+field('Link do vídeo da falha (Drive, YouTube…)','data-ch="videoLink"',ch.videoLink,'url','placeholder="https://"')+'</div></section>';
+  '<div class="settings-grid">'+field('Data da visita / abertura','data-data="abertura"',ch.datas.abertura,'date')+'</div>'+fotosHtml(ch)+'</section>';
  /* 3. Fabricante */
  h+='<section class="panel"><h2>3. Caso no fabricante</h2><div class="settings-grid">'+field('Nº do caso no portal da marca','data-ch="casoFabricante"',ch.casoFabricante)+field('Data de abertura do caso','data-data="caso"',ch.datas.caso,'date')+'</div><p class="hint">O dossiê em PDF para o fabricante (testes, fotos e QR do vídeo) entra na próxima parte.</p></section>';
  /* 4. Backup */
@@ -105,7 +105,35 @@ function renderChamado(){const host=document.querySelector('[data-page=chamado]'
   '<div class="metrics g-metrics">'+[['Perda por dia',r.perdaDia===null?'—':G.fmt(r.perdaDia,2)+' kWh'],['Dias parados',r.parados===null?'—':String(r.parados)+(r.emAberto?' (até hoje)':'')],['Dias indenizáveis',r.diasIndenizaveis===null?'—':String(r.diasIndenizaveis)],['A receber',brl(r.valor)]].map(([k,v])=>'<div class="metric"><span>'+k+'</span><strong>'+v+'</strong></div>').join('')+'</div>'+
   '<p class="hint">'+(r.faltam.length?'Falta: '+esc(r.faltam.join(', '))+'. ':'')+(r.valor!==null?esc(r.diasIndenizaveis+' dias × '+G.fmt(r.perdaDia,2)+' kWh × R$ '+G.fmt(r.tarifa,4)+' = '+brl(r.valor)+'. '):'')+'A perda conta da abertura '+(r.ateBackup?'até a instalação do backup':'até a troca final')+', menos a carência (muda em Ajustes).</p></section>';
  h+='<section class="panel"><h2>Observações</h2><label>Anotações internas<textarea data-ch="observacoes" rows="3">'+esc(ch.observacoes)+'</textarea></label><div class="actions"><button class="danger" data-action="excluir-chamado">Excluir chamado</button></div></section>';
- host.innerHTML=h;}
+ host.innerHTML=h;carregarMiniaturas(ch);}
+
+/* ---------- Fotos (só fotos, sem vídeo: decisão de 20/11/2026) ----------
+   Ficam no armazenamento do Supabase, pasta privada "solar-replacement", dentro da pasta da conta (id do usuário):
+   ninguém mais vê. Cada foto é reduzida no aparelho antes de enviar (cerca de 100 a 300 KB). */
+const BUCKET='solar-replacement',MAX_FOTOS=20,urlsFotos=new Map();let enviandoFotos=false;
+const TIPOS_FOTO={foto:'Foto do equipamento',print:'Print do monitoramento'};
+function fotosHtml(ch){const fotos=ch.fotos||[];
+ return '<div class="g-fotos"><h3>Fotos e print do monitoramento <span class="tiny">('+fotos.length+' de '+MAX_FOTOS+')</span></h3>'+
+  '<p class="hint">Fotos do equipamento, da etiqueta com o serial, dos LEDs de erro e o print da tela do monitoramento (usina, ID e serial). Elas vão para o dossiê do fabricante.</p>'+
+  '<div class="actions"><label class="file-button primary">Tirar foto ou escolher<input type="file" accept="image/*" capture="environment" multiple data-fotos-tipo="foto" hidden></label><label class="file-button">Print do monitoramento<input type="file" accept="image/*" multiple data-fotos-tipo="print" hidden></label></div>'+
+  (enviandoFotos?'<p class="hint g-enviando">Enviando fotos…</p>':'')+
+  (fotos.length?'<ul class="g-miniaturas">'+fotos.map(f=>'<li><img data-foto-img="'+esc(f.id)+'" alt="'+esc(TIPOS_FOTO[f.tipo]||'Foto')+'"'+(urlsFotos.has(f.path)?' src="'+esc(urlsFotos.get(f.path))+'"':'')+'><span class="tiny">'+esc(TIPOS_FOTO[f.tipo]||'Foto')+'</span><button type="button" class="ghost" data-action="apagar-foto" data-foto="'+esc(f.id)+'" aria-label="Apagar esta foto">Apagar</button></li>').join('')+'</ul>':'<p class="muted">Nenhuma foto ainda.</p>')+'</div>';}
+async function carregarMiniaturas(ch){if(!ch||!db)return;const falta=(ch.fotos||[]).filter(f=>!urlsFotos.has(f.path)).map(f=>f.path);if(!falta.length)return;
+ try{const r=await db.storage.from(BUCKET).createSignedUrls(falta,3600);if(r.error)throw r.error;for(const it of r.data||[])if(it.signedUrl)urlsFotos.set(it.path,it.signedUrl);
+  for(const f of ch.fotos||[]){const img=document.querySelector('[data-foto-img="'+CSS.escape(f.id)+'"]');if(img&&urlsFotos.has(f.path))img.src=urlsFotos.get(f.path);}}catch(e){}}
+/* Reduz a foto: lado maior até 1600 px, JPEG 0,72. Fotos de celular de 3-5 MB viram cerca de 150 a 300 KB. */
+async function reduzirFoto(file){const url=URL.createObjectURL(file);try{const img=await new Promise((ok,no)=>{const i=new Image();i.onload=()=>ok(i);i.onerror=()=>no(Error('Não foi possível abrir a imagem '+file.name+'.'));i.src=url;});
+ const k=Math.min(1,1600/Math.max(img.naturalWidth,img.naturalHeight)),c=document.createElement('canvas');c.width=Math.round(img.naturalWidth*k);c.height=Math.round(img.naturalHeight*k);c.getContext('2d').drawImage(img,0,0,c.width,c.height);
+ return await new Promise((ok,no)=>c.toBlob(b=>b?ok(b):no(Error('Não foi possível reduzir a imagem.')),'image/jpeg',0.72));}finally{URL.revokeObjectURL(url);}}
+async function enviarFotos(files,tipo){const ch=chamadoById(sel.chamado);if(!ch||!files.length||!user)return;if(enviandoFotos){notify('Aguarde o envio das fotos anteriores.','warn');return;}
+ const livres=MAX_FOTOS-(ch.fotos||[]).length;if(livres<=0){notify('Este chamado já tem '+MAX_FOTOS+' fotos. Apague alguma antes de enviar mais.','warn');return;}
+ const lista=files.slice(0,livres);enviandoFotos=true;render();let ok=0;const erros=[];
+ for(const [i,file] of lista.entries()){notify('Enviando foto '+(i+1)+' de '+lista.length+'…','warn');try{if(!/^image\//.test(file.type))throw Error(file.name+' não é uma imagem.');const blob=await reduzirFoto(file),id=G.uid(),path=user.id+'/'+ch.id+'/'+id+'.jpg';
+  const r=await timeout(db.storage.from(BUCKET).upload(path,blob,{contentType:'image/jpeg',upsert:false}),60000);if(r.error)throw r.error;
+  ch.fotos=ch.fotos||[];ch.fotos.push({id,path,tipo,nome:file.name,bytes:blob.size,criadoEm:new Date().toISOString()});ok++;}catch(e){erros.push(/bucket|not found/i.test(e.message||'')?'o espaço de fotos ainda não foi criado no Supabase':(e.message||'falha no envio'));}}
+ enviandoFotos=false;if(ok)mudou();else render();
+ if(erros.length)notify((ok?ok+' foto(s) enviada(s). ':'')+'Não foi possível enviar '+erros.length+': '+[...new Set(erros)].join('; ')+'.','error');else notify(ok===1?'Foto enviada.':ok+' fotos enviadas.');}
+async function apagarFotos(paths){if(!paths.length||!db)return;try{await db.storage.from(BUCKET).remove(paths);}catch(e){}for(const p of paths)urlsFotos.delete(p);}
 
 function renderUsinas(){const host=document.querySelector('[data-page=usinas]'),us=usinaById(sel.usina);
  let h='<div class="panel"><div class="section-title"><h2>Usinas</h2><button class="primary" data-action="nova-usina">+ Nova usina</button></div>'+(data.usinas.length?'<div class="table-wrap"><table class="g-table"><thead><tr><th>ID no monitoramento</th><th>Usina / cliente</th><th>kWp</th><th>Fator</th><th>Tarifa</th><th>Chamados</th></tr></thead><tbody>'+data.usinas.map(u=>'<tr data-usina-sel="'+esc(u.id)+'" class="g-linha'+(u.id===sel.usina?' ativa':'')+'"><td><strong>'+esc(u.idMonitoramento||'—')+'</strong></td><td>'+esc(u.nome||'—')+'<div class="tiny">'+esc(u.cliente||'')+'</div></td><td>'+G.fmt(G.num(u.kwp),2)+'</td><td>'+G.fmt(G.num(u.fator),2)+'</td><td>'+(u.tarifa!=null?'R$ '+G.fmt(G.num(u.tarifa),4):'—')+'</td><td>'+data.chamados.filter(c=>c.usinaId===u.id).length+'</td></tr>').join('')+'</tbody></table></div>':'<p class="muted">Nenhuma usina cadastrada. O ID no monitoramento (ex.: IOGO/EMA) é o que liga chamados, etiquetas e relatórios.</p>')+'</div>';
@@ -142,6 +170,7 @@ document.addEventListener('change',e=>{const t=e.target;if(!store)return;const c
  if(t.dataset.mod!==undefined){const m=modeloById(t.dataset.modId);if(!m)return;const k=t.dataset.mod;if(NUM_MOD.has(k)){const v=G.num(t.value);if(aviseNumero(t,v))return;m[k]=k==='entradas'?Math.max(1,Math.round(v||1)):v;}else m[k]=t.value.trim();mudou();return;}
  if(t.dataset.cfg!==undefined){const k=t.dataset.cfg;if(NUM_CFG.has(k)){const v=G.num(t.value);if(aviseNumero(t,v))return;data.config[k]=v;}else data.config[k]=t.value;mudou();return;}});
 $('side-search').addEventListener('input',renderSide);
+document.addEventListener('change',e=>{const t=e.target;if(t.dataset&&t.dataset.fotosTipo){const files=[...t.files];t.value='';enviarFotos(files,t.dataset.fotosTipo);}});
 
 document.addEventListener('click',e=>{if(!store)return;
  const ab=e.target.closest('[data-abrir]');if(ab){sel.chamado=ab.dataset.abrir;if(tab()!=='chamado')location.hash='chamado';else render();window.scrollTo({top:0});return;}
@@ -150,12 +179,13 @@ document.addEventListener('click',e=>{if(!store)return;
  const b=e.target.closest('[data-action]');if(!b)return;const a=b.dataset.action,ch=chamadoById(sel.chamado);
  try{
   if(a==='novo-chamado'){novoChamado();return;}
+  if(a==='apagar-foto'&&ch){const f=(ch.fotos||[]).find(x=>x.id===b.dataset.foto);if(!f||!confirm('Apagar esta foto do chamado?'))return;ch.fotos=ch.fotos.filter(x=>x.id!==f.id);apagarFotos([f.path]);notify('Foto apagada.');mudou();return;}
   if(a==='nova-usina'){e.preventDefault();const u=G.usina();data.usinas.push(u);sel.usina=u.id;if(tab()!=='usinas')location.hash='usinas';mudou();setTimeout(()=>document.querySelector('[data-us="idMonitoramento"]')?.focus(),60);return;}
   if(a==='excluir-usina'){const u=usinaById(sel.usina);if(!u)return;if(data.chamados.some(c=>c.usinaId===u.id)){notify('Esta usina tem chamados. Exclua ou troque a usina dos chamados antes.','warn');return;}if(!confirm('Excluir a usina '+(u.idMonitoramento||u.nome||'')+'?'))return;data.usinas=data.usinas.filter(x=>x.id!==u.id);sel.usina=data.usinas[0]?.id||null;mudou();return;}
   if(a==='instalar-backup'&&ch){G.instalarBackup(data,ch.id,$('g-backup-escolha').value,$('g-backup-data').value||G.hojeIso());notify('Backup instalado. Ele volta sozinho ao estoque na troca final.');mudou();return;}
   if(a==='retirar-backup'&&ch){G.retirarBackup(data,ch.id);notify('Backup devolvido ao estoque.');mudou();return;}
   if(a==='concluir-troca'&&ch){const s=$('g-serial-novo');if(!G.serialValido(s.value)){if(window.IGFalta)IGFalta.marcar(s,'Informe o serial novo, de 12 a 15 dígitos.');return;}G.concluirTroca(data,ch.id,s.value,$('g-troca-data').value||G.hojeIso());notify('Troca concluída. Serial novo ativo na usina'+(ch.serialBackup?' e backup de volta ao estoque.':'.'));mudou();return;}
-  if(a==='excluir-chamado'&&ch){if(!confirm('Excluir o chamado nº '+ch.numero+'?'))return;if(ch.backupId)G.retirarBackup(data,ch.id);data.chamados=data.chamados.filter(x=>x.id!==ch.id);sel.chamado=data.chamados[0]?.id||null;notify('Chamado excluído.');mudou();return;}
+  if(a==='excluir-chamado'&&ch){if(!confirm('Excluir o chamado nº '+ch.numero+'?'))return;if(ch.backupId)G.retirarBackup(data,ch.id);apagarFotos((ch.fotos||[]).map(f=>f.path));data.chamados=data.chamados.filter(x=>x.id!==ch.id);sel.chamado=data.chamados[0]?.id||null;notify('Chamado excluído.');mudou();return;}
   if(a==='novo-backup'){const s=$('g-eq-serial'),m=modeloById($('g-eq-modelo').value);if(!G.serialValido(s.value)){if(window.IGFalta)IGFalta.marcar(s,'Informe o serial, de 12 a 15 dígitos.');return;}const sn=G.soSerial(s.value);if(data.equipamentos.some(x=>G.soSerial(x.serial)===sn)){notify('Este serial já está cadastrado.','warn');return;}
    data.equipamentos.push(G.equipamento({serial:sn,backup:true,status:'BACKUP_DISPONIVEL',tipo:m?.tipo||'MICROINVERSOR',marca:m?.marca||'',modelo:m?.modelo||'',potenciaKw:G.num(m?.potenciaKw)}));notify('Backup '+sn+' adicionado ao estoque.');mudou();return;}
   if(a==='excluir-equipamento'){const eq=data.equipamentos.find(x=>x.id===b.dataset.eq);if(!eq||!confirm('Excluir o equipamento '+eq.serial+' do estoque?'))return;data.equipamentos=data.equipamentos.filter(x=>x.id!==eq.id);mudou();return;}

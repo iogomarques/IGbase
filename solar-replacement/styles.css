@@ -32,3 +32,11 @@
 .g-modelos input,.g-modelos select{width:100%;min-width:70px;min-height:36px;padding:5px 8px;border:1px solid var(--border);border-radius:8px;font:inherit}
 .g-page h3{margin:14px 0 8px;font-size:15px}
 .dist-aviso{margin:8px 0;padding:8px 12px;border-radius:10px;background:#fff3d6;color:#7a5200;font-size:13px}
+/* Fotos do chamado */
+.g-fotos{margin-top:14px;padding-top:12px;border-top:1px solid var(--border)}
+.g-miniaturas{list-style:none;margin:10px 0 0;padding:0;display:grid;grid-template-columns:repeat(auto-fill,minmax(130px,1fr));gap:10px}
+.g-miniaturas li{display:grid;gap:4px;border:1px solid var(--border);border-radius:10px;padding:6px;background:#fff}
+.g-miniaturas img{width:100%;aspect-ratio:4/3;object-fit:cover;border-radius:6px;background:#eef3ee}
+.g-miniaturas button{min-height:32px;font-size:12px}
+.g-enviando{color:#8a5a00;font-weight:600}
+.file-button{cursor:pointer}

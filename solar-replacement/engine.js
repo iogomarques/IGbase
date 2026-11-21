@@ -26,11 +26,11 @@ function usina(o={}){return Object.assign({id:uid(),idMonitoramento:'',nome:'',c
 function modelo(o={}){return Object.assign({id:uid(),marca:'',modelo:'',tipo:'MICROINVERSOR',potenciaKw:null,entradas:1},o);}
 function equipamento(o={}){return Object.assign({id:uid(),serial:'',tipo:'MICROINVERSOR',marca:'',modelo:'',potenciaKw:null,backup:false,status:'ATIVO',usinaId:null,chamadoId:null},o);}
 function chamado(d,o={}){const n=d.proximoNumero||1;d.proximoNumero=n+1;return Object.assign({id:uid(),numero:n,usinaId:null,serialDefeito:'',modeloId:null,marca:'',modelo:'',tipo:'MICROINVERSOR',potenciaKw:null,potenciaAfetadaKw:null,
- testes:{t01:false,t02:false,t03:false,t04:false},perdaGeracao:false,fabricante:'',casoFabricante:'',videoLink:'',observacoes:'',
+ testes:{t01:false,t02:false,t03:false,t04:false},perdaGeracao:false,fabricante:'',casoFabricante:'',fotos:[],observacoes:'',
  serialBackup:'',backupId:null,serialNovo:'',destino:'GARANTIA',fator:null,tarifa:null,carenciaDias:null,
  datas:{abertura:hojeIso(),caso:null,backup:null,deposito:null,conclusao:null}},o);}
 
-function validate(d){if(!d||typeof d!=='object')throw Error('Dados do Solar Replacement inválidos.');for(const k of ['usinas','modelos','equipamentos','chamados'])if(!Array.isArray(d[k]))throw Error('Dados do Solar Replacement incompletos ('+k+').');d.config=Object.assign({carenciaDias:30,contarAte:'backup',fatorPadrao:4.8},d.config||{});if(!(d.proximoNumero>0))d.proximoNumero=d.chamados.reduce((m,c)=>Math.max(m,c.numero||0),0)+1;return d;}
+function validate(d){if(!d||typeof d!=='object')throw Error('Dados do Solar Replacement inválidos.');for(const k of ['usinas','modelos','equipamentos','chamados'])if(!Array.isArray(d[k]))throw Error('Dados do Solar Replacement incompletos ('+k+').');d.config=Object.assign({carenciaDias:30,contarAte:'backup',fatorPadrao:4.8},d.config||{});for(const c of d.chamados)if(!Array.isArray(c.fotos))c.fotos=[];if(!(d.proximoNumero>0))d.proximoNumero=d.chamados.reduce((m,c)=>Math.max(m,c.numero||0),0)+1;return d;}
 
 /* Etapa atual, pelo que já aconteceu (o backup é opcional: sem perda de geração, pula a etapa 3). */
 function etapa(ch){const t=ch.datas||{};if(t.conclusao)return 5;if(t.deposito)return 4;if(t.backup)return 3;if(String(ch.casoFabricante||'').trim()||t.caso)return 2;return 1;}

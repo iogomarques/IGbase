@@ -45,4 +45,6 @@ Nome: Solar Replacement (20/11/2026).
 
 Evidências por fotos, sem vídeo (20/11/2026: vídeo ocupa muito espaço e bagunça o lançamento). O campo "link do vídeo" da base sai quando as fotos entrarem.
 
-Em aberto: onde guardar as fotos (armazenamento do Supabase, com aprovação do usuário, ou só no PDF); impressora e tamanho da etiqueta.
+Fotos: armazenamento do Supabase, pasta privada `solar-replacement` (autorizado em 20/11/2026). Cada conta só acessa a própria pasta (id do usuário); só imagens de até 2 MB; o site reduz cada foto para cerca de 100 a 300 KB e aceita até 20 por chamado. Script único: `docs/solar-replacement-fotos.sql` (rodar no SQL Editor do Supabase; o conector automático não conseguiu entrar no banco). O dossiê em PDF leva as fotos e é a cópia definitiva.
+
+Em aberto: impressora e tamanho da etiqueta.
