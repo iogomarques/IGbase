@@ -31,7 +31,7 @@ logística reversa/depósito, conferência pelo monitoramento, ressarcimento e d
 
 ## Próximas partes (ordem sugerida no plano)
 
-1. Dossiê PDF para o fabricante (testes, fotos reduzidas, QR do vídeo) e etiquetas térmica 100×50 mm e A4.
+1. Dossiê PDF para o fabricante (testes e fotos reduzidas; sem vídeo) e etiquetas térmica 100×50 mm e A4.
 2. Leitura do serial pela câmera e conferência de prints do monitoramento por OCR no navegador (`situacaoSerial` já classifica
    ativo / em garantia / substituído / backup de outra usina).
 3. Relatório por usina e período; preparação para outras integradoras.
@@ -43,4 +43,6 @@ um login para a empresa toda no início.
 
 Nome: Solar Replacement (20/11/2026).
 
-Em aberto: vídeo por link ou guardado no IG Base; impressora e tamanho da etiqueta.
+Evidências por fotos, sem vídeo (20/11/2026: vídeo ocupa muito espaço e bagunça o lançamento). O campo "link do vídeo" da base sai quando as fotos entrarem.
+
+Em aberto: onde guardar as fotos (armazenamento do Supabase, com aprovação do usuário, ou só no PDF); impressora e tamanho da etiqueta.
