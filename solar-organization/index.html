@@ -4,7 +4,7 @@
 <meta charset="UTF-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1.0" />
 <title>Solar Organization | IG Base</title>
-<link rel="icon" type="image/png" sizes="64x64" href="/favicon-ig-base.png?v=1.10.51">
+<link rel="icon" type="image/png" sizes="64x64" href="/favicon-ig-base.png?v=1.10.52">
 <!-- O SDK é carregado sem bloquear a renderização da página, no início do app. -->
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -464,7 +464,7 @@
 
 @media screen{.vigencia-linha input[type=month]{width:100%;min-height:44px;padding:9px;border:1px solid var(--line);border-radius:8px;background:#fff;font:inherit}.vigencia-linha .vigencia-remover{margin-top:10px}#m-vigencias{margin-top:16px}}
 </style>
-<script src="/shared/companies.js?v=1.10.51"></script><link rel="stylesheet" href="/shared/presentation.css?v=1.10.51"><script src="/shared/account.js?v=1.10.51"></script><script src="/shared/login.js?v=1.10.51"></script><script src="/shared/falta.js?v=1.10.51"></script><script src="/shared/navegacao.js?v=1.10.51"></script><script src="/shared/version.js?v=1.10.51"></script></head>
+<script src="/shared/companies.js?v=1.10.52"></script><link rel="stylesheet" href="/shared/presentation.css?v=1.10.52"><script src="/shared/account.js?v=1.10.52"></script><script src="/shared/login.js?v=1.10.52"></script><script src="/shared/falta.js?v=1.10.52"></script><script src="/shared/navegacao.js?v=1.10.52"></script><script src="/shared/version.js?v=1.10.52"></script></head>
 <body>
 
 <div id="auth-root"><div class="auth-screen startup-screen"><div class="startup-card" aria-busy="true"><div class="startup-brand"><img width="713" height="340" draggable="false" src="/assets/logo-ig-base.png" alt="IG Base"></div><div class="startup-spinner" aria-hidden="true"></div><h1 class="startup-title">Carregando o sistema</h1><p class="startup-message" role="status" aria-live="polite">Preparando seu ambiente…</p><noscript>Ative o JavaScript no navegador para utilizar o sistema.</noscript></div></div></div>
@@ -479,7 +479,7 @@
 </div>
 <footer class="app-footer ig-footer" id="app-footer" style="display:none">
   <div class="footer-links"><a href="/">IG Base</a><a href="/empresas/">Empresas</a><a href="/suporte/">Suporte</a></div>
-  <div class="version" data-ig-version>IG Base v1.10.51</div>
+  <div class="version" data-ig-version>IG Base v1.10.52</div>
 </footer>
 
 <div id="modal-root"></div>
@@ -4727,14 +4727,14 @@ async function onSignOut(){
    O aviso aparece uma vez por versão por navegador (localStorage compartilhado
    entre o site principal e os subsites, pois ficam no mesmo domínio).
    ============================================================ */
-var IG_BASE_VERSION = window.IGBaseRelease?.version || '1.10.51';
-var IG_BASE_RELEASE_ID = window.IGBaseRelease?.releaseId || '1.10.51-2026-10-30';
+var IG_BASE_VERSION = window.IGBaseRelease?.version || '1.10.52';
+var IG_BASE_RELEASE_ID = window.IGBaseRelease?.releaseId || '1.10.52-2026-10-30';
 var IG_BASE_CHANGELOG = [
-  "Início do IG Base mais limpo: sem a logo pequena e a barra no topo, sistemas numa vitrine com cor e área de cada um, e atalhos para Empresas e Suporte.",
+  "Solar Distribution: lançar faturas no topo do Rateio, Usinas e Unidades para consulta (com edição), tudo salvo sozinho na conta e excluir vários rateios do histórico.",
+  "Início do IG Base mais limpo: só a logo grande, sistemas numa vitrine com cor e área de cada um, e Empresas e Suporte com ícone no topo.",
   "Novo: Solar Replacement (em teste) no início e no menu Sistemas: chamados de garantia com fotos, estoque de backup e cálculo do ressarcimento.",
   "Correção: o Hub e o Solar Organization voltaram a abrir (um texto das novidades travava o carregamento desde 17/11).",
   "Solar Distribution: “Editar dados do cliente” num lugar só (cliente, usinas, contato do formulário e unidades); ao mudar um dado, rateio, relatório e formulários já usam o novo.",
-  "Solar Distribution: documentos todos no fim da página, sem botões repetidos, e excluir rateios do histórico.",
 ];
 function igbMostrarChangelog(){
   var KEY = 'igbase_changelog_visto';

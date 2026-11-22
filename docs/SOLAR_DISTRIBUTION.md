@@ -31,7 +31,7 @@ Percentuais somando 100% (o titular pode reservar parte para a geradora); no aut
 | --- | --- |
 | `solar-distribution/engine.js` (`SolarDistribution`) | Leitura da fatura (`parseInvoice`), modelo, `sugerir` (cascata entre usinas), `calcular` (ajustes, projeção, alertas), `inteiros`. Exporta CommonJS |
 | `solar-distribution/store.js` (`IGDistributionStore`) | Grava em `configuracoes_documento.data.solarDistribution` (versão 1), relendo a linha e conferindo `updated_at`; preserva empresas, Budget e demais áreas |
-| `solar-distribution/app.js` | Tela: lateral Usinas/Unidades, abas Rateio, Lançar faturas, Usinas, Unidades e Histórico; leitura de PDF com pdf.js; formulário de rateio em PDF com jsPDF |
+| `solar-distribution/app.js` | Tela: lateral Usinas/Unidades, abas Rateio (com o lançamento de faturas no topo, desde a 1.10.52), Usinas e Unidades (consulta, edição recolhida) e Histórico; leitura de PDF com pdf.js; formulário de rateio em PDF com jsPDF |
 | `solar-distribution/index.html`, `styles.css` | Página no esqueleto do Budget/Organization (usa `/solar-budget/styles.css` e `/shared/presentation.css`) |
 | `solar-distribution/report.js` (`IGDistributionReport`) | PDFs: relatório do cliente (empresa no cabeçalho) e formulário da Equatorial |
 | `tests/distribuicao.test.cjs` | 29 testes com dados fictícios |
@@ -189,3 +189,10 @@ Também: "Geração considerada" no resumo (tela e relatório, quadro em 3 colun
 ## Relatório do cliente em uma folha (15/11/2026, versão 1.10.46)
 
 Pedido do usuário: duas folhas ficam cheias demais e a segunda com poucas linhas fica feia. `relatorio()` desenha no nível normal e, se passar de uma folha, tenta níveis compactos (`NIVEIS`: letra ×0,94…×0,78, espaços ×0,86…×0,55, logo até 30/24/18/15 mm de altura; letra mínima 6 pt). Distâncias usam `dm()` (sem piso) e letras `fs()` (piso de 6 pt). Cliente e CPF/CNPJ na mesma linha. Pontos de atenção agrupados: uma linha para "a geração não cobre todo o consumo" e uma para "não compensado acima do mínimo", com as unidades listadas. Medido: 3 unidades no nível normal; 8 e 12 unidades (logo 150% inclusive) cabem em 1 folha nos níveis compactos. Se nem o mais compacto couber, sai em mais folhas e o site avisa.
+
+## 1.10.52 (22/11/2026, pedido do usuário)
+
+- "Lançar faturas" deixou de ser aba: fica no topo do Rateio (`#dist-lancar`). Com um cliente aberto, as faturas sem CPF conhecido vão para ele. Depois de aplicar, "Editar dados do cliente" abre logo abaixo para conferir. O endereço antigo `#faturas` abre o Rateio no lançamento.
+- Usinas e Unidades são telas de consulta (ficha com geração, energia para o rateio, contato e % de cada unidade). A edição fica em "Editar dados desta usina/unidade". Depois de mudar, um aviso verde confirma que o rateio, o relatório e os formulários já usam os dados novos, com o botão "Ver o rateio".
+- Salvamento automático: cada alteração vai para a conta 1,5 s depois da última (`salvarAuto`). O botão "Salvar na conta" continua.
+- Histórico: marcar vários e "Excluir marcados".

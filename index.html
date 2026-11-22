@@ -4,7 +4,7 @@
 <meta charset="UTF-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1.0" />
 <title>IG Base</title>
-<link rel="icon" type="image/png" sizes="64x64" href="/favicon-ig-base.png?v=1.10.51">
+<link rel="icon" type="image/png" sizes="64x64" href="/favicon-ig-base.png?v=1.10.52">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@600;700;800&display=swap" rel="stylesheet">
@@ -140,10 +140,11 @@ body{background:#f6f8f7}body::before,.glow{display:none}
 @media(max-width:430px){.topbar-right a.enter-link{display:none!important}}
 }
 /* 1.10.51 (pedido do usuário): início mais limpo. Sem a logo pequena e sem a barra no topo (fica só a logo grande);
-   sistemas numa vitrine de duas colunas, cada um com sua cor e área; atalhos para Empresas e Suporte. */
+   sistemas numa vitrine de duas colunas, cada um com sua cor e área; Empresas e Suporte com ícone no topo (1.10.52). */
 .topbar{position:absolute;background:transparent!important;border-bottom:0;backdrop-filter:none;-webkit-backdrop-filter:none;justify-content:flex-end;padding:0 24px}
 .top-link{display:inline-flex;align-items:center;min-height:44px;padding:0 12px;border-radius:999px;font-size:13.5px;font-weight:600;color:var(--ink-soft);text-decoration:none;cursor:pointer}
 .top-link:hover{color:var(--green-deep);background:rgba(63,143,74,.08)}
+.top-link{gap:7px}.top-link svg{flex:none;color:var(--green-deep)}
 .topbar-right{gap:6px}
 main{padding-top:18px}
 .hero-logo{margin-bottom:22px}
@@ -162,16 +163,11 @@ main{padding-top:18px}
 .sis-tag.teste{background:#fff4dc;color:#8a5a00}
 .sis-go{width:38px;height:38px;border-radius:50%;display:grid;place-items:center;background:var(--bgc);color:var(--c);transition:transform .18s ease}
 .sis:hover .sis-go{transform:translateX(3px)}
-.atalhos{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:12px;width:100%;max-width:940px;margin-top:18px}
-.atalho{display:flex;align-items:center;gap:12px;min-height:56px;padding:12px 16px;border:1px dashed #cfdcd2;border-radius:14px;text-decoration:none;color:var(--ink);cursor:pointer;background:rgba(255,255,255,.6);transition:border-color .15s,background .15s}
-.atalho:hover{border-color:var(--green-bright);border-style:solid;background:#fff}
-.atalho-icon{width:36px;height:36px;border-radius:10px;display:grid;place-items:center;background:#eef4ef;color:var(--green-deep);flex:none}
-.atalho b{display:block;font-size:14px}.atalho small{display:block;font-size:12.5px;color:var(--ink-soft);margin-top:1px}
-@media(max-width:900px){.sistemas,.atalhos{grid-template-columns:1fr;max-width:600px}.sistemas{margin-top:28px}}
-@media(max-width:430px){.topbar{padding:0 12px}.sis{grid-template-columns:auto minmax(0,1fr);gap:14px;padding:18px 16px 18px 16px}.sis-icon{width:48px;height:48px;border-radius:14px}.sis-side{grid-column:1/-1;flex-direction:row;align-items:center}.sis h2{font-size:17px}.topbar-right .top-link{display:none}}
+@media(max-width:900px){.sistemas{grid-template-columns:1fr;max-width:600px}.sistemas{margin-top:28px}}
+@media(max-width:430px){.topbar{padding:0 12px}.sis{grid-template-columns:auto minmax(0,1fr);gap:14px;padding:18px 16px 18px 16px}.sis-icon{width:48px;height:48px;border-radius:14px}.sis-side{grid-column:1/-1;flex-direction:row;align-items:center}.sis h2{font-size:17px}.top-link{padding:0;width:44px;justify-content:center}.top-link span{display:none}}
 #hub-login{width:min(420px,calc(100vw - 32px));box-sizing:border-box;border:1px solid #dbe7d8;border-radius:20px;padding:28px;color:#203b29;background:#fff;box-shadow:0 24px 80px #16351f30}#hub-login::backdrop{background:#16351f66;backdrop-filter:blur(4px)}#hub-login h2{font:600 23px Poppins,"Segoe UI",sans-serif;margin:0 0 12px}#hub-login p{font-size:14px;line-height:1.6;color:#5b6c60}#hub-login label{display:grid;gap:8px;font-size:13px;margin:18px 0}#hub-login input{box-sizing:border-box;width:100%;min-height:46px;border:1px solid #dbe7d8;border-radius:10px;padding:10px 12px;font:14px -apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Helvetica,Arial,sans-serif}#hub-login .login-close{float:right;border:0;background:transparent;font-size:24px;cursor:pointer;color:#5b6c60}#hub-login button[type=submit]{width:100%;margin-top:8px}#hub-login-message{color:#963c2d!important}#hub-login-message:empty{display:none}
 </style>
-<script defer src="/shared/companies.js?v=1.10.51"></script><link rel="stylesheet" href="/shared/presentation.css?v=1.10.51"><script src="/shared/account.js?v=1.10.51"></script><script src="/shared/login.js?v=1.10.51"></script><script src="/shared/falta.js?v=1.10.51"></script><script src="/shared/navegacao.js?v=1.10.51"></script><script src="/shared/version.js?v=1.10.51"></script></head>
+<script defer src="/shared/companies.js?v=1.10.52"></script><link rel="stylesheet" href="/shared/presentation.css?v=1.10.52"><script src="/shared/account.js?v=1.10.52"></script><script src="/shared/login.js?v=1.10.52"></script><script src="/shared/falta.js?v=1.10.52"></script><script src="/shared/navegacao.js?v=1.10.52"></script><script src="/shared/version.js?v=1.10.52"></script></head>
 <body>
   <nav class="topbar">
     <div class="topbar-right" id="topbar-right">
@@ -210,17 +206,12 @@ main{padding-top:18px}
         <span class="sis-side"><span class="sis-tag teste">Em teste</span><span class="sis-go" aria-hidden="true"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12h14"/><path d="m12 5 7 7-7 7"/></svg></span></span>
       </a>
     </section>
-
-    <section class="atalhos" aria-label="Atalhos">
-      <a class="atalho" href="/empresas/"><span class="atalho-icon" aria-hidden="true"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M6 22V4a2 2 0 0 1 2-2h8a2 2 0 0 1 2 2v18Z"/><path d="M6 12H4a2 2 0 0 0-2 2v6a2 2 0 0 0 2 2h2"/><path d="M18 9h2a2 2 0 0 1 2 2v9a2 2 0 0 1-2 2h-2"/><path d="M10 6h4"/><path d="M10 10h4"/><path d="M10 14h4"/><path d="M10 18h4"/></svg></span><span><b>Empresas</b><small>Logo, dados e Pix que saem nos documentos</small></span></a>
-      <a class="atalho" href="/suporte/"><span class="atalho-icon" aria-hidden="true"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><path d="M9.09 9a3 3 0 0 1 5.83 1c0 2-3 3-3 3"/><path d="M12 17h.01"/></svg></span><span><b>Suporte e ajuda</b><small>Dúvidas, problemas e sugestões</small></span></a>
-    </section>
   </main>
 
   <footer class="ig-footer">
     <div class="footer-links"><a href="/" aria-current="page">IG Base</a><a href="/empresas/">Empresas</a><a href="/suporte/">Suporte</a></div>
     <div class="status"><span class="dot"></span>Todos os sistemas operacionais</div>
-    <div class="version" data-ig-version>IG Base v1.10.51</div>
+    <div class="version" data-ig-version>IG Base v1.10.52</div>
   </footer>
 
   <div class="modal-overlay" id="settings-overlay">
@@ -291,13 +282,13 @@ async function initAuth(){
 function renderLoggedIn(){
   if(window.IGCompanies&&sessionUser&&supabaseClient){var central=IGCompanies.service(supabaseClient,sessionUser);central.load().catch(function(e){console.warn('Cadastro central: confira Empresas no IG Base.',e.message);});}
   var nome = IGAccount.name(currentUsername || sessionUser?.user_metadata?.username);
-  document.getElementById('topbar-right').innerHTML = '<a class="top-link" href="/empresas/">Empresas</a><a class="top-link" href="/suporte/">Suporte</a>' + IGAccount.html(nome,'<button id="settings-btn" type="button">Configurações</button><a href="/#configuracoes">Configurações da conta no IG Base</a><button id="account-signout" type="button">Sair da conta</button>');
+  document.getElementById('topbar-right').innerHTML = '<a class="top-link" href="/empresas/" aria-label="Empresas"><svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M6 22V4a2 2 0 0 1 2-2h8a2 2 0 0 1 2 2v18Z"/><path d="M6 12H4a2 2 0 0 0-2 2v6a2 2 0 0 0 2 2h2"/><path d="M18 9h2a2 2 0 0 1 2 2v9a2 2 0 0 1-2 2h-2"/><path d="M10 6h4"/><path d="M10 10h4"/><path d="M10 14h4"/><path d="M10 18h4"/></svg><span>Empresas</span></a><a class="top-link" href="/suporte/" aria-label="Suporte"><svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="10"/><path d="M9.09 9a3 3 0 0 1 5.83 1c0 2-3 3-3 3"/><path d="M12 17h.01"/></svg><span>Suporte</span></a>' + IGAccount.html(nome,'<button id="settings-btn" type="button">Configurações</button><a href="/#configuracoes">Configurações da conta no IG Base</a><button id="account-signout" type="button">Sair da conta</button>');
   document.getElementById('settings-btn').addEventListener('click',openSettings);
   document.getElementById('account-signout').addEventListener('click',sairDaConta);
   if(location.hash==='#configuracoes')openSettings();
 }
 function renderLoggedOut(){
-  document.getElementById('topbar-right').innerHTML='<a class="top-link" href="/suporte/">Suporte</a><button type="button" class="enter-link" id="hub-open-login">Entrar</button>';
+  document.getElementById('topbar-right').innerHTML='<a class="top-link" href="/suporte/" aria-label="Suporte"><svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="10"/><path d="M9.09 9a3 3 0 0 1 5.83 1c0 2-3 3-3 3"/><path d="M12 17h.01"/></svg><span>Suporte</span></a><button type="button" class="enter-link" id="hub-open-login">Entrar</button>';
   document.getElementById('hub-open-login').onclick=openLogin;
   if(location.hash==='#entrar'||location.hash==='#configuracoes')openLogin();
 }
@@ -358,14 +349,14 @@ document.getElementById('settings-signout').addEventListener('click', sairDaCont
    O aviso aparece uma vez por versão por navegador (localStorage compartilhado
    entre o site principal e os subsites, pois ficam no mesmo domínio).
    ============================================================ */
-var IG_BASE_VERSION = window.IGBaseRelease?.version || '1.10.51';
-var IG_BASE_RELEASE_ID = window.IGBaseRelease?.releaseId || '1.10.51-2026-10-30';
+var IG_BASE_VERSION = window.IGBaseRelease?.version || '1.10.52';
+var IG_BASE_RELEASE_ID = window.IGBaseRelease?.releaseId || '1.10.52-2026-10-30';
 var IG_BASE_CHANGELOG = [
-  "Início do IG Base mais limpo: sem a logo pequena e a barra no topo, sistemas numa vitrine com cor e área de cada um, e atalhos para Empresas e Suporte.",
+  "Solar Distribution: lançar faturas no topo do Rateio, Usinas e Unidades para consulta (com edição), tudo salvo sozinho na conta e excluir vários rateios do histórico.",
+  "Início do IG Base mais limpo: só a logo grande, sistemas numa vitrine com cor e área de cada um, e Empresas e Suporte com ícone no topo.",
   "Novo: Solar Replacement (em teste) no início e no menu Sistemas: chamados de garantia com fotos, estoque de backup e cálculo do ressarcimento.",
   "Correção: o Hub e o Solar Organization voltaram a abrir (um texto das novidades travava o carregamento desde 17/11).",
   "Solar Distribution: “Editar dados do cliente” num lugar só (cliente, usinas, contato do formulário e unidades); ao mudar um dado, rateio, relatório e formulários já usam o novo.",
-  "Solar Distribution: documentos todos no fim da página, sem botões repetidos, e excluir rateios do histórico.",
 ];
 function igbMostrarChangelog(){
   var KEY = 'igbase_changelog_visto';

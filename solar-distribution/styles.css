@@ -183,3 +183,25 @@ a.button.primary{background:var(--green);color:#fff}
 .dist-forms-contato{display:grid;grid-template-columns:repeat(auto-fit,minmax(200px,1fr));gap:8px;margin-top:6px}
 .dist-forms-contato label{font-size:12px;color:var(--muted)}
 .bad{color:#a33}
+
+/* 1.10.52: lançamento dentro do Rateio, Usinas/Unidades como consulta, histórico com excluir vários. */
+.dist-lancar{border-left:4px solid var(--green)}
+.dist-editar-sec .dist-editar{margin-top:0;border:0;padding:0;background:none}
+.dist-editar-sec .dist-editar>summary{font-size:16px}
+.dist-consulta{margin:0 0 12px;padding:10px 14px;border-radius:12px;background:#f3f7f2;border:1px solid var(--border);font-size:13.5px;line-height:1.5;color:#3d4a3f}
+.dist-consulta.feito{background:#eaf5ec;border-color:#b9d9bf;color:#1f5a2e}
+.dist-consulta .link{border:0;background:none;padding:0;min-height:0;color:var(--green);font-weight:600;text-decoration:underline;cursor:pointer;font-size:inherit}
+.dist-ficha{display:grid;grid-template-columns:repeat(auto-fill,minmax(200px,1fr));gap:14px 22px;margin:6px 0 0}
+.dist-ficha>div{min-width:0}
+.dist-ficha dt{font-size:12px;color:#6b766c;margin-bottom:3px}
+.dist-ficha dd{margin:0;font-size:14px;line-height:1.45;overflow-wrap:anywhere}
+.dist-editar-dados{margin-top:4px}
+.dist-editar-dados>summary{cursor:pointer;display:inline-flex;align-items:center;min-height:44px;padding:0 16px;border:1px solid var(--border);border-radius:999px;background:#fff;font-weight:600;color:var(--green);margin-bottom:12px}
+.dist-editar-dados>summary::marker{content:''}
+.dist-editar-dados>summary::before{content:'✎';margin-right:8px}
+.dist-editar-dados[open]>summary{background:#f0f6ed}
+.dist-hist-acoes{align-items:center;margin-bottom:10px}
+.dist-hist-item{display:flex;align-items:flex-start;gap:10px}
+.dist-hist-item>input{margin-top:14px;width:18px;height:18px;flex:none}
+.dist-hist-item>details{flex:1;min-width:0}
+.dist-ficha-panel .section-title{display:block}
