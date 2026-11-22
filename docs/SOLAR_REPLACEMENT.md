@@ -9,7 +9,7 @@ logística reversa/depósito, conferência pelo monitoramento, ressarcimento e d
 ## Onde está
 
 - Pasta `solar-replacement/` (`index.html`, `engine.js`, `store.js`, `app.js`, `styles.css`), no modelo do Solar Distribution.
-- Publicada em `/solar-replacement/` **sem link** no Hub nem no menu Sistemas (`meta robots noindex`), até o usuário decidir lançar.
+- Publicada em `/solar-replacement/`. Desde a 1.10.50 (22/11/2026) aparece no Hub (cartão "Em teste") e no menu Sistemas, a pedido do usuário, para os testes. A página segue com `meta robots noindex` até o lançamento oficial.
 - Dados na linha da conta (`configuracoes_documento`), área própria `solarReplacement`. A gravação relê a linha e preserva
   as demais áreas (empresas, Budget, Distribution etc.), como no `solar-distribution/store.js`. Grava sozinho ~1 s após cada mudança.
 - Testes: `tests/replacement.test.cjs`.

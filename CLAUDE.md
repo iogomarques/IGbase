@@ -29,7 +29,7 @@ Prioridade definida pelo usuário: **faturamento**; haverá ajustes visuais post
 - `solar-organization/index.html`: aplicação de faturamento, com estilos, motor de fórmulas, estado, eventos e exportações no mesmo arquivo. Preserve essa organização ao fazer correções pontuais.
 - `solar-budget/`: módulos separados, expostos por globais e carregados em ordem pela página; alguns também exportam CommonJS para uso em Node.
 - `solar-distribution/`: rateio de créditos entre usinas e unidades (motor `engine.js`, gravação `store.js`, tela `app.js`). Regras em `docs/SOLAR_DISTRIBUTION.md`.
-- `solar-replacement/`: Solar Replacement (garantias, trocas, estoque de backup e ressarcimento), base publicada sem link no Hub/menu até o lançamento. Mesmo modelo do Distribution; área `solarReplacement` na conta. Ver `docs/SOLAR_REPLACEMENT.md`.
+- `solar-replacement/`: Solar Replacement (garantias, trocas, estoque de backup e ressarcimento), no Hub e no menu Sistemas como "Em teste" desde a 1.10.50 (22/11/2026), a pedido do usuário para testar. Mesmo modelo do Distribution; área `solarReplacement` na conta. Ver `docs/SOLAR_REPLACEMENT.md`.
 - `shared/`: conta, login, empresas, apresentação e versão comuns.
 - `empresas/`, `suporte/`, `assets/`, `CNAME` e imagens da raiz fazem parte do site existente.
 - Preserve estilo do arquivo tocado: Organization usa predominantemente funções/`var` e delegação por `data-action`; Budget usa IIFE, `const`/`let`, globais e atributos `data-*`. Não acrescente imports de bundler ou uma etapa de build sem novo escopo.

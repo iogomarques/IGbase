@@ -5,7 +5,7 @@
    2. Menu "Sistemas" junto ao logo, em todas as páginas menos a inicial do IG Base: leva a qualquer sistema,
       Empresas e Suporte com um clique. */
 (function(root){'use strict';
-const SISTEMAS=[['/','IG Base (início)'],['/solar-organization/','Solar Organization'],['/solar-budget/','Solar Budget'],['/solar-distribution/','Solar Distribution'],['/empresas/','Empresas'],['/suporte/','Suporte']];
+const SISTEMAS=[['/','IG Base (início)'],['/solar-organization/','Solar Organization'],['/solar-budget/','Solar Budget'],['/solar-distribution/','Solar Distribution'],['/solar-replacement/','Solar Replacement'],['/empresas/','Empresas'],['/suporte/','Suporte']];
 const naInicial=location.pathname==='/'||location.pathname==='/index.html';
 const esc=x=>String(x).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
 
