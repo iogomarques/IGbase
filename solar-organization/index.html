@@ -4,7 +4,7 @@
 <meta charset="UTF-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1.0" />
 <title>Solar Organization | IG Base</title>
-<link rel="icon" type="image/png" sizes="64x64" href="/favicon-ig-base.png?v=1.10.52">
+<link rel="icon" type="image/png" sizes="64x64" href="/favicon-ig-base.png?v=1.10.53">
 <!-- O SDK é carregado sem bloquear a renderização da página, no início do app. -->
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -311,6 +311,12 @@
   .history-item .info{ min-width:0;flex:1 1 240px;display:flex;flex-direction:column;gap:5px;overflow-wrap:anywhere; }
   .history-item .info > span{ display:block;white-space:normal; }
   .history-item .btn-row{ flex-wrap:wrap; }
+.hist-acoes{ display:flex;align-items:center;gap:12px;flex-wrap:wrap;margin:0 0 12px; }
+.history-item .hist-marcar{ display:flex;align-items:flex-start;padding-top:2px;flex:none; }
+.history-item .hist-marcar input{ width:18px;height:18px; }
+#historico-list:not(:has(.hist-acoes)) .hist-marcar{ display:none; }
+.aviso-cliente-editado{ display:flex;align-items:center;justify-content:space-between;gap:12px;flex-wrap:wrap;padding:14px 16px;margin:0 0 14px;border:1px solid #b9d9bf;border-radius:12px;background:#eaf5ec;color:#1f5a2e; }
+.aviso-cliente-editado p{ margin:0;flex:1 1 260px;font-size:14px;line-height:1.5; }
   .filtros-clientes{ display:flex;flex-direction:column;gap:6px;margin-bottom:14px; }
   .filter-label{ display:block;font-size:12px;font-weight:600; }
   .filtros-clientes .busca-wrap{ margin:0;min-width:0; }
@@ -464,7 +470,7 @@
 
 @media screen{.vigencia-linha input[type=month]{width:100%;min-height:44px;padding:9px;border:1px solid var(--line);border-radius:8px;background:#fff;font:inherit}.vigencia-linha .vigencia-remover{margin-top:10px}#m-vigencias{margin-top:16px}}
 </style>
-<script src="/shared/companies.js?v=1.10.52"></script><link rel="stylesheet" href="/shared/presentation.css?v=1.10.52"><script src="/shared/account.js?v=1.10.52"></script><script src="/shared/login.js?v=1.10.52"></script><script src="/shared/falta.js?v=1.10.52"></script><script src="/shared/navegacao.js?v=1.10.52"></script><script src="/shared/version.js?v=1.10.52"></script></head>
+<script src="/shared/companies.js?v=1.10.53"></script><link rel="stylesheet" href="/shared/presentation.css?v=1.10.53"><script src="/shared/account.js?v=1.10.53"></script><script src="/shared/login.js?v=1.10.53"></script><script src="/shared/falta.js?v=1.10.53"></script><script src="/shared/navegacao.js?v=1.10.53"></script><script src="/shared/version.js?v=1.10.53"></script></head>
 <body>
 
 <div id="auth-root"><div class="auth-screen startup-screen"><div class="startup-card" aria-busy="true"><div class="startup-brand"><img width="713" height="340" draggable="false" src="/assets/logo-ig-base.png" alt="IG Base"></div><div class="startup-spinner" aria-hidden="true"></div><h1 class="startup-title">Carregando o sistema</h1><p class="startup-message" role="status" aria-live="polite">Preparando seu ambiente…</p><noscript>Ative o JavaScript no navegador para utilizar o sistema.</noscript></div></div></div>
@@ -479,7 +485,7 @@
 </div>
 <footer class="app-footer ig-footer" id="app-footer" style="display:none">
   <div class="footer-links"><a href="/">IG Base</a><a href="/empresas/">Empresas</a><a href="/suporte/">Suporte</a></div>
-  <div class="version" data-ig-version>IG Base v1.10.52</div>
+  <div class="version" data-ig-version>IG Base v1.10.53</div>
 </footer>
 
 <div id="modal-root"></div>
@@ -1505,8 +1511,23 @@ function organizarLancamento(){
   var consumoBase=col.querySelector('[data-chave="consumoTotal"]');if(consumoBase && p.possuiItensMultiplos){var label=consumoBase.closest('.field').querySelector('label');if(label)label.textContent='Base de consumo do modelo de rateio (kWh)';}
   var variacao=col.querySelector('.in-mensal[data-chave="saldoDelta"]');if(variacao){var rotulo=variacao.closest('.field').querySelector('label');if(rotulo)rotulo.textContent=p.possuiItensMultiplos?'Compensação menos injeção do ciclo (kWh)':perfilConsumoGD1(p)?'Variação na conta (kWh): negativo = uso de saldo':'Injeção do ciclo menos compensação (kWh)';}
   var seletor=document.getElementById('lancamento-modo');if(seletor)seletor.value=modoLancamentoFormulario;
+  /* 1.10.53 (pedido do usuário: só a organização da tela, sem mexer no cálculo): lançar → dados do mês → saldo →
+     conferências → valores fixos → observações. Os blocos só mudam de lugar. */
+  var dadosBloco=document.getElementById('lancamento-dados'),pontosBloco=document.getElementById('lancamento-pontos');
+  var depoisDe=document.getElementById('gd2-geracao-dados')||document.getElementById('importacao-equatorial')||referencia;
+  if(dadosBloco && depoisDe && depoisDe.parentNode===col){depoisDe.after(dadosBloco);if(pontosBloco)dadosBloco.after(pontosBloco);}
+  var fixosBloco=document.getElementById('fixos-lancamento'),obsBloco=document.getElementById('lancamento-observacoes');fixosBloco=fixosBloco && fixosBloco.closest('details');
+  if(fixosBloco && obsBloco && fixosBloco.parentNode===col)obsBloco.before(fixosBloco);
+  /* Depois de editar o cliente: aviso com o botão de sempre para refazer a fatura do mês com os dados novos. */
+  if(avisoClienteEditado && c && avisoClienteEditado===c.id && !document.getElementById('aviso-cliente-editado')){
+    var aviso=document.createElement('div');aviso.id='aviso-cliente-editado';aviso.className='aviso-cliente-editado';aviso.setAttribute('role','status');
+    aviso.innerHTML='<p><strong>Dados do cliente atualizados.</strong> Para a fatura do mês usar os dados novos, calcule de novo: a fatura do mesmo mês é substituída no histórico, sem duplicar.</p><button type="button" class="btn btn-primary" data-action="calcular">Calcular orçamento agora</button>';
+    var pend=document.getElementById('lancamento-pendencias');if(pend)pend.after(aviso);else col.prepend(aviso);
+  }
+  avisoClienteEditado=null;
   atualizarModoLancamento();
 }
+var avisoClienteEditado=null;
 function atualizarModoLancamento(){
   renderExcedenteRecebido();
   var pdf=modoLancamentoFormulario==='fatura',importar=document.getElementById('importacao-equatorial');if(importar)importar.hidden=!pdf;
@@ -1565,7 +1586,7 @@ function renderNovoOrcamento(){
         '<div class="field"><label>Ajuste do mês (R$)</label><input type="text" inputmode="decimal" id="f-ajuste" value="" placeholder="0,00"><span class="hint">Reduz o valor final. Use negativo para acrescentar.</span></div>' +
       '</div>' +
     '</fieldset>' +
-    '<details class="panel" style="cursor:pointer"><summary style="font-weight:600;cursor:pointer">Valores fixos aplicados a este cliente (definidos no perfil, editáveis em "Editar cliente")</summary>' +
+    '<details class="panel" style="cursor:pointer"><summary style="font-weight:600;cursor:pointer">Valores fixos aplicados a este cliente (definidos no perfil, editáveis em "Editar dados do cliente")</summary>' +
       '<div id="fixos-lancamento" style="margin-top:10px">' + (fixosHtml || '<span style="color:var(--ink-soft);font-size:13px">Este perfil não possui variáveis fixas.</span>') + '</div>' +
     '</details>';
 
@@ -3082,7 +3103,7 @@ function historicoItemHtml(q){
   var data=new Date(q.createdAt), dataStr=isFinite(data.getTime()) ? data.toLocaleDateString('pt-BR') : 'não informada';
   var totalStr=fmtBRL((q.scope || {})[p ? p.chaveTotalFinal : 'valorFinal']);
   var saldo=q.resumoEnergia ? valorEnergiaInformado(q.resumoEnergia.saldoRestanteKwh) : null;
-  return '<div class="history-item"><div class="info"><b>' + textoExibicao(cliente.nome) + ' — ' + textoExibicao(q.referencia) + ' — ' + totalStr + '</b> ' +
+  return '<div class="history-item"><label class="hist-marcar"><input type="checkbox" data-hist-sel="' + escapeHtml(q.id) + '" aria-label="Marcar a fatura ' + escapeHtml(textoExibicao(q.referencia)) + '"></label><div class="info"><b>' + textoExibicao(cliente.nome) + ' — ' + textoExibicao(q.referencia) + ' — ' + totalStr + '</b> ' +
     '<span>' + (tipoGDDoPerfil(p) || 'Perfil personalizado') + (cliente.uc ? ' · UC: '+textoExibicao(cliente.uc) : '') + (local ? ' · Local: '+textoExibicao(local) : '') + '</span> ' +
     '<span>Salvo em ' + dataStr + '</span> ' +
     '<span><strong>Saldo disponível após a fatura:</strong> ' + escapeHtml(energiaTexto(saldo)) + '</span></div>' + avisoSaldoHistorico(q) +
@@ -3095,6 +3116,7 @@ function historicoListaHtml(c){
   var erro=erroFiltrosHistorico();if(erro) return '<div class="empty-state" role="alert"><p>'+escapeHtml(erro)+'</p></div>';
   var items=historicoItemsFiltrados(c);
   return '<p class="hint">' + items.length + ' fatura(s) encontrada(s).</p>' +
+    (items.length > 1 ? '<div class="hist-acoes"><label class="checkbox-field"><input type="checkbox" id="hist-todos"> Marcar todas</label><button type="button" class="btn btn-danger" data-action="excluir-marcadas" disabled>Excluir marcadas</button></div>' : '') +
     (items.length ? items.map(historicoItemHtml).join('') : '<div class="empty-state"><p>Nenhuma fatura corresponde aos filtros selecionados.</p></div>');
 }
 function resumoFiltrosHistorico(){
@@ -3195,6 +3217,19 @@ function duplicarQuote(id){
   setIf('motivo-conciliacao-saldo',q.motivoConciliacaoSaldo || '');renderPeriodoConta();
   toast('Dados carregados como base. O novo cálculo usará o perfil e as configurações atuais.');
 }
+/* 1.10.53 (pedido do usuário): excluir várias faturas do histórico de uma vez. Só apaga os registros; o rateio e o cálculo não mudam. */
+async function excluirMarcadas(){
+  var ids=Array.from(document.querySelectorAll('[data-hist-sel]:checked')).map(function(x){return x.getAttribute('data-hist-sel');});
+  if(!ids.length)return;
+  if(!confirm('Excluir '+ids.length+(ids.length>1?' faturas':' fatura')+' do histórico?\n\nIsso não pode ser desfeito.'))return;
+  var quotes=state.quotes.filter(function(q){return ids.indexOf(q.id)<0;});
+  if(!await saveQuotes(quotes)){toast('Não foi possível excluir. Confira a conexão e tente novamente.');return;}
+  state.quotes=quotes;renderHistorico();toast(ids.length>1?ids.length+' faturas excluídas do histórico.':'Fatura excluída do histórico.');
+}
+document.addEventListener('change',function(e){var t=e.target;if(!t || !t.matches)return;
+  if(t.id==='hist-todos')Array.from(document.querySelectorAll('[data-hist-sel]')).forEach(function(x){x.checked=t.checked;});
+  if(t.id==='hist-todos' || t.matches('[data-hist-sel]')){var n=document.querySelectorAll('[data-hist-sel]:checked').length,b=document.querySelector('[data-action="excluir-marcadas"]');if(b){b.disabled=!n;b.textContent=n?'Excluir marcadas ('+n+')':'Excluir marcadas';}}
+});
 async function deleteQuote(id){
   var quotes = state.quotes.filter(function(q){ return q.id !== id; });
   if(!await saveQuotes(quotes)){toast('Não foi possível excluir a fatura. Confira a conexão e tente novamente.');return;}
@@ -4508,6 +4543,7 @@ async function saveClientFromModal(existingId){
   if(!await saveClients(clients)){toast('Não foi possível salvar o cliente. Confira a conexão e tente novamente.');return;}
   state.clients = clients;
   state.selectedClientId = data.id;
+  if(existingId)avisoClienteEditado=data.id;
   closeModal(); renderAll();
   toast('Cliente salvo.');
 }
@@ -4727,14 +4763,14 @@ async function onSignOut(){
    O aviso aparece uma vez por versão por navegador (localStorage compartilhado
    entre o site principal e os subsites, pois ficam no mesmo domínio).
    ============================================================ */
-var IG_BASE_VERSION = window.IGBaseRelease?.version || '1.10.52';
-var IG_BASE_RELEASE_ID = window.IGBaseRelease?.releaseId || '1.10.52-2026-10-30';
+var IG_BASE_VERSION = window.IGBaseRelease?.version || '1.10.53';
+var IG_BASE_RELEASE_ID = window.IGBaseRelease?.releaseId || '1.10.53-2026-10-30';
 var IG_BASE_CHANGELOG = [
+  "Solar Organization mais organizado (o cálculo não mudou): dados do mês logo depois da referência, conferências juntas, aviso para recalcular depois de editar o cliente e excluir várias faturas do histórico.",
   "Solar Distribution: lançar faturas no topo do Rateio, Usinas e Unidades para consulta (com edição), tudo salvo sozinho na conta e excluir vários rateios do histórico.",
   "Início do IG Base mais limpo: só a logo grande, sistemas numa vitrine com cor e área de cada um, e Empresas e Suporte com ícone no topo.",
   "Novo: Solar Replacement (em teste) no início e no menu Sistemas: chamados de garantia com fotos, estoque de backup e cálculo do ressarcimento.",
   "Correção: o Hub e o Solar Organization voltaram a abrir (um texto das novidades travava o carregamento desde 17/11).",
-  "Solar Distribution: “Editar dados do cliente” num lugar só (cliente, usinas, contato do formulário e unidades); ao mudar um dado, rateio, relatório e formulários já usam o novo.",
 ];
 function igbMostrarChangelog(){
   var KEY = 'igbase_changelog_visto';
@@ -4995,6 +5031,7 @@ document.addEventListener('click', function(e){
     case 'duplicar-quote': duplicarQuote(id); break;
     case 'corrigir-quote': corrigirQuote(id); break;
     case 'delete-quote-confirm': handleConfirmClick(el, function(){ deleteQuote(id); }); break;
+    case 'excluir-marcadas': excluirMarcadas(); break;
 
     case 'new-profile': onNewProfile(); break;
     case 'edit-profile': onEditProfile(id); break;

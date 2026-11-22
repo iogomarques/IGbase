@@ -26,7 +26,7 @@
     ['Saldo de energia','Confira o saldo anterior. Use "Recuperar saldo do histórico" ou "Usar apuração automática de saldo". Créditos novos só entram depois de confirmados. Se a sobra já foi cobrada antes, marque essa opção para não cobrar duas vezes.'],
     ['Confira a cobrança','Revise a "Conferência da cobrança" e a prévia da fatura ao lado. Em qualquer campo numérico dá para digitar uma conta, por exemplo 120+35.'],
     ['Emita','Clique em "Baixar fatura PDF". Ela sai em uma página; se não couber, o site avisa e não corta nada. Também há PNG, Word e o PDF interno.'],
-    ['Histórico','Ao clicar em "Calcular orçamento", a fatura já fica salva no histórico. Calcular de novo o mesmo mês substitui a mesma fatura, sem duplicar. Para mudar uma fatura já feita, abra o Histórico e use "Corrigir": os dados voltam preenchidos e o novo cálculo substitui a fatura salva.']]},
+    ['Histórico','Ao clicar em "Calcular orçamento", a fatura já fica salva no histórico. Calcular de novo o mesmo mês substitui a mesma fatura, sem duplicar. Para mudar uma fatura já feita, abra o Histórico e use "Corrigir": os dados voltam preenchidos e o novo cálculo substitui a fatura salva. Mudou um dado do cliente em "Editar dados do cliente"? Aparece um aviso verde com "Calcular orçamento agora" para refazer a fatura do mês. Para apagar várias faturas que não servem mais, marque no Histórico e clique em "Excluir marcadas".']]},
    {titulo:'Histórico',passos:[
     ['Encontre faturas','Na aba Histórico, filtre por cliente, mês da fatura ou tipo de usina.'],
     ['Abra ou reaproveite','"Abrir fatura" mostra o documento exatamente como foi emitido, sem recalcular com tarifas novas. "Usar como base" começa o mês seguinte a partir dela.']]},
