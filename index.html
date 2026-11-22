@@ -4,7 +4,7 @@
 <meta charset="UTF-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1.0" />
 <title>IG Base</title>
-<link rel="icon" type="image/png" sizes="64x64" href="/favicon-ig-base.png?v=1.10.50">
+<link rel="icon" type="image/png" sizes="64x64" href="/favicon-ig-base.png?v=1.10.51">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@600;700;800&display=swap" rel="stylesheet">
@@ -139,12 +139,41 @@ body{background:#f6f8f7}body::before,.glow{display:none}
 @media(max-width:600px){.topbar{flex-wrap:nowrap!important;gap:8px;padding:0 12px}.topbar .ig-brand span{display:none}.topbar .ig-sistemas{margin:0}.topbar-right{gap:8px;flex-wrap:nowrap!important}}
 @media(max-width:430px){.topbar-right a.enter-link{display:none!important}}
 }
+/* 1.10.51 (pedido do usuário): início mais limpo. Sem a logo pequena e sem a barra no topo (fica só a logo grande);
+   sistemas numa vitrine de duas colunas, cada um com sua cor e área; atalhos para Empresas e Suporte. */
+.topbar{position:absolute;background:transparent!important;border-bottom:0;backdrop-filter:none;-webkit-backdrop-filter:none;justify-content:flex-end;padding:0 24px}
+.top-link{display:inline-flex;align-items:center;min-height:44px;padding:0 12px;border-radius:999px;font-size:13.5px;font-weight:600;color:var(--ink-soft);text-decoration:none;cursor:pointer}
+.top-link:hover{color:var(--green-deep);background:rgba(63,143,74,.08)}
+.topbar-right{gap:6px}
+main{padding-top:18px}
+.hero-logo{margin-bottom:22px}
+.sistemas{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:18px;width:100%;max-width:940px;margin-top:40px}
+.sis{--c:#2f663f;--bgc:#e8f2ea;display:grid;grid-template-columns:auto minmax(0,1fr) auto;gap:18px;align-items:center;background:#fff;border:1px solid #dfe7e1;border-radius:18px;padding:22px 22px 22px 20px;text-decoration:none;color:inherit;cursor:pointer;position:relative;overflow:hidden;box-shadow:0 1px 2px rgba(31,42,34,.04);transition:transform .18s ease,box-shadow .18s ease,border-color .18s ease}
+.sis::before{content:"";position:absolute;left:0;top:0;bottom:0;width:4px;background:var(--c);opacity:.85}
+.sis:hover,.sis:focus-visible{transform:translateY(-3px);border-color:var(--c);box-shadow:0 12px 28px rgba(31,42,34,.09);outline:none}
+.sis-org{--c:#2f663f;--bgc:#e8f2ea}.sis-bud{--c:#1d6c69;--bgc:#e2f1ef}.sis-dis{--c:#9a6b12;--bgc:#f7efdd}.sis-rep{--c:#2d5e8c;--bgc:#e5edf6}
+.sis-icon{width:58px;height:58px;border-radius:16px;display:grid;place-items:center;background:var(--bgc);color:var(--c)}
+.sis-body{min-width:0}
+.sis-area{display:block;font-size:11.5px;font-weight:700;letter-spacing:.06em;text-transform:uppercase;color:var(--c);margin-bottom:3px}
+.sis h2{font-family:'Poppins',sans-serif;font-weight:700;font-size:18px;margin:0 0 5px;color:var(--ink)}
+.sis p{margin:0;font-size:13.5px;line-height:1.5;color:var(--ink-soft)}
+.sis-side{display:flex;flex-direction:column;align-items:flex-end;justify-content:space-between;align-self:stretch;gap:12px}
+.sis-tag{font-size:11.5px;font-weight:600;padding:4px 10px;border-radius:999px;background:#eef4ef;color:var(--green-deep);white-space:nowrap}
+.sis-tag.teste{background:#fff4dc;color:#8a5a00}
+.sis-go{width:38px;height:38px;border-radius:50%;display:grid;place-items:center;background:var(--bgc);color:var(--c);transition:transform .18s ease}
+.sis:hover .sis-go{transform:translateX(3px)}
+.atalhos{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:12px;width:100%;max-width:940px;margin-top:18px}
+.atalho{display:flex;align-items:center;gap:12px;min-height:56px;padding:12px 16px;border:1px dashed #cfdcd2;border-radius:14px;text-decoration:none;color:var(--ink);cursor:pointer;background:rgba(255,255,255,.6);transition:border-color .15s,background .15s}
+.atalho:hover{border-color:var(--green-bright);border-style:solid;background:#fff}
+.atalho-icon{width:36px;height:36px;border-radius:10px;display:grid;place-items:center;background:#eef4ef;color:var(--green-deep);flex:none}
+.atalho b{display:block;font-size:14px}.atalho small{display:block;font-size:12.5px;color:var(--ink-soft);margin-top:1px}
+@media(max-width:900px){.sistemas,.atalhos{grid-template-columns:1fr;max-width:600px}.sistemas{margin-top:28px}}
+@media(max-width:430px){.topbar{padding:0 12px}.sis{grid-template-columns:auto minmax(0,1fr);gap:14px;padding:18px 16px 18px 16px}.sis-icon{width:48px;height:48px;border-radius:14px}.sis-side{grid-column:1/-1;flex-direction:row;align-items:center}.sis h2{font-size:17px}.topbar-right .top-link{display:none}}
 #hub-login{width:min(420px,calc(100vw - 32px));box-sizing:border-box;border:1px solid #dbe7d8;border-radius:20px;padding:28px;color:#203b29;background:#fff;box-shadow:0 24px 80px #16351f30}#hub-login::backdrop{background:#16351f66;backdrop-filter:blur(4px)}#hub-login h2{font:600 23px Poppins,"Segoe UI",sans-serif;margin:0 0 12px}#hub-login p{font-size:14px;line-height:1.6;color:#5b6c60}#hub-login label{display:grid;gap:8px;font-size:13px;margin:18px 0}#hub-login input{box-sizing:border-box;width:100%;min-height:46px;border:1px solid #dbe7d8;border-radius:10px;padding:10px 12px;font:14px -apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Helvetica,Arial,sans-serif}#hub-login .login-close{float:right;border:0;background:transparent;font-size:24px;cursor:pointer;color:#5b6c60}#hub-login button[type=submit]{width:100%;margin-top:8px}#hub-login-message{color:#963c2d!important}#hub-login-message:empty{display:none}
 </style>
-<script defer src="/shared/companies.js?v=1.10.50"></script><link rel="stylesheet" href="/shared/presentation.css?v=1.10.50"><script src="/shared/account.js?v=1.10.50"></script><script src="/shared/login.js?v=1.10.50"></script><script src="/shared/falta.js?v=1.10.50"></script><script src="/shared/navegacao.js?v=1.10.50"></script><script src="/shared/version.js?v=1.10.50"></script></head>
+<script defer src="/shared/companies.js?v=1.10.51"></script><link rel="stylesheet" href="/shared/presentation.css?v=1.10.51"><script src="/shared/account.js?v=1.10.51"></script><script src="/shared/login.js?v=1.10.51"></script><script src="/shared/falta.js?v=1.10.51"></script><script src="/shared/navegacao.js?v=1.10.51"></script><script src="/shared/version.js?v=1.10.51"></script></head>
 <body>
   <nav class="topbar">
-    <a class="topbar-brand ig-brand" href="/" aria-label="IG Base — início"><img draggable="false" src="/Logo_IG_Base.png" alt=""><span>IG Base</span></a>
     <div class="topbar-right" id="topbar-right">
       <a class="enter-link" href="/solar-organization/">Entrar</a>
     </div>
@@ -159,48 +188,39 @@ body{background:#f6f8f7}body::before,.glow{display:none}
       <p>Tudo o que sua operação de energia solar precisa, num só lugar.</p>
     </div>
 
-    <div class="modules">
-      <a class="card active" href="/solar-organization/">
-        <span class="dot"></span>
-        <span class="icon-wrap"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="16.5" cy="6" r="1.9"/><path d="M16.5 1.4v1.2"/><path d="m20 3.1-.85.85"/><path d="M22.2 6h-1.2"/><path d="m20 8.9-.85-.85"/><path d="M2 21h20"/><path d="M4.5 21V11L12 5l7.5 6v10"/><path d="M9.5 21v-6h5v6"/></svg></span>
-        <h2>Solar Organization</h2>
-        <p>Gestão de aluguel de usinas: clientes e faturamento em PDF.</p>
-        <span class="tag">Disponível</span>
-        <span class="go">Acessar ferramenta
-          <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12h14"/><path d="m12 5 7 7-7 7"/></svg>
-        </span>
+    <section class="sistemas" aria-label="Sistemas do IG Base">
+      <a class="sis sis-org" href="/solar-organization/">
+        <span class="sis-icon" aria-hidden="true"><svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="16.5" cy="6" r="1.9"/><path d="M16.5 1.4v1.2"/><path d="m20 3.1-.85.85"/><path d="M22.2 6h-1.2"/><path d="m20 8.9-.85-.85"/><path d="M2 21h20"/><path d="M4.5 21V11L12 5l7.5 6v10"/><path d="M9.5 21v-6h5v6"/></svg></span>
+        <span class="sis-body"><span class="sis-area">Faturamento</span><h2>Solar Organization</h2><p>Aluguel de usinas: clientes, faturas em PDF com Pix e histórico.</p></span>
+        <span class="sis-side"><span class="sis-tag">Disponível</span><span class="sis-go" aria-hidden="true"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12h14"/><path d="m12 5 7 7-7 7"/></svg></span></span>
       </a>
-      <a class="card active" href="/solar-budget/">
-        <span class="dot"></span>
-        <span class="icon-wrap"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect width="16" height="20" x="4" y="2" rx="2"/><line x1="8" x2="16" y1="6" y2="6"/><line x1="16" x2="16" y1="14" y2="18"/><path d="M16 10h.01"/><path d="M12 10h.01"/><path d="M8 10h.01"/><path d="M12 14h.01"/><path d="M8 14h.01"/><path d="M12 18h.01"/><path d="M8 18h.01"/></svg></span>
-        <h2>Solar Budget</h2>
-        <p>Orçamento e precificação de materiais para montagem de usinas fotovoltaicas.</p>
-        <span class="tag">Disponível</span>
-        <span class="go">Acessar ferramenta →</span>
+      <a class="sis sis-bud" href="/solar-budget/">
+        <span class="sis-icon" aria-hidden="true"><svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect width="16" height="20" x="4" y="2" rx="2"/><line x1="8" x2="16" y1="6" y2="6"/><line x1="16" x2="16" y1="14" y2="18"/><path d="M16 10h.01"/><path d="M12 10h.01"/><path d="M8 10h.01"/><path d="M12 14h.01"/><path d="M8 14h.01"/><path d="M12 18h.01"/><path d="M8 18h.01"/></svg></span>
+        <span class="sis-body"><span class="sis-area">Orçamentos</span><h2>Solar Budget</h2><p>Cotação e comparação de materiais e fornecedores para montar usinas.</p></span>
+        <span class="sis-side"><span class="sis-tag">Disponível</span><span class="sis-go" aria-hidden="true"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12h14"/><path d="m12 5 7 7-7 7"/></svg></span></span>
       </a>
-      <a class="card active" href="/solar-distribution/">
-        <span class="dot"></span>
-        <span class="icon-wrap"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21.21 15.89A10 10 0 1 1 8 2.83"/><path d="M22 12A10 10 0 0 0 12 2v10z"/></svg></span>
-        <h2>Solar Distribution</h2>
-        <p>Rateio dos créditos de energia: porcentagem de cada unidade em cada usina, fechando 100%.</p>
-        <span class="tag">Disponível</span>
-        <span class="go">Acessar ferramenta →</span>
+      <a class="sis sis-dis" href="/solar-distribution/">
+        <span class="sis-icon" aria-hidden="true"><svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M21.21 15.89A10 10 0 1 1 8 2.83"/><path d="M22 12A10 10 0 0 0 12 2v10z"/></svg></span>
+        <span class="sis-body"><span class="sis-area">Rateio de créditos</span><h2>Solar Distribution</h2><p>Porcentagem de cada unidade em cada usina, fechando 100%, com os formulários da Equatorial.</p></span>
+        <span class="sis-side"><span class="sis-tag">Disponível</span><span class="sis-go" aria-hidden="true"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12h14"/><path d="m12 5 7 7-7 7"/></svg></span></span>
       </a>
-      <a class="card active" href="/solar-replacement/">
-        <span class="dot"></span>
-        <span class="icon-wrap"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 12a9 9 0 0 1 9-9 9.75 9.75 0 0 1 6.74 2.74L21 8"/><path d="M21 3v5h-5"/><path d="M21 12a9 9 0 0 1-9 9 9.75 9.75 0 0 1-6.74-2.74L3 16"/><path d="M8 16H3v5"/></svg></span>
-        <h2>Solar Replacement</h2>
-        <p>Garantias e trocas de equipamentos: chamados com fotos, estoque de backup e ressarcimento.</p>
-        <span class="tag">Em teste</span>
-        <span class="go">Acessar ferramenta →</span>
+      <a class="sis sis-rep" href="/solar-replacement/">
+        <span class="sis-icon" aria-hidden="true"><svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M3 12a9 9 0 0 1 9-9 9.75 9.75 0 0 1 6.74 2.74L21 8"/><path d="M21 3v5h-5"/><path d="M21 12a9 9 0 0 1-9 9 9.75 9.75 0 0 1-6.74-2.74L3 16"/><path d="M8 16H3v5"/></svg></span>
+        <span class="sis-body"><span class="sis-area">Garantias e trocas</span><h2>Solar Replacement</h2><p>Chamados com fotos, estoque de backup e cálculo do ressarcimento.</p></span>
+        <span class="sis-side"><span class="sis-tag teste">Em teste</span><span class="sis-go" aria-hidden="true"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12h14"/><path d="m12 5 7 7-7 7"/></svg></span></span>
       </a>
-    </div>
+    </section>
+
+    <section class="atalhos" aria-label="Atalhos">
+      <a class="atalho" href="/empresas/"><span class="atalho-icon" aria-hidden="true"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M6 22V4a2 2 0 0 1 2-2h8a2 2 0 0 1 2 2v18Z"/><path d="M6 12H4a2 2 0 0 0-2 2v6a2 2 0 0 0 2 2h2"/><path d="M18 9h2a2 2 0 0 1 2 2v9a2 2 0 0 1-2 2h-2"/><path d="M10 6h4"/><path d="M10 10h4"/><path d="M10 14h4"/><path d="M10 18h4"/></svg></span><span><b>Empresas</b><small>Logo, dados e Pix que saem nos documentos</small></span></a>
+      <a class="atalho" href="/suporte/"><span class="atalho-icon" aria-hidden="true"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><path d="M9.09 9a3 3 0 0 1 5.83 1c0 2-3 3-3 3"/><path d="M12 17h.01"/></svg></span><span><b>Suporte e ajuda</b><small>Dúvidas, problemas e sugestões</small></span></a>
+    </section>
   </main>
 
   <footer class="ig-footer">
     <div class="footer-links"><a href="/" aria-current="page">IG Base</a><a href="/empresas/">Empresas</a><a href="/suporte/">Suporte</a></div>
     <div class="status"><span class="dot"></span>Todos os sistemas operacionais</div>
-    <div class="version" data-ig-version>IG Base v1.10.50</div>
+    <div class="version" data-ig-version>IG Base v1.10.51</div>
   </footer>
 
   <div class="modal-overlay" id="settings-overlay">
@@ -271,13 +291,13 @@ async function initAuth(){
 function renderLoggedIn(){
   if(window.IGCompanies&&sessionUser&&supabaseClient){var central=IGCompanies.service(supabaseClient,sessionUser);central.load().catch(function(e){console.warn('Cadastro central: confira Empresas no IG Base.',e.message);});}
   var nome = IGAccount.name(currentUsername || sessionUser?.user_metadata?.username);
-  document.getElementById('topbar-right').innerHTML = '<a class="enter-link" href="/empresas/">Empresas</a>' + IGAccount.html(nome,'<button id="settings-btn" type="button">Configurações</button><a href="/#configuracoes">Configurações da conta no IG Base</a><button id="account-signout" type="button">Sair da conta</button>');
+  document.getElementById('topbar-right').innerHTML = '<a class="top-link" href="/empresas/">Empresas</a><a class="top-link" href="/suporte/">Suporte</a>' + IGAccount.html(nome,'<button id="settings-btn" type="button">Configurações</button><a href="/#configuracoes">Configurações da conta no IG Base</a><button id="account-signout" type="button">Sair da conta</button>');
   document.getElementById('settings-btn').addEventListener('click',openSettings);
   document.getElementById('account-signout').addEventListener('click',sairDaConta);
   if(location.hash==='#configuracoes')openSettings();
 }
 function renderLoggedOut(){
-  document.getElementById('topbar-right').innerHTML='<button type="button" class="enter-link" id="hub-open-login">Entrar</button>';
+  document.getElementById('topbar-right').innerHTML='<a class="top-link" href="/suporte/">Suporte</a><button type="button" class="enter-link" id="hub-open-login">Entrar</button>';
   document.getElementById('hub-open-login').onclick=openLogin;
   if(location.hash==='#entrar'||location.hash==='#configuracoes')openLogin();
 }
@@ -338,14 +358,14 @@ document.getElementById('settings-signout').addEventListener('click', sairDaCont
    O aviso aparece uma vez por versão por navegador (localStorage compartilhado
    entre o site principal e os subsites, pois ficam no mesmo domínio).
    ============================================================ */
-var IG_BASE_VERSION = window.IGBaseRelease?.version || '1.10.50';
-var IG_BASE_RELEASE_ID = window.IGBaseRelease?.releaseId || '1.10.50-2026-10-30';
+var IG_BASE_VERSION = window.IGBaseRelease?.version || '1.10.51';
+var IG_BASE_RELEASE_ID = window.IGBaseRelease?.releaseId || '1.10.51-2026-10-30';
 var IG_BASE_CHANGELOG = [
+  "Início do IG Base mais limpo: sem a logo pequena e a barra no topo, sistemas numa vitrine com cor e área de cada um, e atalhos para Empresas e Suporte.",
   "Novo: Solar Replacement (em teste) no início e no menu Sistemas: chamados de garantia com fotos, estoque de backup e cálculo do ressarcimento.",
   "Correção: o Hub e o Solar Organization voltaram a abrir (um texto das novidades travava o carregamento desde 17/11).",
   "Solar Distribution: “Editar dados do cliente” num lugar só (cliente, usinas, contato do formulário e unidades); ao mudar um dado, rateio, relatório e formulários já usam o novo.",
   "Solar Distribution: documentos todos no fim da página, sem botões repetidos, e excluir rateios do histórico.",
-  "Solar Organization: calcular já salva no histórico (recalcular o mesmo mês substitui, sem duplicar) e “Corrigir” no histórico abre a fatura preenchida para alterar.",
 ];
 function igbMostrarChangelog(){
   var KEY = 'igbase_changelog_visto';
