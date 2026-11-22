@@ -50,3 +50,7 @@ Fotos: armazenamento do Supabase, pasta privada `solar-replacement` (autorizado 
 Espaço criado em 21/11/2026 pelo SQL Editor (projeto IG Base), com o usuário logado no painel. O SQL Editor avisa "operação destrutiva" por causa dos `drop policy if exists`: eles só apagam as quatro regras do próprio Solar Replacement, então pode confirmar. Testado na conta real: envio e leitura funcionam; pasta de outra conta, acesso sem login e arquivo que não é imagem são recusados.
 
 Em aberto: impressora e tamanho da etiqueta.
+
+## 1.10.54 (22/11/2026)
+
+Tela no mesmo modelo do Solar Distribution: abas sublinhadas, título por aba, barra "Salvar na conta" (o site também salva sozinho), lateral com Chamados, Usinas e Estoque, filtros de chamados (Em andamento, Concluídos, Todos; ordem) e "+ Novo" conforme o modo.

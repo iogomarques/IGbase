@@ -40,3 +40,24 @@
 .g-miniaturas button{min-height:32px;font-size:12px}
 .g-enviando{color:#8a5a00;font-weight:600}
 .file-button{cursor:pointer}
+
+/* 1.10.54: mesmo modelo do Solar Distribution (barra de salvar, lateral com 3 modos e filtros). */
+.replacement-page .side-switch{grid-template-columns:repeat(3,1fr)}
+.dist-toolbar{display:flex;align-items:center;justify-content:space-between;gap:12px;flex-wrap:wrap}
+.panel.dist-toolbar{padding:10px 16px;margin-bottom:16px}
+.dist-toolbar .storage-note{margin:0;padding:0;font-size:13px}
+.dist-toolbar .actions{margin:0}
+.dist-toolbar.sujo{border-color:#e7c66b;background:#fffbea}
+.dist-toolbar.sujo .storage-note{color:#7a5a00;font-weight:600}
+@media(max-width:600px){.dist-toolbar .actions{width:100%}.dist-toolbar .actions button{flex:1}}
+.side-filters{display:flex;flex-direction:column;gap:6px;margin:0 0 4px}
+.side-filters .filter-label{display:block;font-size:12px;font-weight:600;color:var(--ink,#1f2a22)}
+.side-filters select{width:100%;min-width:0;height:38px;padding:8px 9px;border:1px solid var(--border);border-radius:10px;background:#fff;font-size:13px}
+.side-filters .side-clear{justify-content:center;font-size:12px;min-height:36px}
+.side-filters-box{border:0;margin:0}
+.side-filters-box>summary{cursor:pointer;list-style:none;font-size:12px;font-weight:600;color:var(--ink);padding:6px 2px;display:flex;align-items:center;gap:6px}
+.side-filters-box>summary::-webkit-details-marker{display:none}
+.side-filters-box>summary::before{content:'▸';color:var(--green);transition:transform .15s}
+.side-filters-box[open]>summary::before{transform:rotate(90deg)}
+.side-filters-body{display:flex;flex-direction:column;gap:6px;padding-top:4px}
+@media(min-width:901px){.side-filters-box>summary{color:var(--muted)}}

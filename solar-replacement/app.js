@@ -20,7 +20,7 @@ async function boot(){const g=++generation;$('loading').hidden=false;$('auth').h
  const r=await timeout(db.auth.getSession());if(g!==generation)return;if(r.error)throw r.error;await activate(r.data.session?.user||null);
 }catch(e){if(g!==generation)return;$('loading').hidden=true;$('auth').hidden=false;$('retry').hidden=false;notify(e.message||'Não foi possível conectar.','error');}}
 async function activate(next){const g=++generation;user=next;store=null;data=G.fresh();sel={chamado:null,usina:null};
- $('loading').hidden=!!user;$('auth').hidden=!!user;$('workspace').hidden=true;$('g-navigation').hidden=!user;$('side-panel').hidden=!user;$('g-account').innerHTML='';
+ $('loading').hidden=!!user;$('auth').hidden=!!user;$('workspace').hidden=true;$('budget-navigation').hidden=!user;$('side-panel').hidden=!user;$('g-account').innerHTML='';
  if(!user){$('loading').hidden=true;return;}
  let name=user.user_metadata?.username;try{const p=await timeout(db.from('perfis_usuario').select('username').eq('user_id',user.id).maybeSingle());name=p.data?.username||name;}catch(e){}
  if(g!==generation)return;$('g-account').innerHTML=IGAccount.html(name,'<button type="button" id="g-settings">Configurações</button><a href="/#configuracoes">Configurações da conta no IG Base</a><button type="button" id="g-signout">Sair da conta</button>');
@@ -29,7 +29,7 @@ async function activate(next){const g=++generation;user=next;store=null;data=G.f
  sel.chamado=data.chamados[0]?.id||null;sel.usina=data.usinas[0]?.id||null;$('loading').hidden=true;$('workspace').hidden=false;render();}
 
 /* ---------- Gravação automática ---------- */
-function salvo(t,erro){const el=$('g-salvo');el.textContent=t;el.classList.toggle('erro',!!erro);el.classList.toggle('salvando',!erro&&/Salvando/.test(t));}
+function salvo(t,erro){const el=$('g-salvo');el.textContent=t;el.classList.toggle('erro',!!erro);el.classList.toggle('salvando',!erro&&/Salvando/.test(t));el.closest('.dist-toolbar')?.classList.toggle('sujo',!!erro||/Salvando/.test(t));}
 function agendarGravacao(){clearTimeout(salvarTimer);salvo('Salvando…');salvarTimer=setTimeout(gravar,900);}
 async function gravar(){if(!store)return;if(store.gravando){agendarGravacao();return;}try{await store.save(data);salvo('Salvo na sua conta IG Base às '+new Date().toLocaleTimeString('pt-BR',{hour:'2-digit',minute:'2-digit'})+'.');}catch(e){salvo('Não foi possível salvar: '+e.message,true);notify('Não foi possível salvar: '+e.message,'error');}}
 window.addEventListener('beforeunload',e=>{if(salvarTimer&&/Salvando/.test($('g-salvo').textContent)){e.preventDefault();e.returnValue='';}});
@@ -46,13 +46,28 @@ function restaurarFoco(s){if(!s)return;const el=document.querySelector(s);if(el&
 
 /* ---------- Telas ---------- */
 const field=(label,attr,value,type='text',extra='')=>'<label>'+label+'<input '+attr+' type="'+type+'" value="'+esc(value??'')+'" '+extra+'></label>';
-function render(){clearTimeout(renderTimer);const foco=focoAtual();const t=tab();
+/* 1.10.54 (pedido do usuário): mesmo modelo de tela do Solar Distribution (título por aba, lateral com modos e filtros, barra de salvar). */
+const TITULOS={painel:['Painel','Chamados em andamento, backups instalados e ressarcimento.'],chamado:['Chamado','Usina, testes e fotos, fabricante, backup e troca, num lugar só.'],usinas:['Usinas','ID no monitoramento, potência, fator e tarifa de cada usina.'],estoque:['Estoque de backup','Equipamentos de reserva para instalar em campo enquanto o fabricante troca.'],ajustes:['Ajustes','Carência, contagem do ressarcimento e modelos de equipamento.']};
+function renderHeading(){const t=tab();if(!user){$('g-title').textContent='Solar Replacement';$('g-subtitle').textContent='Garantias, trocas e estoque de backup dos equipamentos solares.';return;}$('g-title').textContent=TITULOS[t][0];$('g-subtitle').textContent=TITULOS[t][1];}
+function render(){clearTimeout(renderTimer);const foco=focoAtual();const t=tab();renderHeading();
  for(const a of document.querySelectorAll('[data-tab]')){if(a.dataset.tab===t)a.setAttribute('aria-current','page');else a.removeAttribute('aria-current');}
  for(const s of document.querySelectorAll('[data-page]'))s.hidden=s.dataset.page!==t;if(!user||!store)return;
  renderSide();({painel:renderPainel,chamado:renderChamado,usinas:renderUsinas,estoque:renderEstoque,ajustes:renderAjustes})[t]();restaurarFoco(foco);}
 const pillEtapa=ch=>{const n=G.etapa(ch);return '<span class="g-pill e'+n+'">'+n+' · '+esc(G.etapaNome(n))+'</span>';};
-function renderSide(){const q=$('side-search').value.trim().toLowerCase(),lista=data.chamados.slice().sort((a,b)=>(G.etapa(a)===5)-(G.etapa(b)===5)||b.numero-a.numero).filter(ch=>{if(!q)return true;const us=usinaById(ch.usinaId);return [ch.numero,ch.serialDefeito,ch.casoFabricante,us?.idMonitoramento,us?.nome,us?.cliente].join(' ').toLowerCase().includes(q);});
- $('side-list').innerHTML=lista.map(ch=>{const us=usinaById(ch.usinaId);return '<button type="button" class="side-row'+(ch.id===sel.chamado&&tab()==='chamado'?' active':'')+'" data-abrir="'+esc(ch.id)+'"><span class="side-dot'+(G.etapa(ch)===5?' done':'')+'" aria-hidden="true"></span><span class="side-meta"><span class="side-name">Nº '+ch.numero+' · '+esc(us?.idMonitoramento||us?.nome||'Usina não escolhida')+'</span><span class="side-sub">'+esc(G.etapaNome(G.etapa(ch)))+(ch.serialDefeito?' · '+esc(ch.serialDefeito):'')+'</span></span></button>';}).join('')||'<p class="side-empty">'+(data.chamados.length?'Nenhum chamado com essa busca.':'Nenhum chamado ainda. Clique em "+ Novo chamado".')+'</p>';}
+let sideMode='chamados';const sideFiltro={situacao:'andamento',ordem:'recentes'};
+const SIDE_TXT={chamados:['Buscar usina, serial ou nº do caso','+ Novo chamado','Chamados'],usinas:['Buscar ID, usina ou cliente','+ Nova usina','Usinas'],estoque:['Buscar serial ou modelo','+ Novo backup','Equipamentos de backup']};
+function opcoes(list,v){return list.map(([k,t])=>'<option value="'+k+'"'+(k===v?' selected':'')+'>'+t+'</option>').join('');}
+function renderSideFilters(){const box=$('side-filters');if(sideMode!=='chamados'){box.innerHTML='';return;}const ativos=(sideFiltro.situacao!=='andamento')+(sideFiltro.ordem!=='recentes'),aberto=box.dataset.aberto?box.dataset.aberto==='1':!matchMedia('(max-width: 900px)').matches;
+ box.innerHTML='<details class="side-filters-box"'+(aberto?' open':'')+'><summary>Filtros'+(ativos?' ('+ativos+')':'')+'</summary><div class="side-filters-body"><label class="filter-label" for="side-situacao">Situação</label><select id="side-situacao" data-side-filtro="situacao">'+opcoes([['andamento','Em andamento'],['concluidos','Concluídos'],['todos','Todos']],sideFiltro.situacao)+'</select><label class="filter-label" for="side-ordem">Ordenar chamados</label><select id="side-ordem" data-side-filtro="ordem">'+opcoes([['recentes','Mais recentes'],['antigos','Mais antigos'],['usina','Usina: A–Z']],sideFiltro.ordem)+'</select>'+(ativos?'<button type="button" class="ghost side-clear" data-side-limpar>Limpar filtros</button>':'')+'</div></details>';}
+function renderSide(){for(const b of document.querySelectorAll('[data-side-mode]'))b.setAttribute('aria-pressed',String(b.dataset.sideMode===sideMode));const [ph,novo,rot]=SIDE_TXT[sideMode];$('side-search').placeholder=ph;$('side-new').textContent=novo;$('side-label').textContent=rot;renderSideFilters();
+ const q=$('side-search').value.trim().toLowerCase();
+ if(sideMode==='usinas'){const lista=data.usinas.filter(u=>!q||[u.idMonitoramento,u.nome,u.cliente].join(' ').toLowerCase().includes(q)).sort((x,y)=>String(x.idMonitoramento||x.nome).localeCompare(String(y.idMonitoramento||y.nome),'pt-BR'));
+  $('side-list').innerHTML=lista.map(u=>{const n=data.chamados.filter(c=>c.usinaId===u.id&&G.etapa(c)<5).length;return '<button type="button" class="side-row'+(u.id===sel.usina&&tab()==='usinas'?' active':'')+'" data-side-usina="'+esc(u.id)+'"><span class="side-dot'+(n?'':' done')+'" aria-hidden="true"></span><span class="side-meta"><span class="side-name">'+esc(u.idMonitoramento||u.nome||'Usina sem ID')+'</span><span class="side-sub">'+esc([u.nome&&u.idMonitoramento?u.nome:'',u.cliente].filter(Boolean).join(' · ')||'—')+(n?' · '+n+(n>1?' chamados abertos':' chamado aberto'):'')+'</span></span></button>';}).join('')||'<p class="side-empty">'+(data.usinas.length?'Nenhuma usina com essa busca.':'Nenhuma usina ainda. Clique em "+ Nova usina".')+'</p>';return;}
+ if(sideMode==='estoque'){const lista=data.equipamentos.filter(e=>e.backup&&(!q||[e.serial,e.marca,e.modelo].join(' ').toLowerCase().includes(q))).sort((x,y)=>(x.status!=='BACKUP_DISPONIVEL')-(y.status!=='BACKUP_DISPONIVEL')||String(x.serial).localeCompare(String(y.serial)));
+  $('side-list').innerHTML=lista.map(e=>{const us=usinaById(e.usinaId),livre=e.status==='BACKUP_DISPONIVEL';return '<button type="button" class="side-row" data-side-estoque="'+esc(e.id)+'"><span class="side-dot'+(livre?' done':'')+'" aria-hidden="true"></span><span class="side-meta"><span class="side-name">'+esc(e.serial)+'</span><span class="side-sub">'+esc((e.marca||'')+' '+(e.modelo||''))+' · '+(livre?'disponível':'em '+esc(us?(us.idMonitoramento||us.nome):'campo'))+'</span></span></button>';}).join('')||'<p class="side-empty">'+(data.equipamentos.some(e=>e.backup)?'Nenhum backup com essa busca.':'Nenhum backup ainda. Clique em "+ Novo backup".')+'</p>';return;}
+ const ordem={recentes:(a,b)=>b.numero-a.numero,antigos:(a,b)=>a.numero-b.numero,usina:(a,b)=>String(usinaById(a.usinaId)?.idMonitoramento||'').localeCompare(String(usinaById(b.usinaId)?.idMonitoramento||''),'pt-BR')||b.numero-a.numero}[sideFiltro.ordem];
+ const lista=data.chamados.filter(ch=>sideFiltro.situacao==='todos'||(sideFiltro.situacao==='concluidos')===(G.etapa(ch)===5)).sort(ordem).filter(ch=>{if(!q)return true;const us=usinaById(ch.usinaId);return [ch.numero,ch.serialDefeito,ch.casoFabricante,us?.idMonitoramento,us?.nome,us?.cliente].join(' ').toLowerCase().includes(q);});
+ $('side-list').innerHTML=lista.map(ch=>{const us=usinaById(ch.usinaId);return '<button type="button" class="side-row'+(ch.id===sel.chamado&&tab()==='chamado'?' active':'')+'" data-abrir="'+esc(ch.id)+'"><span class="side-dot'+(G.etapa(ch)===5?' done':'')+'" aria-hidden="true"></span><span class="side-meta"><span class="side-name">Nº '+ch.numero+' · '+esc(us?.idMonitoramento||us?.nome||'Usina não escolhida')+'</span><span class="side-sub">'+esc(G.etapaNome(G.etapa(ch)))+(ch.serialDefeito?' · '+esc(ch.serialDefeito):'')+'</span></span></button>';}).join('')||'<p class="side-empty">'+(data.chamados.length?'Nenhum chamado com essa busca ou filtro.':'Nenhum chamado ainda. Clique em "+ Novo chamado".')+'</p>';}
 
 function renderPainel(){const host=document.querySelector('[data-page=painel]'),abertos=data.chamados.filter(c=>G.etapa(c)<5);
  const total=data.chamados.reduce((t,c)=>t+(G.ressarcimento(c,data,usinaById(c.usinaId)).valor||0),0),metric=(k,v)=>'<div class="metric"><span>'+k+'</span><strong>'+v+'</strong></div>';
@@ -170,11 +185,18 @@ document.addEventListener('change',e=>{const t=e.target;if(!store)return;const c
  if(t.dataset.mod!==undefined){const m=modeloById(t.dataset.modId);if(!m)return;const k=t.dataset.mod;if(NUM_MOD.has(k)){const v=G.num(t.value);if(aviseNumero(t,v))return;m[k]=k==='entradas'?Math.max(1,Math.round(v||1)):v;}else m[k]=t.value.trim();mudou();return;}
  if(t.dataset.cfg!==undefined){const k=t.dataset.cfg;if(NUM_CFG.has(k)){const v=G.num(t.value);if(aviseNumero(t,v))return;data.config[k]=v;}else data.config[k]=t.value;mudou();return;}});
 $('side-search').addEventListener('input',renderSide);
+document.querySelector('.side-switch').addEventListener('click',e=>{const b=e.target.closest('[data-side-mode]');if(!b||!store)return;sideMode=b.dataset.sideMode;$('side-search').value='';
+ const destino={chamados:tab()==='chamado'?'chamado':'painel',usinas:'usinas',estoque:'estoque'}[sideMode];if(tab()!==destino)location.hash=destino;else render();});
+document.addEventListener('change',e=>{const t=e.target;if(t.dataset&&t.dataset.sideFiltro){sideFiltro[t.dataset.sideFiltro]=t.value;renderSide();}});
+document.addEventListener('toggle',e=>{if(e.target&&e.target.classList&&e.target.classList.contains('side-filters-box'))$('side-filters').dataset.aberto=e.target.open?'1':'0';},true);
 document.addEventListener('change',e=>{const t=e.target;if(t.dataset&&t.dataset.fotosTipo){const files=[...t.files];t.value='';enviarFotos(files,t.dataset.fotosTipo);}});
 
 document.addEventListener('click',e=>{if(!store)return;
  const ab=e.target.closest('[data-abrir]');if(ab){sel.chamado=ab.dataset.abrir;if(tab()!=='chamado')location.hash='chamado';else render();window.scrollTo({top:0});return;}
  const us=e.target.closest('[data-usina-sel]');if(us){sel.usina=us.dataset.usinaSel;render();return;}
+ const su=e.target.closest('[data-side-usina]');if(su){sel.usina=su.dataset.sideUsina;if(tab()!=='usinas')location.hash='usinas';else render();return;}
+ const se=e.target.closest('[data-side-estoque]');if(se){if(tab()!=='estoque')location.hash='estoque';else render();return;}
+ if(e.target.closest('[data-side-limpar]')){sideFiltro.situacao='andamento';sideFiltro.ordem='recentes';renderSide();return;}
  const pot=e.target.closest('[data-potencia]');if(pot){const ch=chamadoById(sel.chamado),m=ch&&modeloById(ch.modeloId);if(!ch)return;ch.potenciaAfetadaKw=pot.dataset.potencia==='total'?G.num(ch.potenciaKw):G.potenciaPorEntrada(m);mudou();return;}
  const b=e.target.closest('[data-action]');if(!b)return;const a=b.dataset.action,ch=chamadoById(sel.chamado);
  try{
@@ -193,7 +215,9 @@ document.addEventListener('click',e=>{if(!store)return;
   if(a==='excluir-modelo'){const id=b.dataset.modId;if(data.chamados.some(c=>c.modeloId===id)){notify('Há chamados com este modelo. Troque o modelo nos chamados antes.','warn');return;}data.modelos=data.modelos.filter(x=>x.id!==id);mudou();return;}
  }catch(err){notify(err.message,'error');}});
 function novoChamado(){if(!store)return;const ch=G.chamado(data,{usinaId:sel.usina&&usinaById(sel.usina)?sel.usina:(data.usinas.length===1?data.usinas[0].id:null)});data.chamados.push(ch);sel.chamado=ch.id;if(tab()!=='chamado')location.hash='chamado';mudou();notify('Chamado nº '+ch.numero+' aberto.');}
-$('side-new').onclick=novoChamado;$('retry').onclick=boot;$('notice').onclick=()=>{clearTimeout(noticeTimer);$('notice').textContent='';};
+$('side-new').onclick=()=>{if(!store)return;if(sideMode==='usinas'){const u=G.usina();data.usinas.push(u);sel.usina=u.id;if(tab()!=='usinas')location.hash='usinas';mudou();setTimeout(()=>document.querySelector('[data-us="idMonitoramento"]')?.focus(),60);return;}
+ if(sideMode==='estoque'){if(tab()!=='estoque')location.hash='estoque';setTimeout(()=>$('g-eq-serial')?.focus(),60);return;}novoChamado();};
+$('save').onclick=()=>{if(!store)return;clearTimeout(salvarTimer);salvo('Salvando…');gravar();};$('retry').onclick=boot;$('notice').onclick=()=>{clearTimeout(noticeTimer);$('notice').textContent='';};
 window.addEventListener('hashchange',render);
 boot();
 })();

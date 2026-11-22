@@ -3,23 +3,29 @@
 <meta name="description" content="Acompanhe chamados de garantia de microinversores, placas e otimizadores no IG Base.">
 <meta name="robots" content="noindex">
 <title>Solar Replacement | IG Base</title>
-<link rel="icon" type="image/png" sizes="64x64" href="/favicon-ig-base.png?v=1.10.53">
-<link rel="stylesheet" href="/solar-budget/styles.css?v=1.10.53">
-<link rel="stylesheet" href="styles.css?v=1.10.53">
-<script defer src="engine.js?v=1.10.53"></script>
-<script defer src="store.js?v=1.10.53"></script>
-<script defer src="app.js?v=1.10.53"></script>
-<link rel="stylesheet" href="/shared/presentation.css?v=1.10.53">
-<script src="/shared/account.js?v=1.10.53"></script>
-<script src="/shared/falta.js?v=1.10.53"></script><script src="/shared/navegacao.js?v=1.10.53"></script><script src="/shared/version.js?v=1.10.53"></script>
+<link rel="icon" type="image/png" sizes="64x64" href="/favicon-ig-base.png?v=1.10.54">
+<link rel="stylesheet" href="/solar-budget/styles.css?v=1.10.54">
+<link rel="stylesheet" href="styles.css?v=1.10.54">
+<script defer src="engine.js?v=1.10.54"></script>
+<script defer src="store.js?v=1.10.54"></script>
+<script defer src="app.js?v=1.10.54"></script>
+<link rel="stylesheet" href="/shared/presentation.css?v=1.10.54">
+<script src="/shared/account.js?v=1.10.54"></script>
+<script src="/shared/falta.js?v=1.10.54"></script><script src="/shared/navegacao.js?v=1.10.54"></script><script src="/shared/version.js?v=1.10.54"></script>
 </head>
 <body class="budget-page replacement-page"><div class="budget-app">
 <aside class="budget-sidebar" aria-label="Chamados de garantia">
  <a href="/" class="brand" aria-label="Retornar ao IG Base"><img draggable="false" src="/Logo_IG_Base.png" alt="IG Base"></a>
  <div id="side-panel" hidden>
-  <label class="side-search"><span class="sr-only">Buscar chamado</span><input id="side-search" type="search" placeholder="Buscar usina, serial ou nº do caso" autocomplete="off"></label>
+  <div class="side-switch" role="group" aria-label="Mostrar na lateral">
+   <button type="button" data-side-mode="chamados" aria-pressed="true">Chamados</button>
+   <button type="button" data-side-mode="usinas" aria-pressed="false">Usinas</button>
+   <button type="button" data-side-mode="estoque" aria-pressed="false">Estoque</button>
+  </div>
+  <label class="side-search"><span class="sr-only">Buscar na lista</span><input id="side-search" type="search" placeholder="Buscar usina, serial ou nº do caso" autocomplete="off"></label>
+  <div id="side-filters" class="side-filters"></div>
   <button type="button" id="side-new" class="side-new">+ Novo chamado</button>
-  <div class="side-label">Chamados</div>
+  <div class="side-label" id="side-label">Chamados</div>
   <div id="side-list" class="side-list"></div>
  </div>
 </aside>
@@ -28,7 +34,7 @@
   <div class="budget-heading"><h1 id="g-title">Solar Replacement</h1><p id="g-subtitle">Garantias, trocas e estoque de backup dos equipamentos solares. Versão em construção.</p></div>
   <div id="g-account"></div>
  </header>
- <nav id="g-navigation" class="budget-navigation budget-tabs" aria-label="Áreas do Solar Replacement" hidden>
+ <nav id="budget-navigation" class="budget-navigation budget-tabs" aria-label="Áreas do Solar Replacement" hidden>
   <a href="#painel" data-tab="painel">Painel</a>
   <a href="#chamado" data-tab="chamado">Chamado</a>
   <a href="#usinas" data-tab="usinas">Usinas</a>
@@ -40,7 +46,10 @@
   <section id="loading" class="ig-startup"><div class="ig-startup-card" aria-busy="true"><img width="713" height="340" draggable="false" src="/assets/logo-ig-base.png" alt="IG Base"><div class="ig-startup-spinner" aria-hidden="true"></div><h2>Carregando o sistema</h2><p role="status" aria-live="polite">Carregando seus chamados…</p></div></section>
   <section id="auth" class="panel" hidden><h2>Entre com sua conta IG Base</h2><p>A mesma conta vale para todos os sistemas do IG Base. Depois de entrar, você volta para cá.</p><p><a class="button primary" href="/?voltar=/solar-replacement/#entrar">Entrar pelo IG Base</a></p><button id="retry" class="ghost" hidden>Tentar conexão novamente</button></section>
   <div id="workspace" hidden>
-   <p class="g-salvo" id="g-salvo" role="status">Dados salvos na sua conta IG Base.</p>
+   <section class="panel toolbar dist-toolbar">
+    <p class="storage-note" id="g-salvo" role="status">Dados salvos na sua conta IG Base.</p>
+    <div class="actions"><button id="save" class="primary">Salvar na conta</button></div>
+   </section>
    <section data-page="painel" class="g-page"></section>
    <section data-page="chamado" class="g-page" hidden></section>
    <section data-page="usinas" class="g-page" hidden></section>
@@ -48,6 +57,6 @@
    <section data-page="ajustes" class="g-page" hidden></section>
   </div>
  </main>
- <footer class="budget-footer ig-footer"><div class="footer-links"><a href="/">IG Base</a><a href="/empresas/">Empresas</a><a href="/suporte/">Suporte</a></div><div class="version" data-ig-version>IG Base v1.10.53</div></footer>
+ <footer class="budget-footer ig-footer"><div class="footer-links"><a href="/">IG Base</a><a href="/empresas/">Empresas</a><a href="/suporte/">Suporte</a></div><div class="version" data-ig-version>IG Base v1.10.54</div></footer>
 </div></div>
 </body></html>
