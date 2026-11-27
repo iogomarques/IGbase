@@ -1,7 +1,7 @@
 /* Public release shared by the IG Base hub, subsites and new Budget documents. */
-/* Next updates increment the last counter: 1.10.56 -> 1.10.57; no maximum release. */
+/* Next updates increment the last counter: 1.10.57 -> 1.10.58; no maximum release. */
 (function(root){'use strict';
- const version='1.10.56';
+ const version='1.10.57';
  const release=Object.freeze({version,releaseId:version+'-2026-10-30',label:'IG Base v'+version});
  root.IGBaseRelease=release;
  if(typeof module!=='undefined'&&module.exports)module.exports=release;

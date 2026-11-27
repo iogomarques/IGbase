@@ -206,3 +206,12 @@ a.button.primary{background:var(--green);color:#fff}
 .dist-hist-item>details{flex:1;min-width:0}
 .dist-ficha-panel .section-title{display:block}
 .dist-ficha-panel h2 .igi{vertical-align:-4px;margin-right:4px}
+/* 1.10.57: "Comece por aqui" no painel geral. */
+.dist-comece{display:flex;align-items:center;justify-content:space-between;gap:16px;flex-wrap:wrap;border-left:4px solid #c98a1b}
+.dist-comece.alerta{border-left-color:#b5482f}
+.dist-comece.pronto{border-left-color:var(--green)}
+.dist-comece>div{min-width:0;flex:1 1 320px}
+.dist-comece h2{margin:2px 0 4px}
+.dist-comece p{margin:0}
+.dist-comece .hint{margin-top:6px}
+.dist-comece-rotulo{font-size:12px;font-weight:700;letter-spacing:.04em;text-transform:uppercase;color:var(--muted)}
