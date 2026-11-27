@@ -205,7 +205,6 @@ a.button.primary{background:var(--green);color:#fff}
 .dist-hist-item>input{margin-top:14px;width:18px;height:18px;flex:none}
 .dist-hist-item>details{flex:1;min-width:0}
 .dist-ficha-panel .section-title{display:block}
-.dist-ficha-panel h2 .igi{vertical-align:-4px;margin-right:4px}
 /* 1.10.57: "Comece por aqui" no painel geral. */
 .dist-comece{display:flex;align-items:center;justify-content:space-between;gap:16px;flex-wrap:wrap;border-left:4px solid #c98a1b}
 .dist-comece.alerta{border-left-color:#b5482f}

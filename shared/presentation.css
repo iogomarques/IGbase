@@ -111,3 +111,20 @@ td,th,dd,time,.metric strong,.metrics strong,.tabular,.mono{font-variant-numeric
 @media(max-width:600px){input:not([type=checkbox]):not([type=radio]):not([type=range]):not([type=file]),select,textarea{font-size:16px!important}}
 /* Textos longos (UC, e-mail, serial, nome de arquivo) quebram dentro da caixa. */
 td,dd,.side-name,.side-sub,.tiny{overflow-wrap:anywhere}
+/* 1.10.58 (pedido do usuário: tamanhos proporcionais). Logo da lateral ocupa a largura da lateral, com o menu Sistemas
+   embaixo; ícones acompanham o tamanho do texto ao lado; tela de carregamento maior. */
+.budget-sidebar>.brand img{width:200px!important;height:auto!important;max-width:100%}
+.budget-sidebar>.brand{margin-bottom:4px}
+.budget-sidebar>.ig-sistemas{align-self:flex-start}
+div.brand{flex-direction:column!important;align-items:flex-start!important;gap:12px!important}
+div.brand>a img,div.brand>a img[style]{width:200px!important;height:auto!important;max-width:100%}
+.ig-brand img{height:46px}
+@media(max-width:900px){.budget-sidebar>.brand img,div.brand>a img,div.brand>a img[style]{width:150px!important}}
+@media(max-width:480px){.ig-brand img{height:38px}}
+.igi{flex:none}
+:is(h1,h2,h3,legend) .igi{width:1.35em;height:1.35em;vertical-align:-.3em;margin-right:.2em}
+:is(button,summary,.btn,a,.top-link) .igi{width:1.4em;height:1.4em}
+.ig-startup-card{max-width:440px;padding:40px 32px}
+.ig-startup-card img{width:240px;max-height:120px;margin-bottom:28px}
+.ig-startup-card h2{font-size:21px;margin-bottom:8px}
+.ig-startup-card p{font-size:15px}

@@ -4,7 +4,7 @@
 <meta charset="UTF-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1.0" />
 <title>IG Base</title>
-<link rel="icon" type="image/png" sizes="64x64" href="/favicon-ig-base.png?v=1.10.57">
+<link rel="icon" type="image/png" sizes="64x64" href="/favicon-ig-base.png?v=1.10.58">
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.js"></script>
 <style>
   :root{
@@ -164,11 +164,11 @@ main{padding-top:18px}
 @media(max-width:430px){.topbar{padding:0 12px}.sis{grid-template-columns:auto minmax(0,1fr);gap:14px;padding:18px 16px 18px 16px}.sis-icon{width:48px;height:48px;border-radius:14px}.sis-side{grid-column:1/-1;flex-direction:row;align-items:center}.sis h2{font-size:17px}.top-link{padding:0;width:44px;justify-content:center}.top-link span{display:none}}
 /* 1.10.56: ícones próprios do IG Base (assets/icons, skill generate-icons). No cartão, o ícone leva a cor do sistema, sem o quadrado de fundo. */
 .sis-icon{width:auto;height:auto;background:none;border-radius:0}
-.sis .igi{--igi-line:var(--c);--igi-body:color-mix(in srgb,var(--c) 20%,#fff);display:block;width:42px;height:42px}
-.top-link .igi{--igi-line:var(--green-deep);--igi-body:#D3E6CC}
+.sistemas .sis .igi{--igi-line:var(--c);--igi-body:color-mix(in srgb,var(--c) 20%,#fff);display:block;width:42px;height:42px}
+#topbar-right .top-link .igi{--igi-line:var(--green-deep);--igi-body:#D3E6CC;width:22px;height:22px}
 #hub-login{width:min(420px,calc(100vw - 32px));box-sizing:border-box;border:1px solid #dbe7d8;border-radius:20px;padding:28px;color:#203b29;background:#fff;box-shadow:0 24px 80px #16351f30}#hub-login::backdrop{background:#16351f66;backdrop-filter:blur(4px)}#hub-login h2{font:600 23px Poppins,"Segoe UI",sans-serif;margin:0 0 12px}#hub-login p{font-size:14px;line-height:1.6;color:#5b6c60}#hub-login label{display:grid;gap:8px;font-size:13px;margin:18px 0}#hub-login input{box-sizing:border-box;width:100%;min-height:46px;border:1px solid #dbe7d8;border-radius:10px;padding:10px 12px;font:14px -apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Helvetica,Arial,sans-serif}#hub-login .login-close{float:right;border:0;background:transparent;font-size:24px;cursor:pointer;color:#5b6c60}#hub-login button[type=submit]{width:100%;margin-top:8px}#hub-login-message{color:#963c2d!important}#hub-login-message:empty{display:none}
 </style>
-<script defer src="/shared/companies.js?v=1.10.57"></script><link rel="stylesheet" href="/shared/presentation.css?v=1.10.57"><link rel="stylesheet" href="/assets/icons/icons.css?v=1.10.57"><script src="/shared/account.js?v=1.10.57"></script><script src="/shared/login.js?v=1.10.57"></script><script src="/shared/falta.js?v=1.10.57"></script><script src="/shared/navegacao.js?v=1.10.57"></script><script src="/shared/version.js?v=1.10.57"></script></head>
+<script defer src="/shared/companies.js?v=1.10.58"></script><link rel="stylesheet" href="/shared/presentation.css?v=1.10.58"><link rel="stylesheet" href="/assets/icons/icons.css?v=1.10.58"><script src="/shared/account.js?v=1.10.58"></script><script src="/shared/login.js?v=1.10.58"></script><script src="/shared/falta.js?v=1.10.58"></script><script src="/shared/navegacao.js?v=1.10.58"></script><script src="/shared/version.js?v=1.10.58"></script></head>
 <body>
   <nav class="topbar">
     <div class="topbar-right" id="topbar-right">
@@ -187,22 +187,22 @@ main{padding-top:18px}
 
     <section class="sistemas" aria-label="Sistemas do IG Base">
       <a class="sis sis-org" href="/solar-organization/">
-        <span class="sis-icon" aria-hidden="true"><svg class="igi" width="34" height="34" aria-hidden="true"><use href="/assets/icons/sprite.svg?v=1.10.57#fatura"/></svg></span>
+        <span class="sis-icon" aria-hidden="true"><svg class="igi" width="34" height="34" aria-hidden="true"><use href="/assets/icons/sprite.svg?v=1.10.58#fatura"/></svg></span>
         <span class="sis-body"><span class="sis-area">Faturamento</span><h2>Solar Organization</h2><p>Aluguel de usinas: clientes, faturas em PDF com Pix e histórico.</p></span>
         <span class="sis-side"><span class="sis-tag">Disponível</span><span class="sis-go" aria-hidden="true"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12h14"/><path d="m12 5 7 7-7 7"/></svg></span></span>
       </a>
       <a class="sis sis-bud" href="/solar-budget/">
-        <span class="sis-icon" aria-hidden="true"><svg class="igi" width="34" height="34" aria-hidden="true"><use href="/assets/icons/sprite.svg?v=1.10.57#cotacao"/></svg></span>
+        <span class="sis-icon" aria-hidden="true"><svg class="igi" width="34" height="34" aria-hidden="true"><use href="/assets/icons/sprite.svg?v=1.10.58#cotacao"/></svg></span>
         <span class="sis-body"><span class="sis-area">Orçamentos</span><h2>Solar Budget</h2><p>Cotação e comparação de materiais e fornecedores para montar usinas.</p></span>
         <span class="sis-side"><span class="sis-tag">Disponível</span><span class="sis-go" aria-hidden="true"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12h14"/><path d="m12 5 7 7-7 7"/></svg></span></span>
       </a>
       <a class="sis sis-dis" href="/solar-distribution/">
-        <span class="sis-icon" aria-hidden="true"><svg class="igi" width="34" height="34" aria-hidden="true"><use href="/assets/icons/sprite.svg?v=1.10.57#rateio"/></svg></span>
+        <span class="sis-icon" aria-hidden="true"><svg class="igi" width="34" height="34" aria-hidden="true"><use href="/assets/icons/sprite.svg?v=1.10.58#rateio"/></svg></span>
         <span class="sis-body"><span class="sis-area">Rateio de créditos</span><h2>Solar Distribution</h2><p>Porcentagem de cada unidade em cada usina, fechando 100%, com os formulários da Equatorial.</p></span>
         <span class="sis-side"><span class="sis-tag">Disponível</span><span class="sis-go" aria-hidden="true"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12h14"/><path d="m12 5 7 7-7 7"/></svg></span></span>
       </a>
       <a class="sis sis-rep" href="/solar-replacement/">
-        <span class="sis-icon" aria-hidden="true"><svg class="igi" width="34" height="34" aria-hidden="true"><use href="/assets/icons/sprite.svg?v=1.10.57#troca"/></svg></span>
+        <span class="sis-icon" aria-hidden="true"><svg class="igi" width="34" height="34" aria-hidden="true"><use href="/assets/icons/sprite.svg?v=1.10.58#troca"/></svg></span>
         <span class="sis-body"><span class="sis-area">Garantias e trocas</span><h2>Solar Replacement</h2><p>Chamados com fotos, estoque de backup e cálculo do ressarcimento.</p></span>
         <span class="sis-side"><span class="sis-tag teste">Em teste</span><span class="sis-go" aria-hidden="true"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12h14"/><path d="m12 5 7 7-7 7"/></svg></span></span>
       </a>
@@ -212,7 +212,7 @@ main{padding-top:18px}
   <footer class="ig-footer">
     <div class="footer-links"><a href="/" aria-current="page">IG Base</a><a href="/empresas/">Empresas</a><a href="/suporte/">Suporte</a></div>
     <div class="status"><span class="dot"></span>Todos os sistemas operacionais</div>
-    <div class="version" data-ig-version>IG Base v1.10.57</div>
+    <div class="version" data-ig-version>IG Base v1.10.58</div>
   </footer>
 
   <div class="modal-overlay" id="settings-overlay">
@@ -283,13 +283,13 @@ async function initAuth(){
 function renderLoggedIn(){
   if(window.IGCompanies&&sessionUser&&supabaseClient){var central=IGCompanies.service(supabaseClient,sessionUser);central.load().catch(function(e){console.warn('Cadastro central: confira Empresas no IG Base.',e.message);});}
   var nome = IGAccount.name(currentUsername || sessionUser?.user_metadata?.username);
-  document.getElementById('topbar-right').innerHTML = '<a class="top-link" href="/empresas/" aria-label="Empresas"><svg class="igi" width="19" height="19" aria-hidden="true"><use href="/assets/icons/sprite.svg?v=1.10.57#empresa"/></svg><span>Empresas</span></a><a class="top-link" href="/suporte/" aria-label="Suporte"><svg class="igi" width="19" height="19" aria-hidden="true"><use href="/assets/icons/sprite.svg?v=1.10.57#suporte"/></svg><span>Suporte</span></a>' + IGAccount.html(nome,'<button id="settings-btn" type="button">Configurações</button><a href="/#configuracoes">Configurações da conta no IG Base</a><button id="account-signout" type="button">Sair da conta</button>');
+  document.getElementById('topbar-right').innerHTML = '<a class="top-link" href="/empresas/" aria-label="Empresas"><svg class="igi" width="19" height="19" aria-hidden="true"><use href="/assets/icons/sprite.svg?v=1.10.58#empresa"/></svg><span>Empresas</span></a><a class="top-link" href="/suporte/" aria-label="Suporte"><svg class="igi" width="19" height="19" aria-hidden="true"><use href="/assets/icons/sprite.svg?v=1.10.58#suporte"/></svg><span>Suporte</span></a>' + IGAccount.html(nome,'<button id="settings-btn" type="button">Configurações</button><a href="/#configuracoes">Configurações da conta no IG Base</a><button id="account-signout" type="button">Sair da conta</button>');
   document.getElementById('settings-btn').addEventListener('click',openSettings);
   document.getElementById('account-signout').addEventListener('click',sairDaConta);
   if(location.hash==='#configuracoes')openSettings();
 }
 function renderLoggedOut(){
-  document.getElementById('topbar-right').innerHTML='<a class="top-link" href="/suporte/" aria-label="Suporte"><svg class="igi" width="19" height="19" aria-hidden="true"><use href="/assets/icons/sprite.svg?v=1.10.57#suporte"/></svg><span>Suporte</span></a><button type="button" class="enter-link" id="hub-open-login">Entrar</button>';
+  document.getElementById('topbar-right').innerHTML='<a class="top-link" href="/suporte/" aria-label="Suporte"><svg class="igi" width="19" height="19" aria-hidden="true"><use href="/assets/icons/sprite.svg?v=1.10.58#suporte"/></svg><span>Suporte</span></a><button type="button" class="enter-link" id="hub-open-login">Entrar</button>';
   document.getElementById('hub-open-login').onclick=openLogin;
   if(location.hash==='#entrar'||location.hash==='#configuracoes')openLogin();
 }
@@ -350,14 +350,14 @@ document.getElementById('settings-signout').addEventListener('click', sairDaCont
    O aviso aparece uma vez por versão por navegador (localStorage compartilhado
    entre o site principal e os subsites, pois ficam no mesmo domínio).
    ============================================================ */
-var IG_BASE_VERSION = window.IGBaseRelease?.version || '1.10.57';
-var IG_BASE_RELEASE_ID = window.IGBaseRelease?.releaseId || '1.10.57-2026-10-30';
+var IG_BASE_VERSION = window.IGBaseRelease?.version || '1.10.58';
+var IG_BASE_RELEASE_ID = window.IGBaseRelease?.releaseId || '1.10.58-2026-10-30';
 var IG_BASE_CHANGELOG = [
+  "Tamanhos mais equilibrados: logo maior na lateral, ícones no tamanho do texto e tela de carregamento mais legível.",
   "Painéis que dizem o que fazer: no Replacement, quanto há a receber, a perda por dia sem backup e a lista O que fazer agora; no Distribution, Comece por aqui com o cliente mais urgente.",
   "Ícones próprios do IG Base, desenhados para o site: sistemas, Empresas, Suporte, usina, unidade e editar.",
   "Textos mais legíveis em todo o IG Base: contraste melhor, campos sem zoom no celular e fonte carregada do próprio site (abre mais rápido).",
   "Solar Replacement no mesmo modelo do Solar Distribution: título por aba, lateral com Chamados, Usinas e Estoque, filtros e barra de salvar.",
-  "Solar Organization mais organizado (o cálculo não mudou): dados do mês logo depois da referência, conferências juntas, aviso para recalcular depois de editar o cliente e excluir várias faturas do histórico.",
 ];
 function igbMostrarChangelog(){
   var KEY = 'igbase_changelog_visto';

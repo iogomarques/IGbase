@@ -63,7 +63,6 @@
 @media(min-width:901px){.side-filters-box>summary{color:var(--muted)}}
 .g-vazio{display:flex;align-items:center;gap:12px}
 .empty-state>.igi{display:block;margin:0 auto 8px}
-.g-page h2 .igi{vertical-align:-4px;margin-right:4px}
 /* 1.10.57: painel que diz o que fazer (número principal no alto, lista de ações). */
 .g-destaque{display:flex;flex-wrap:wrap;gap:16px 40px}
 .g-kpi{min-width:0}
