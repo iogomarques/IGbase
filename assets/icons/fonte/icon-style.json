@@ -1,0 +1,109 @@
+{
+ "name": "ig-line-fill",
+ "grid": 24,
+ "live": 20,
+ "paint": "stroke",
+ "prefix": "igi",
+ "stroke": {
+  "width": 1.8,
+  "linecap": "round",
+  "linejoin": "round"
+ },
+ "radius": {
+  "outer": 2.5,
+  "inner": 1
+ },
+ "tones": {
+  "line": {
+   "fallbackOpacity": 1
+  },
+  "body": {
+   "fallbackOpacity": 0.16
+  }
+ },
+ "palette": {
+  "light": {
+   "default": {
+    "line": {
+     "hex": "#2F663F",
+     "token": "--ig-green-deep"
+    },
+    "body": "#D3E6CC"
+   },
+   "hover": {
+    "line": "#1F4A2C",
+    "body": "#BFDDB6"
+   },
+   "active": {
+    "line": "#1F4A2C",
+    "body": "#A9D29E"
+   },
+   "disabled": {
+    "line": "#A7B0A5",
+    "body": "#E8EDE6"
+   }
+  },
+  "dark": {
+   "default": {
+    "line": "#B9D9B0",
+    "body": "#2C4A33"
+   },
+   "hover": {
+    "line": "#E2F0DD",
+    "body": "#36593E"
+   }
+  }
+ },
+ "sizes": [
+  16,
+  20,
+  24
+ ],
+ "darkMode": "class",
+ "rendering": "geometricPrecision",
+ "primaryCheck": true,
+ "context": {
+  "font": "Poppins, Segoe UI, sans-serif",
+  "radius": 16,
+  "brand": "#2F663F",
+  "onBrand": "#FFFFFF",
+  "surface": "#FFFFFF",
+  "sidebar": "#F6F8F4",
+  "text": "#1F2A22",
+  "border": "#DDE5DA",
+  "surfaceDark": "#121812",
+  "sidebarDark": "#18211A",
+  "textDark": "#E5EDE2",
+  "borderDark": "#2A3A2D"
+ },
+ "rationale": [
+  {
+   "decision": "outline + soft fill tone",
+   "because": "the site already uses 24-grid line icons in currentColor; a pale brand fill makes them the IG Base's own instead of a generic line set",
+   "source": "index.html (system cards), scan: 31 inline line SVGs"
+  },
+  {
+   "decision": "stroke 1.8, round caps/joins",
+   "because": "the system-card icons use stroke-width 1.8; 2 elsewhere",
+   "source": "index.html .sis-icon svg"
+  },
+  {
+   "decision": "radius 2.5 outer / 1 inner",
+   "because": "UI radius 16-18px on cards",
+   "source": "solar-budget/styles.css:1 --radius 18px"
+  },
+  {
+   "decision": "line #2F663F, body #D3E6CC",
+   "because": "--ig-green-deep and a tint of --ig-green-soft",
+   "source": "shared/presentation.css:14"
+  },
+  {
+   "decision": "dark palette only under .igi-tema-escuro",
+   "because": "the site has no dark theme yet; following prefers-color-scheme would paint pale icons on the light pages",
+   "source": "scan: dark mode not found"
+  }
+ ],
+ "darkSelector": [
+  ".igi-tema-escuro"
+ ]
+}

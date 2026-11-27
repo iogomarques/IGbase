@@ -61,3 +61,6 @@
 .side-filters-box[open]>summary::before{transform:rotate(90deg)}
 .side-filters-body{display:flex;flex-direction:column;gap:6px;padding-top:4px}
 @media(min-width:901px){.side-filters-box>summary{color:var(--muted)}}
+.g-vazio{display:flex;align-items:center;gap:12px}
+.empty-state>.igi{display:block;margin:0 auto 8px}
+.g-page h2 .igi{vertical-align:-4px;margin-right:4px}

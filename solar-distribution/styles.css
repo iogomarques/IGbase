@@ -198,10 +198,11 @@ a.button.primary{background:var(--green);color:#fff}
 .dist-editar-dados{margin-top:4px}
 .dist-editar-dados>summary{cursor:pointer;display:inline-flex;align-items:center;min-height:44px;padding:0 16px;border:1px solid var(--border);border-radius:999px;background:#fff;font-weight:600;color:var(--green);margin-bottom:12px}
 .dist-editar-dados>summary::marker{content:''}
-.dist-editar-dados>summary::before{content:'✎';margin-right:8px}
+.dist-editar-dados>summary .igi{margin-right:8px}
 .dist-editar-dados[open]>summary{background:#f0f6ed}
 .dist-hist-acoes{align-items:center;margin-bottom:10px}
 .dist-hist-item{display:flex;align-items:flex-start;gap:10px}
 .dist-hist-item>input{margin-top:14px;width:18px;height:18px;flex:none}
 .dist-hist-item>details{flex:1;min-width:0}
 .dist-ficha-panel .section-title{display:block}
+.dist-ficha-panel h2 .igi{vertical-align:-4px;margin-right:4px}

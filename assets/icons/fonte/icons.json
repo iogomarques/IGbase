@@ -1,0 +1,374 @@
+{
+ "package": {
+  "name": "ig-base-icons",
+  "version": "0.1.0"
+ },
+ "framework": "svg",
+ "style": "./icon-style.json",
+ "icons": [
+  {
+   "name": "fatura",
+   "label": "Fatura (Solar Organization)",
+   "group": "sistemas",
+   "tags": [
+    "fatura",
+    "faturamento",
+    "organization"
+   ],
+   "shapes": [
+    {
+     "tone": "body",
+     "paint": "fill",
+     "type": "path",
+     "d": "M7 3.5h7.5L19 8v10.5a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2v-13a2 2 0 0 1 2-2z"
+    },
+    {
+     "tone": "line",
+     "type": "path",
+     "d": "M7 3.5h7.5L19 8v10.5a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2v-13a2 2 0 0 1 2-2z"
+    },
+    {
+     "tone": "line",
+     "type": "path",
+     "d": "M14.5 3.5V7a1 1 0 0 0 1 1H19"
+    },
+    {
+     "tone": "line",
+     "type": "path",
+     "d": "M8.5 11.5h7M8.5 14.5h4"
+    },
+    {
+     "tone": "line",
+     "type": "path",
+     "d": "M12.5 17.5h3"
+    }
+   ]
+  },
+  {
+   "name": "cotacao",
+   "label": "Cotação (Solar Budget)",
+   "group": "sistemas",
+   "tags": [
+    "cotação",
+    "orçamento",
+    "budget"
+   ],
+   "shapes": [
+    {
+     "tone": "body",
+     "paint": "fill",
+     "type": "rect",
+     "x": 5,
+     "y": 4.5,
+     "width": 14,
+     "height": 16.5,
+     "rx": 2.5
+    },
+    {
+     "tone": "line",
+     "type": "rect",
+     "x": 5,
+     "y": 4.5,
+     "width": 14,
+     "height": 16.5,
+     "rx": 2.5
+    },
+    {
+     "tone": "line",
+     "type": "rect",
+     "x": 9,
+     "y": 3,
+     "width": 6,
+     "height": 3,
+     "rx": 1
+    },
+    {
+     "tone": "line",
+     "type": "path",
+     "d": "M8.5 12.8l1.6 1.6 2.9-2.9"
+    },
+    {
+     "tone": "line",
+     "type": "path",
+     "d": "M8.5 17.5h7"
+    }
+   ]
+  },
+  {
+   "name": "rateio",
+   "label": "Rateio (Solar Distribution)",
+   "group": "sistemas",
+   "tags": [
+    "rateio",
+    "créditos",
+    "distribution"
+   ],
+   "shapes": [
+    {
+     "tone": "line",
+     "type": "path",
+     "d": "M11 5a7.5 7.5 0 1 0 7.5 7.5H11z"
+    },
+    {
+     "tone": "line",
+     "type": "path",
+     "d": "M11 12.5l-5.3 5.3"
+    },
+    {
+     "tone": "body",
+     "paint": "fill",
+     "type": "path",
+     "d": "M13.5 3.5a7.5 7.5 0 0 1 7.5 7.5h-7.5z"
+    },
+    {
+     "tone": "line",
+     "type": "path",
+     "d": "M13.5 3.5a7.5 7.5 0 0 1 7.5 7.5h-7.5z"
+    }
+   ]
+  },
+  {
+   "name": "troca",
+   "label": "Troca (Solar Replacement)",
+   "group": "sistemas",
+   "tags": [
+    "garantia",
+    "troca",
+    "replacement"
+   ],
+   "shapes": [
+    {
+     "tone": "body",
+     "paint": "fill",
+     "type": "rect",
+     "x": 9.25,
+     "y": 9.25,
+     "width": 5.5,
+     "height": 5.5,
+     "rx": 1.2
+    },
+    {
+     "tone": "line",
+     "type": "rect",
+     "x": 9.25,
+     "y": 9.25,
+     "width": 5.5,
+     "height": 5.5,
+     "rx": 1.2
+    },
+    {
+     "tone": "line",
+     "type": "path",
+     "d": "M19.5 12a7.5 7.5 0 1 1-2.2-5.3"
+    },
+    {
+     "tone": "line",
+     "type": "path",
+     "d": "M13.8 6.7h3.5V3.2"
+    }
+   ]
+  },
+  {
+   "name": "empresa",
+   "label": "Empresas",
+   "group": "conta",
+   "tags": [
+    "empresa",
+    "emissor"
+   ],
+   "shapes": [
+    {
+     "tone": "body",
+     "paint": "fill",
+     "type": "path",
+     "d": "M5 20.5V5.5a2 2 0 0 1 2-2h6a2 2 0 0 1 2 2v15z"
+    },
+    {
+     "tone": "line",
+     "type": "path",
+     "d": "M5 20.5V5.5a2 2 0 0 1 2-2h6a2 2 0 0 1 2 2v15"
+    },
+    {
+     "tone": "line",
+     "type": "path",
+     "d": "M15 9h2.5a2 2 0 0 1 2 2v9.5"
+    },
+    {
+     "tone": "line",
+     "type": "path",
+     "d": "M3.5 20.5h17"
+    },
+    {
+     "tone": "line",
+     "type": "path",
+     "d": "M8.5 20.5v-3h3v3"
+    },
+    {
+     "tone": "line",
+     "paint": "fill",
+     "type": "circle",
+     "cx": 8.5,
+     "cy": 8,
+     "r": 1
+    },
+    {
+     "tone": "line",
+     "paint": "fill",
+     "type": "circle",
+     "cx": 11.5,
+     "cy": 8,
+     "r": 1
+    },
+    {
+     "tone": "line",
+     "paint": "fill",
+     "type": "circle",
+     "cx": 8.5,
+     "cy": 12,
+     "r": 1
+    },
+    {
+     "tone": "line",
+     "paint": "fill",
+     "type": "circle",
+     "cx": 11.5,
+     "cy": 12,
+     "r": 1
+    }
+   ]
+  },
+  {
+   "name": "suporte",
+   "label": "Suporte",
+   "group": "conta",
+   "tags": [
+    "ajuda",
+    "suporte",
+    "dúvida"
+   ],
+   "shapes": [
+    {
+     "tone": "body",
+     "paint": "fill",
+     "type": "path",
+     "d": "M5.5 4h13a2.5 2.5 0 0 1 2.5 2.5v8a2.5 2.5 0 0 1-2.5 2.5H11l-4.5 3.5V17h-1A2.5 2.5 0 0 1 3 14.5v-8A2.5 2.5 0 0 1 5.5 4z"
+    },
+    {
+     "tone": "line",
+     "type": "path",
+     "d": "M5.5 4h13a2.5 2.5 0 0 1 2.5 2.5v8a2.5 2.5 0 0 1-2.5 2.5H11l-4.5 3.5V17h-1A2.5 2.5 0 0 1 3 14.5v-8A2.5 2.5 0 0 1 5.5 4z"
+    },
+    {
+     "tone": "line",
+     "type": "path",
+     "d": "M10.1 8.6a1.9 1.9 0 1 1 2.7 1.8c-.5.2-.8.6-.8 1.1v.3"
+    },
+    {
+     "tone": "line",
+     "paint": "fill",
+     "type": "circle",
+     "cx": 12,
+     "cy": 13.9,
+     "r": 1
+    }
+   ]
+  },
+  {
+   "name": "usina",
+   "label": "Usina geradora",
+   "group": "dominio",
+   "tags": [
+    "usina",
+    "placa",
+    "geradora"
+   ],
+   "shapes": [
+    {
+     "tone": "body",
+     "paint": "fill",
+     "type": "path",
+     "d": "M6 9h12.5l2 7H4z"
+    },
+    {
+     "tone": "line",
+     "type": "path",
+     "d": "M6 9h12.5l2 7H4z"
+    },
+    {
+     "tone": "line",
+     "type": "path",
+     "d": "M12.2 9l.1 7M5 12.5h14.5"
+    },
+    {
+     "tone": "line",
+     "type": "path",
+     "d": "M12.25 16v4.5M9 20.5h6.5"
+    },
+    {
+     "tone": "line",
+     "paint": "fill",
+     "type": "circle",
+     "cx": 17.8,
+     "cy": 4.8,
+     "r": 1.7
+    }
+   ]
+  },
+  {
+   "name": "unidade",
+   "label": "Unidade consumidora",
+   "group": "dominio",
+   "tags": [
+    "unidade",
+    "casa",
+    "consumo"
+   ],
+   "shapes": [
+    {
+     "tone": "body",
+     "paint": "fill",
+     "type": "path",
+     "d": "M4.5 10.5L12 4l7.5 6.5V19a1.5 1.5 0 0 1-1.5 1.5H6A1.5 1.5 0 0 1 4.5 19z"
+    },
+    {
+     "tone": "line",
+     "type": "path",
+     "d": "M4.5 10.5L12 4l7.5 6.5V19a1.5 1.5 0 0 1-1.5 1.5H6A1.5 1.5 0 0 1 4.5 19z"
+    },
+    {
+     "tone": "line",
+     "type": "path",
+     "d": "M12.9 9.8l-2.5 4h3.3l-2.5 4.2"
+    }
+   ]
+  },
+  {
+   "name": "editar",
+   "label": "Editar",
+   "group": "acoes",
+   "tags": [
+    "editar",
+    "alterar",
+    "lápis"
+   ],
+   "shapes": [
+    {
+     "tone": "body",
+     "paint": "fill",
+     "type": "path",
+     "d": "M15.3 4.7a1.8 1.8 0 0 1 2.6 0l1.4 1.4a1.8 1.8 0 0 1 0 2.6L9 19H5v-4z"
+    },
+    {
+     "tone": "line",
+     "type": "path",
+     "d": "M15.3 4.7a1.8 1.8 0 0 1 2.6 0l1.4 1.4a1.8 1.8 0 0 1 0 2.6L9 19H5v-4z"
+    },
+    {
+     "tone": "line",
+     "type": "path",
+     "d": "M13.5 6.5l4 4"
+    }
+   ]
+  }
+ ]
+}
