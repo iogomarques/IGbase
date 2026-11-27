@@ -4,7 +4,7 @@
 <meta charset="UTF-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1.0" />
 <title>Solar Organization | IG Base</title>
-<link rel="icon" type="image/png" sizes="64x64" href="/favicon-ig-base.png?v=1.10.58">
+<link rel="icon" type="image/png" sizes="64x64" href="/favicon-ig-base.png?v=1.10.59">
 <!-- O SDK é carregado sem bloquear a renderização da página, no início do app. -->
 <style>
   :root{
@@ -468,7 +468,7 @@
 
 @media screen{.vigencia-linha input[type=month]{width:100%;min-height:44px;padding:9px;border:1px solid var(--line);border-radius:8px;background:#fff;font:inherit}.vigencia-linha .vigencia-remover{margin-top:10px}#m-vigencias{margin-top:16px}}
 </style>
-<script src="/shared/companies.js?v=1.10.58"></script><link rel="stylesheet" href="/shared/presentation.css?v=1.10.58"><link rel="stylesheet" href="/assets/icons/icons.css?v=1.10.58"><script src="/shared/account.js?v=1.10.58"></script><script src="/shared/login.js?v=1.10.58"></script><script src="/shared/falta.js?v=1.10.58"></script><script src="/shared/navegacao.js?v=1.10.58"></script><script src="/shared/version.js?v=1.10.58"></script></head>
+<script src="/shared/companies.js?v=1.10.59"></script><link rel="stylesheet" href="/shared/presentation.css?v=1.10.59"><link rel="stylesheet" href="/assets/icons/icons.css?v=1.10.59"><script src="/shared/account.js?v=1.10.59"></script><script src="/shared/login.js?v=1.10.59"></script><script src="/shared/falta.js?v=1.10.59"></script><script src="/shared/navegacao.js?v=1.10.59"></script><script src="/shared/version.js?v=1.10.59"></script></head>
 <body>
 
 <div id="auth-root"><div class="auth-screen startup-screen"><div class="startup-card" aria-busy="true"><div class="startup-brand"><img width="713" height="340" draggable="false" src="/assets/logo-ig-base.png" alt="IG Base"></div><div class="startup-spinner" aria-hidden="true"></div><h1 class="startup-title">Carregando o sistema</h1><p class="startup-message" role="status" aria-live="polite">Preparando seu ambiente…</p><noscript>Ative o JavaScript no navegador para utilizar o sistema.</noscript></div></div></div>
@@ -483,7 +483,7 @@
 </div>
 <footer class="app-footer ig-footer" id="app-footer" style="display:none">
   <div class="footer-links"><a href="/">IG Base</a><a href="/empresas/">Empresas</a><a href="/suporte/">Suporte</a></div>
-  <div class="version" data-ig-version>IG Base v1.10.58</div>
+  <div class="version" data-ig-version>IG Base v1.10.59</div>
 </footer>
 
 <div id="modal-root"></div>
@@ -1256,7 +1256,7 @@ function clientRowsHtml(){
       (documento ? '<span class="uc">Documento: ' + textoExibicao(documento) + '</span> ' : '') +
       (local ? '<span class="uc">Local: ' + textoExibicao(local) + '</span> ' : '') + '</span>' +
       '<button class="edit-btn" data-action="edit-client" data-id="' + escapeHtml(c.id) + '" title="Editar cliente" aria-label="Editar cliente">' +
-      '<svg class="igi" width="17" height="17" aria-hidden="true"><use href="/assets/icons/sprite.svg?v=1.10.58#editar"/></svg></button></div>';
+      '<svg class="igi" width="17" height="17" aria-hidden="true"><use href="/assets/icons/sprite.svg?v=1.10.59#editar"/></svg></button></div>';
   }).join('');
 }
 function buscaClienteInputHtml(){
@@ -1639,7 +1639,7 @@ function renderNovoOrcamento(){
         '<div class="btn-row"><button class="btn btn-primary" data-action="calcular">Calcular orçamento</button></div>' +
       '</div>' +
       '<div class="quote-preview-col" id="preview-col">' +
-        '<div class="panel preview-empty"><span class="preview-symbol" aria-hidden="true"><svg class="igi" width="44" height="44" aria-hidden="true"><use href="/assets/icons/sprite.svg?v=1.10.58#fatura"/></svg></span><h2>Sua fatura aparece aqui</h2><p>Preencha os dados e clique em <b>Calcular orçamento</b>. Depois, confira a prévia, salve no histórico e baixe o PDF.</p></div>' +
+        '<div class="panel preview-empty"><span class="preview-symbol" aria-hidden="true"><svg class="igi" width="44" height="44" aria-hidden="true"><use href="/assets/icons/sprite.svg?v=1.10.59#fatura"/></svg></span><h2>Sua fatura aparece aqui</h2><p>Preencha os dados e clique em <b>Calcular orçamento</b>. Depois, confira a prévia, salve no histórico e baixe o PDF.</p></div>' +
       '</div>' +
     '</div>';
 
@@ -4761,14 +4761,14 @@ async function onSignOut(){
    O aviso aparece uma vez por versão por navegador (localStorage compartilhado
    entre o site principal e os subsites, pois ficam no mesmo domínio).
    ============================================================ */
-var IG_BASE_VERSION = window.IGBaseRelease?.version || '1.10.58';
-var IG_BASE_RELEASE_ID = window.IGBaseRelease?.releaseId || '1.10.58-2026-10-30';
+var IG_BASE_VERSION = window.IGBaseRelease?.version || '1.10.59';
+var IG_BASE_RELEASE_ID = window.IGBaseRelease?.releaseId || '1.10.59-2026-10-30';
 var IG_BASE_CHANGELOG = [
+  "Textos mais confortáveis de ler: parágrafos e campos maiores, rótulos sem maiúsculas forçadas.",
   "Tamanhos mais equilibrados: logo maior na lateral, ícones no tamanho do texto e tela de carregamento mais legível.",
   "Painéis que dizem o que fazer: no Replacement, quanto há a receber, a perda por dia sem backup e a lista O que fazer agora; no Distribution, Comece por aqui com o cliente mais urgente.",
   "Ícones próprios do IG Base, desenhados para o site: sistemas, Empresas, Suporte, usina, unidade e editar.",
   "Textos mais legíveis em todo o IG Base: contraste melhor, campos sem zoom no celular e fonte carregada do próprio site (abre mais rápido).",
-  "Solar Replacement no mesmo modelo do Solar Distribution: título por aba, lateral com Chamados, Usinas e Estoque, filtros e barra de salvar.",
 ];
 function igbMostrarChangelog(){
   var KEY = 'igbase_changelog_visto';

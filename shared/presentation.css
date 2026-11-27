@@ -128,3 +128,10 @@ div.brand>a img,div.brand>a img[style]{width:200px!important;height:auto!importa
 .ig-startup-card img{width:240px;max-height:120px;margin-bottom:28px}
 .ig-startup-card h2{font-size:21px;margin-bottom:8px}
 .ig-startup-card p{font-size:15px}
+/* 1.10.59 (pedido do usuário: corrigir o que a auditoria type-taste aponta). Parágrafos no tamanho de leitura
+   (15/24) e no máximo 672 px de largura; campos com 16 px em qualquer tela; rótulos sem maiúsculas forçadas e sem
+   espaçamento extra (texto menor que 24 px fica com espaçamento normal). */
+p:not([class*="fatura"]){font-size:15px!important;line-height:24px!important;max-width:672px}
+input:not([type=checkbox]):not([type=radio]):not([type=range]):not([type=file]),select,textarea{font-size:16px!important}
+.account-avatar,.ig-brand span,.sis-area,.dist-comece-rotulo{letter-spacing:normal!important;text-transform:none!important}
+:is(h2,h3,h4,h5,h6){letter-spacing:normal!important}
